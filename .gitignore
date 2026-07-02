@@ -1,0 +1,7 @@
+# Root Gitignore
+node_modules/
+__pycache__/
+.env
+.venv
+.idea/
+.vscode/
