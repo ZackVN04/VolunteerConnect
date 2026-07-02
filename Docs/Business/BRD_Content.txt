@@ -1,0 +1,447 @@
+﻿
+BUSINESS REQUIREMENTS DOCUMENT
+VOLUNTEER CONNECT
+Nền tảng kết nối tình nguyện viên với hoạt động cộng đồng
+Document ID: BRD-VLC-2026-002
+Phiên bản: 2.0 (chuẩn cuối — theo yêu cầu thô cập nhật)
+Ngày phát hành: 01/07/2026
+Chương trình: TIC Big Project Internship Summer26
+Người soạn thảo: Business Analyst (ITBA)
+
+Kiểm soát tài liệu (Document Control)
+Lịch sử phiên bản
+Phiên bản
+Ngày
+Mô tả thay đổi
+Người thực hiện
+1.0
+01/07/2026
+Tài liệu tổng quan về dự án VolunteerConnect
+Business Analyst
+
+Bảng tóm tắt dự án
+Thông tin
+Nội dung
+Tên dự án
+Volunteer Connect
+Loại hệ thống
+Web application
+Scope
+MVP trong 2 tuần, chia 2 sprint, mỗi sprint 1 tuần
+Team
+1 BA, 5 Developer Backend/Frontend, 4 Tester, 1 DevOps, 2 UX/UI
+Role chính
+Volunteer, Organizer, Admin
+Flow trọng tâm
+Organizer tạo hoạt động → Admin duyệt hoạt động → Volunteer đăng ký → Organizer duyệt đăng ký → Completed +1 profile → Admin xem dashboard
+
+1. Giới thiệu
+1.1 Tổng quan dự án
+Volunteer Connect là một web app hỗ trợ kết nối tình nguyện viên với các hoạt động cộng đồng. Hệ thống giúp Volunteer tìm kiếm và đăng ký tham gia các hoạt động đã được phê duyệt, giúp Organizer tạo và quản lý hoạt động, đồng thời giúp Admin kiểm duyệt quyền Organizer, kiểm duyệt hoạt động, quản lý user và theo dõi dashboard thống kê.
+Dự án được thực hiện trong phạm vi 2 tuần, chia thành 2 sprint, mỗi sprint 1 tuần. Mục tiêu là hoàn thành MVP có thể demo đầy đủ flow nghiệp vụ chính.
+1.2 Vấn đề thực tế cần giải quyết
+Nhiều hoạt động cộng đồng như phát cơm từ thiện, dọn rác môi trường, hỗ trợ trẻ em khó khăn, hiến máu, gây quỹ hoặc hỗ trợ cộng đồng hiện nay thường được quản lý thủ công qua Google Form, Zalo, Facebook hoặc Excel, gây ra các bất cập:
+Volunteer khó tìm hoạt động phù hợp và đáng tin cậy.
+Organizer khó quản lý danh sách đăng ký và trạng thái tham gia.
+Admin hoặc đơn vị quản lý khó kiểm soát chất lượng hoạt động được đăng.
+Khó biết Volunteer nào thật sự tham gia sau khi hoạt động kết thúc.
+Khó thống kê số hoạt động mà mỗi Volunteer đã hoàn thành.
+Thiếu một nơi tập trung để quản lý hoạt động, đăng ký, duyệt và thống kê.
+1.3 Mục tiêu hệ thống
+Cho phép Volunteer tạo tài khoản, cập nhật profile, xem hoạt động đã được duyệt và đăng ký tham gia.
+Cho phép Volunteer gửi yêu cầu xin quyền Organizer từ trang profile.
+Cho phép Admin duyệt hoặc từ chối yêu cầu xin quyền Organizer.
+Chỉ khi Admin duyệt yêu cầu, role của Volunteer mới được đổi thành Organizer và user mới có quyền tạo hoạt động.
+Cho phép Organizer tạo hoạt động cộng đồng và gửi Admin duyệt.
+Hoạt động do Organizer tạo phải được Admin duyệt trước khi hiển thị công khai cho Volunteer.
+Cho phép Volunteer đăng ký tham gia hoạt động có trạng thái Open.
+Cho phép Organizer duyệt hoặc từ chối đăng ký của Volunteer.
+Sau khi hoạt động kết thúc, Organizer cập nhật trạng thái tham gia của Volunteer thành Completed hoặc Absent.
+Chỉ khi trạng thái tham gia là Completed thì profile Volunteer mới được cộng +1 vào số hoạt động đã tham gia.
+Cho phép Admin xem dashboard thống kê toàn hệ thống.
+2. Role và quyền người dùng
+Role
+Mục đích
+Quyền chính
+Giới hạn
+Volunteer
+Người tham gia hoạt động tình nguyện
+Xem hoạt động Open, đăng ký tham gia, theo dõi trạng thái, cập nhật profile, xin quyền Organizer
+Không được tạo hoạt động mặc định
+Organizer
+Người/tổ chức tạo và quản lý hoạt động cộng đồng
+Tạo hoạt động, gửi Admin duyệt, quản lý hoạt động của mình, duyệt đăng ký, cập nhật Completed/Absent
+Chỉ quản lý hoạt động do mình tạo
+Admin
+Người quản lý toàn hệ thống
+Duyệt quyền Organizer, duyệt hoạt động, quản lý user, xem dashboard, quản lý toàn bộ activity
+Không cần tham gia flow tình nguyện như Volunteer
+
+2.1 Volunteer
+Đăng ký tài khoản, đăng nhập, đăng xuất.
+Cập nhật profile cá nhân.
+Xem danh sách hoạt động đã được Admin duyệt và có trạng thái Open.
+Xem chi tiết hoạt động.
+Đăng ký tham gia hoạt động.
+Xem danh sách hoạt động đã đăng ký và trạng thái đăng ký.
+Xem số hoạt động đã tham gia trong profile.
+Gửi yêu cầu xin quyền Organizer từ profile.
+Volunteer không được tạo hoạt động mặc định. Nếu muốn tạo hoạt động, Volunteer phải gửi yêu cầu xin quyền Organizer và chờ Admin duyệt.
+2.2 Organizer
+Tạo hoạt động cộng đồng.
+Lưu nháp hoạt động.
+Gửi hoạt động cho Admin duyệt.
+Xem và quản lý các hoạt động do mình tạo.
+Xem danh sách Volunteer đăng ký vào hoạt động của mình.
+Duyệt hoặc từ chối đăng ký tham gia.
+Sau khi hoạt động kết thúc, cập nhật kết quả tham gia của Volunteer thành Completed hoặc Absent.
+Xem thống kê cơ bản của các hoạt động do mình tổ chức.
+
+
+2.3 Admin
+Xem dashboard tổng quan.
+Quản lý tổng user.
+Xem danh sách Volunteer, Organizer.
+Duyệt hoặc từ chối yêu cầu xin quyền Organizer.
+Duyệt hoặc từ chối hoạt động do Organizer tạo.
+Quản lý toàn bộ hoạt động trong hệ thống.
+Xem danh sách đăng ký tham gia nếu cần.
+3. Scope MVP bắt buộc
+MVP tập trung vào flow chính: Organizer tạo hoạt động → Admin duyệt hoạt động → Volunteer xem hoạt động → Volunteer đăng ký → Organizer duyệt đăng ký → Sau hoạt động Organizer cập nhật Completed → Profile Volunteer tăng +1 → Admin xem dashboard.
+Module
+Chức năng bắt buộc
+Authentication & Role
+Đăng ký, đăng nhập, đăng xuất, phân quyền Admin/Organizer/Volunteer
+Volunteer Profile
+Cập nhật profile, xem joined activity count, gửi yêu cầu xin quyền Organizer
+Organizer Role Request
+Volunteer gửi request, Admin approve/reject, approve thì đổi role thành Organizer
+Activity Management
+Organizer tạo, lưu nháp, submit hoạt động cho Admin duyệt
+Admin Activity Approval
+Admin approve/reject hoạt động; approve thì status Open
+Activity List & Detail
+Volunteer xem activity Open và xem chi tiết
+Activity Registration
+Volunteer đăng ký activity Open, registration status Pending
+Registration Approval
+Organizer approve/reject registration
+Participation Update
+Organizer cập nhật Completed/Absent sau hoạt động
+Completed Counter
+Completed thì profile Volunteer +1, không cộng với status khác
+Admin Dashboard
+Thống kê và danh sách chờ duyệt
+User Management
+Admin xem user, role, cập nhật cơ bản nếu cần
+
+
+
+4. Chi tiết các module MVP
+4.1 Authentication & Role Management
+Đăng ký tài khoản.
+Đăng nhập.
+Đăng xuất.
+Phân quyền theo 3 role: Admin, Organizer, Volunteer.
+Volunteer mặc định không có quyền tạo hoạt động.
+Chỉ Admin mới được cấp quyền Organizer.
+4.2 Volunteer Profile
+Profile gồm họ tên, email, số điện thoại, khu vực hoạt động, kỹ năng, giới thiệu ngắn, số hoạt động đã tham gia, trạng thái yêu cầu xin quyền Organizer nếu có.
+Số hoạt động đã tham gia chỉ tăng khi participation status = Completed.
+Không tăng khi status = Pending, Approved, Rejected, Absent, Cancelled.
+Không được cộng trùng nếu một registration đã Completed trước đó.
+4.3 Organizer Role Request
+Volunteer có thể gửi yêu cầu xin quyền Organizer trong profile.
+Thông tin request gồm lý do muốn trở thành Organizer, kinh nghiệm hoặc tên nhóm/tổ chức nếu có, số điện thoại liên hệ.
+Request có trạng thái Pending, Approved, Rejected.
+Admin approve thì đổi role user từ Volunteer thành Organizer.
+Admin reject thì user vẫn giữ role Volunteer.
+4.4 Activity Management
+Organizer tạo hoạt động mới.
+Activity gồm tên, mô tả, loại hoạt động, địa điểm, thời gian bắt đầu, thời gian kết thúc, số lượng Volunteer cần tuyển, yêu cầu/ghi chú, ảnh minh họa nếu kịp, người tạo, trạng thái.
+Loại hoạt động mẫu: Từ thiện, Môi trường, Giáo dục, Y tế, Gây quỹ, Hỗ trợ cộng đồng.
+4.5 Admin Activity Approval
+Khi Organizer submit hoạt động, Activity status = Pending Review.
+Activity Pending Review không hiển thị cho Volunteer.
+Admin approve thì Activity status = Open.
+Admin reject thì Activity status = Rejected.
+Volunteer chỉ xem và đăng ký Activity có status = Open.
+4.6 Activity Registration
+Volunteer đăng ký tham gia Activity status Open.
+Registration status mặc định = Pending.
+Một Volunteer không được đăng ký trùng cùng một Activity.
+Nếu Activity đã đủ số lượng cần tuyển, không cho đăng ký thêm hoặc chuyển Activity status thành Full.
+4.7 Registration Approval
+Organizer xem danh sách Volunteer đăng ký vào Activity của mình.
+Organizer approve: Pending → Approved.
+Organizer reject: Pending → Rejected.
+Approved chỉ có nghĩa là Volunteer được chấp nhận tham gia, chưa được tính là đã tham gia.
+4.8 Participation Update
+Sau khi hoạt động kết thúc, Organizer cập nhật kết quả tham gia cho Volunteer đã được Approved.
+Completed: Volunteer có tham gia và hoàn thành hoạt động.
+Absent: Volunteer được duyệt nhưng không tham gia.
+Chỉ Completed mới cộng +1 vào profile Volunteer.
+Không cộng trùng cho cùng một Activity.
+5. Trạng thái trong hệ thống
+5.1 Activity Status
+Status
+Ý nghĩa
+Draft
+Organizer lưu nháp, chưa gửi duyệt
+Pending Review
+Organizer đã gửi, đang chờ Admin duyệt
+Open
+Admin đã duyệt, Volunteer có thể xem và đăng ký
+Full
+Hoạt động đã đủ số lượng Volunteer
+Ongoing
+Hoạt động đang diễn ra
+Completed
+Hoạt động đã hoàn thành
+Rejected
+Admin từ chối duyệt hoạt động
+Cancelled
+Hoạt động bị hủy
+
+
+
+5.2 Registration Status
+Status
+Ý nghĩa
+Pending
+Volunteer đã đăng ký, đang chờ Organizer duyệt
+Approved
+Organizer đã duyệt Volunteer tham gia
+Rejected
+Organizer từ chối đăng ký
+Completed
+Volunteer đã tham gia và hoàn thành; cộng +1 profile
+Absent
+Volunteer được duyệt nhưng không tham gia; không cộng profile
+Cancelled
+Đăng ký bị hủy
+
+5.3 Organizer Request Status
+Status
+Ý nghĩa
+Pending
+Volunteer đã gửi yêu cầu, đang chờ Admin duyệt
+Approved
+Admin đã duyệt, user trở thành Organizer
+Rejected
+Admin đã từ chối, user vẫn là Volunteer
+6. Business Rules chuẩn cuối
+Mã
+Business Rule
+BRule-01
+Volunteer không được tạo Activity mặc định.
+BRule-02
+Volunteer muốn tạo Activity phải gửi Organizer Role Request từ profile.
+BRule-03
+Chỉ Admin mới được approve/reject Organizer Role Request.
+BRule-04
+Khi Admin approve Organizer Role Request, role user đổi từ Volunteer thành Organizer.
+BRule-05
+Chỉ Organizer hoặc Admin mới được tạo Activity.
+BRule-06
+Activity do Organizer tạo phải được Admin duyệt trước khi hiển thị cho Volunteer.
+BRule-07
+Activity mới submit có status = Pending Review.
+BRule-08
+Volunteer chỉ thấy và đăng ký Activity có status = Open.
+BRule-09
+Volunteer không được đăng ký trùng cùng một Activity.
+BRule-10
+Khi Volunteer đăng ký, Registration status = Pending.
+BRule-11
+Organizer chỉ được duyệt đăng ký của Activity do mình tạo.
+BRule-12
+Organizer approve Registration: Pending → Approved.
+BRule-13
+Organizer reject Registration: Pending → Rejected.
+BRule-14
+Approved chưa được tính vào số hoạt động đã tham gia.
+BRule-15
+Sau khi hoạt động kết thúc, Organizer cập nhật status của Volunteer thành Completed hoặc Absent.
+BRule-16
+Chỉ Completed mới cộng +1 vào profile Volunteer.
+BRule-17
+Pending, Approved, Rejected, Absent, Cancelled không được cộng.
+BRule-18
+Không được cộng trùng nếu registration đã Completed trước đó.
+BRule-19
+Admin có quyền quản lý toàn hệ thống.
+BRule-20
+Organizer chỉ quản lý Activity của mình.
+7. Các màn hình chính
+Role
+Màn hình cần có
+Volunteer
+Volunteer Home, Activity List, Activity Detail, Register Confirmation, My Registered Activities, Registered Activity Detail, Volunteer Profile, Edit Profile, Request Organizer Role, Organizer Request Status
+Organizer
+Organizer Dashboard, My Activities, Create Activity, Edit Activity, Activity Detail Management, Registration Management, Registration Detail, Participation Update, Completed Activity Summary, Organizer Profile
+Admin
+Admin Dashboard Overview, Organizer Role Requests Management, Activity Approval Management, Activity Management, User Management, Registration/Participation Overview nếu kịp
+8. Luồng nghiệp vụ chính
+8.1 Flow xin quyền Organizer
+Volunteer đăng nhập.
+Volunteer vào Profile.
+Volunteer bấm Request Organizer Role.
+Volunteer nhập lý do và thông tin bổ sung.
+Hệ thống tạo request status Pending.
+Admin vào Dashboard xem Pending Organizer Role Requests.
+Admin Approve hoặc Reject.
+Nếu Approve, user role chuyển từ Volunteer thành Organizer.
+User có thể tạo hoạt động.
+
+
+8.2 Flow tạo và duyệt hoạt động
+Organizer đăng nhập.
+Organizer tạo Activity.
+Organizer submit Activity for Admin Review.
+Hệ thống lưu Activity status Pending Review.
+Admin vào Activity Approval.
+Admin xem chi tiết Activity.
+Admin Approve hoặc Reject.
+Nếu Approve, Activity status = Open và hiển thị cho Volunteer.
+Nếu Reject, Activity status = Rejected và không hiển thị công khai.
+8.3 Flow đăng ký tham gia
+Volunteer đăng nhập.
+Volunteer xem Activity List.
+Volunteer chọn Activity status Open.
+Volunteer xem Activity Detail.
+Volunteer bấm Register to Join.
+Hệ thống kiểm tra có đăng ký trùng không.
+Nếu hợp lệ, hệ thống tạo Registration status Pending.
+Volunteer xem registration trong My Registered Activities.
+8.4 Flow Organizer duyệt đăng ký
+Organizer vào Registration Management.
+Organizer xem danh sách Volunteer đăng ký Activity của mình.
+Organizer Approve hoặc Reject.
+Nếu Approve, status = Approved.
+Nếu Reject, status = Rejected.
+Volunteer xem được trạng thái mới.
+
+
+
+
+
+8.5 Flow cập nhật Completed và cộng +1 hoạt động vào profile
+Sau khi Activity kết thúc, Organizer vào Participation Update.
+Organizer chọn Activity.
+Organizer xem danh sách Volunteer status Approved.
+Organizer cập nhật Completed nếu Volunteer có tham gia và hoàn thành.
+Organizer cập nhật Absent nếu Volunteer không tham gia.
+Nếu status = Completed, hệ thống cộng +1 vào joined activity count trong profile Volunteer.
+Nếu status = Absent, không cộng.
+Nếu registration đã Completed trước đó, không cộng thêm lần nữa.
+8.6 Flow Admin xem dashboard
+Admin đăng nhập.
+Admin vào Dashboard.
+Hệ thống hiển thị tổng quan: Total Activities, Pending Activity Approvals, Pending Organizer Requests, Total Volunteers, Total Organizers, Pending Registrations, Open Activities, Completed Activities, Completed Participations.
+9. Admin Dashboard cần có gì
+Màn hình/Khu vực
+Chức năng
+Dashboard Overview
+Xem các statistic cards tổng quan toàn hệ thống
+Pending Organizer Role Requests
+Danh sách Volunteer xin quyền Organizer; Admin approve/reject
+Pending Activity Approvals
+Danh sách Activity Pending Review; Admin approve/reject
+Activity Management
+Xem tất cả Activity, lọc theo status/category/organizer, xem chi tiết, cancel nếu cần
+User Management
+Xem danh sách user, role, trạng thái tài khoản, đổi role/khóa tài khoản nếu kịp
+Recent Registrations
+Xem đăng ký gần đây hoặc pending registrations nếu kịp
+
+Statistic Cards
+Statistic Card
+Cách hiểu
+Total Activities
+Tổng số Activity trong hệ thống
+Pending Activity Approvals
+Số Activity status Pending Review
+Total Volunteers
+Số user role Volunteer
+Total Organizers
+Số user role Organizer
+Pending Organizer Role Requests
+Số request xin quyền Organizer đang Pending
+Pending Registrations
+Số registration status Pending
+Open Activities
+Số Activity status Open
+Completed Activities
+Số Activity status Completed
+Total Completed Participations
+Số registration status Completed
+10. MVP không bao gồm
+Chat realtime.
+Notification realtime.
+GPS/map.
+Mobile app.
+Thanh toán/quyên góp tiền.
+AI gợi ý hoạt động.
+Certificate tự động.
+Video call.
+Gửi email/SMS thật.
+Tích hợp mạng xã hội.
+Export báo cáo nâng cao.
+11. Phân chia sprint đề xuất
+11.1 Sprint 1 – Core Flow Foundation
+Mục tiêu: Hoàn thành nền tảng đăng nhập, role, profile, xin quyền Organizer, tạo hoạt động, Admin duyệt hoạt động, Volunteer xem và đăng ký.
+UI/UX thiết kế các màn hình Volunteer, Organizer, Admin cơ bản.
+Developer setup database, API, frontend routing.
+Làm Authentication và Role.
+Làm Volunteer Profile.
+Làm Request Organizer Role.
+Admin Approve/Reject Organizer Role Request.
+Organizer Create Activity.
+Admin Approve/Reject Activity.
+Volunteer Activity List/Detail.
+Volunteer Register Activity.
+Tester viết và test case cho các flow trên.
+Kết quả Sprint 1: Volunteer xin quyền Organizer được; Admin duyệt role Organizer được; Organizer tạo Activity cho Admin duyệt được; Admin duyệt Activity thành Open được; Volunteer xem và đăng ký Activity Open được.
+11.2 Sprint 2 – Complete MVP
+Mục tiêu: Hoàn thiện duyệt đăng ký, cập nhật Completed, profile counter, dashboard, regression và deploy.
+Organizer Registration Management.
+Organizer Approve/Reject Registration.
+Organizer Participation Update Completed/Absent.
+Profile joined activity count +1 khi Completed.
+My Registered Activities.
+Admin Dashboard Overview.
+User Management cơ bản.
+Polish UI.
+Regression test và fix bug.
+DevOps deploy demo.
+Kết quả Sprint 2: Demo đầy đủ flow chính; joined activity count cập nhật đúng rule; Admin Dashboard có thống kê; hệ thống deploy demo được.
+12. Demo script chuẩn
+Volunteer A đăng ký tài khoản và đăng nhập.
+Volunteer A vào Profile gửi yêu cầu xin quyền Organizer.
+Admin đăng nhập và duyệt Organizer Role Request của Volunteer A.
+Volunteer A trở thành Organizer.
+Organizer A tạo hoạt động "Community Clean-up Day" và submit for Admin Review.
+Admin duyệt hoạt động, Activity status chuyển thành Open.
+Volunteer B đăng nhập và xem Activity List.
+Volunteer B đăng ký tham gia Activity.
+Organizer A duyệt đăng ký của Volunteer B, Registration status chuyển thành Approved.
+Sau khi hoạt động kết thúc, Organizer A cập nhật Volunteer B thành Completed.
+Profile của Volunteer B tăng số hoạt động đã tham gia lên +1.
+Admin xem Dashboard thống kê toàn hệ thống.
+
+13. Team thực hiện
+Vai trò trong team
+Trách nhiệm
+1 BA
+Phân tích yêu cầu, viết BRD/FRD, user story, acceptance criteria, hỗ trợ test case và demo flow
+5 Developer Backend/Frontend
+Xây dựng frontend, backend, database, API, phân quyền, dashboard
+5 Tester
+Viết test case, test chức năng, test phân quyền, test validation, regression test và verify bug
+1 DevOps
+Setup môi trường, deploy frontend/backend/database
+2 UX/UI
+Thiết kế wireframe, UI design, prototype, responsive layout, empty state/error state
+14. Mô tả ngắn đề tài
+Volunteer Connect là web app kết nối tình nguyện viên với các hoạt động cộng đồng. Volunteer có thể xem và đăng ký hoạt động đã được duyệt, xin quyền Organizer nếu muốn tạo hoạt động. Admin duyệt quyền Organizer và duyệt hoạt động trước khi công khai. Organizer quản lý hoạt động của mình, duyệt đăng ký và cập nhật kết quả tham gia. Chỉ khi Volunteer được cập nhật Completed, profile mới cộng +1 hoạt động đã tham gia.

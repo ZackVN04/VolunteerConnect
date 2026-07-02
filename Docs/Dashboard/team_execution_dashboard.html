@@ -1,0 +1,1359 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Volunteer Connect - Team Execution Dashboard</title>
+    <style>
+        :root {
+            --bg-body: #f8fafc;
+            --bg-sidebar: #0f172a;
+            --bg-card: #ffffff;
+            --border-color: #e2e8f0;
+            --text-main: #334155;
+            --text-title: #0f172a;
+            --text-muted: #64748b;
+            --primary: #2563eb;
+            --primary-light: #eff6ff;
+            --primary-border: #bfdbfe;
+            --success: #059669;
+            --success-light: #ecfdf5;
+            --success-border: #a7f3d0;
+            --warning: #d97706;
+            --warning-light: #fffbeb;
+            --warning-border: #fde68a;
+            --danger: #dc2626;
+            --danger-light: #fef2f2;
+            --danger-border: #fecaca;
+            --purple: #7c3aed;
+            --purple-light: #f5f3ff;
+            --purple-border: #ddd6fe;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar Navigation */
+        aside {
+            width: 260px;
+            background-color: var(--bg-sidebar);
+            color: #f1f5f9;
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            overflow-y: auto;
+            z-index: 100;
+            padding: 20px 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-brand {
+            padding: 0 24px 20px 24px;
+            border-bottom: 1px solid #1e293b;
+            margin-bottom: 20px;
+        }
+
+        .sidebar-brand h1 {
+            font-size: 1.3rem;
+            font-weight: 800;
+            margin: 0;
+            letter-spacing: 0.5px;
+            background: linear-gradient(to right, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .sidebar-brand p {
+            margin: 5px 0 0 0;
+            font-size: 0.8rem;
+            color: #94a3b8;
+        }
+
+        .sidebar-menu {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            flex: 1;
+        }
+
+        .sidebar-menu li a {
+            display: block;
+            padding: 12px 24px;
+            color: #cbd5e1;
+            text-decoration: none;
+            font-size: 0.95rem;
+            font-weight: 500;
+            border-left: 4px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .sidebar-menu li a:hover {
+            background-color: #1e293b;
+            color: #f8fafc;
+            border-left-color: #38bdf8;
+        }
+
+        /* Main Content Container */
+        main {
+            margin-left: 260px;
+            padding: 40px;
+            flex: 1;
+            box-sizing: border-box;
+            max-width: 1400px;
+        }
+
+        .header-dashboard {
+            background-color: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 40px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .header-dashboard h2 {
+            font-size: 2.2rem;
+            font-weight: 800;
+            margin: 0 0 10px 0;
+            color: var(--text-title);
+        }
+
+        .header-meta {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 15px;
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+            font-size: 0.9rem;
+        }
+
+        .header-meta-item strong {
+            display: block;
+            color: var(--text-title);
+            margin-bottom: 2px;
+        }
+
+        /* Sections and Cards */
+        section {
+            margin-bottom: 50px;
+            scroll-margin-top: 40px;
+        }
+
+        .section-header {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--text-title);
+            margin-top: 0;
+            margin-bottom: 25px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+
+        .grid-cards {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 25px;
+        }
+
+        @media(min-width: 768px) {
+            .grid-cards-2col {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+            transition: transform 0.2s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+        }
+
+        .card-header {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: var(--text-title);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Badges & Accents */
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .badge-be { background-color: var(--primary-light); color: var(--primary); border: 1px solid var(--primary-border); }
+        .badge-fe { background-color: var(--purple-light); color: var(--purple); border: 1px solid var(--purple-border); }
+        .badge-success { background-color: var(--success-light); color: var(--success); border: 1px solid var(--success-border); }
+        .badge-warning { background-color: var(--warning-light); color: var(--warning); border: 1px solid var(--warning-border); }
+        .badge-danger { background-color: var(--danger-light); color: var(--danger); border: 1px solid var(--danger-border); }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background-color: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            font-size: 0.92rem;
+        }
+
+        th, td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            background-color: #f1f5f9;
+            color: var(--text-title);
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover {
+            background-color: #f8fafc;
+        }
+
+        /* Highlight Timeline Days */
+        .hl-freeze { background-color: rgba(220, 38, 38, 0.05); }
+        .hl-integration { background-color: rgba(37, 99, 235, 0.04); }
+        .hl-testing { background-color: rgba(139, 92, 246, 0.04); }
+        .hl-rc { background-color: rgba(5, 150, 105, 0.05); }
+
+        .timeline-day {
+            font-weight: bold;
+            color: var(--text-title);
+            text-align: center;
+            width: 70px;
+        }
+
+        /* Folder tree style */
+        .tree {
+            font-family: 'Courier New', Courier, monospace;
+            background-color: #0f172a;
+            color: #38bdf8;
+            padding: 20px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            overflow-x: auto;
+            white-space: pre;
+            margin-bottom: 20px;
+        }
+
+        .tree-folder { color: #f472b6; font-weight: bold; }
+        .tree-file { color: #34d399; }
+        .tree-comment { color: #64748b; font-style: italic; }
+
+        /* Floating Back to Top Button */
+        #backToTop {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 45px;
+            height: 45px;
+            background-color: var(--bg-sidebar);
+            color: #ffffff;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            z-index: 1000;
+            transition: all 0.2s ease;
+        }
+
+        #backToTop:hover {
+            transform: translateY(-3px);
+            background-color: var(--primary);
+        }
+
+        .checklist {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .checklist li {
+            position: relative;
+            padding-left: 28px;
+            margin-bottom: 12px;
+        }
+
+        .checklist li::before {
+            content: "✓";
+            position: absolute;
+            left: 5px;
+            top: -1px;
+            color: var(--success);
+            font-weight: bold;
+            font-size: 1.15rem;
+        }
+
+        /* Link adjustments */
+        a.doc-link {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        a.doc-link:hover {
+            text-decoration: underline;
+        }
+
+        /* Responsive styling */
+        @media(max-width: 1024px) {
+            aside {
+                width: 70px;
+            }
+            aside .sidebar-brand h1, aside .sidebar-brand p {
+                display: none;
+            }
+            aside .sidebar-brand {
+                padding: 10px;
+            }
+            .sidebar-menu li a {
+                padding: 15px;
+                text-align: center;
+                font-size: 0;
+            }
+            .sidebar-menu li a::before {
+                content: "•";
+                font-size: 1.5rem;
+                display: block;
+            }
+            main {
+                margin-left: 70px;
+                padding: 25px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- BACK TO TOP BUTTON -->
+    <button id="backToTop" onclick="window.scrollTo(0, 0);">↑</button>
+
+    <!-- SIDEBAR NAVIGATION -->
+    <aside>
+        <div class="sidebar-brand">
+            <h1>VOLUNTEER CONNECT</h1>
+            <p>Execution Dashboard</p>
+        </div>
+        <ul class="sidebar-menu">
+            <li><a href="#overview">Overview</a></li>
+            <li><a href="#assignment">Team Assignment</a></li>
+            <li><a href="#schedule">13-Day Schedule</a></li>
+            <li><a href="#ownership">Backend Ownership</a></li>
+            <li><a href="#frontend">Frontend Plan</a></li>
+            <li><a href="#api">API Endpoint Summary</a></li>
+            <li><a href="#integration">Integration Plan</a></li>
+            <li><a href="#git">Git Workflow</a></li>
+            <li><a href="#risk">Risk Management</a></li>
+            <li><a href="#structure">Project Structure</a></li>
+            <li><a href="#truth">Source of Truth</a></li>
+            <li><a href="#reading">Reading Guide</a></li>
+        </ul>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main>
+        <!-- HEADER -->
+        <div class="header-dashboard">
+            <h2>Volunteer Connect</h2>
+            <div style="font-size: 1.2rem; font-weight: 600; color: var(--primary);">Fullstack Execution Dashboard</div>
+            <div style="color: var(--text-muted); margin-top: 5px;">13-Day MVP Delivery Plan (Replica Set & ACID Transaction Support)</div>
+            
+            <div class="header-meta">
+                <div class="header-meta-item">
+                    <strong>Team Members</strong>
+                    4 Backend Developers + 1 Frontend Developer
+                </div>
+                <div class="header-meta-item">
+                    <strong>Backend Tech Stack</strong>
+                    FastAPI, Python 3.13, MongoDB, Beanie ODM, JWT
+                </div>
+                <div class="header-meta-item">
+                    <strong>Architecture Layout</strong>
+                    Feature-based FastAPI Architecture
+                </div>
+                <div class="header-meta-item">
+                    <strong>Source Code Path</strong>
+                    Project/
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. OVERVIEW -->
+        <section id="overview">
+            <h3 class="section-header">3. Overview</h3>
+            <div class="card">
+                <h4 class="card-header">MVP Goals & Critical Path</h4>
+                <p>Nền tảng <strong>Volunteer Connect</strong> hướng tới số hóa quy trình kết nối Tình nguyện viên (Volunteer) và Nhà tổ chức (Organizer) thông qua sự phê duyệt của Admin và cơ chế điểm danh hoàn thành tích lũy. Dự án tận dụng tối đa cơ chế phi chuẩn hóa (Denormalization) của MongoDB để hạn chế `$lookup` và thực thi bảo vệ ACID qua Replica Set Transactions.</p>
+                
+                <div class="grid-cards grid-cards-2col" style="margin-top: 20px; display: grid;">
+                    <div class="card" style="background-color: var(--primary-light); border-color: var(--primary-border);">
+                        <h5 style="margin-top: 0; font-size: 1rem; color: var(--primary);">MVP Scope (Phạm vi MVP)</h5>
+                        <ul>
+                            <li>Xác thực số điện thoại bằng OTP SMS (Bypass offline qua console khi phát triển).</li>
+                            <li>Nâng cấp vai trò Volunteer &rarr; Organizer kèm logic thời gian cooldown.</li>
+                            <li>Đăng ký hoạt động với thuật toán Overlap Check (trùng lịch) không dùng `$lookup`.</li>
+                            <li>Điểm danh sự kiện tự động cộng tích lũy Joined Activity Count cho Volunteer.</li>
+                            <li>Volunteer Feed (Posts) chia sẻ kinh nghiệm cộng đồng.</li>
+                        </ul>
+                    </div>
+                    <div class="card" style="background-color: var(--success-light); border-color: var(--success-border);">
+                        <h5 style="margin-top: 0; font-size: 1rem; color: var(--success);">Critical Milestones (Đường găng dự án)</h5>
+                        <ul>
+                            <li><strong>Day 3: API Freeze</strong> - Khóa cứng toàn bộ cấu trúc Request/Response và Mock API.</li>
+                            <li><strong>Day 8: Feature Freeze</strong> - Đóng băng hoàn toàn mã nguồn backend, chuyển sang fix bug.</li>
+                            <li><strong>Day 9-10: Integration Phase</strong> - Tích hợp hệ thống E2E Frontend và Backend thật.</li>
+                            <li><strong>Day 12: Release Candidate (RC)</strong> - Deploy bản build Staging kiểm thử khói cuối.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. TEAM ASSIGNMENT -->
+        <section id="assignment">
+            <h3 class="section-header">4. Team Assignment</h3>
+            <div class="grid-cards">
+                <!-- BE DEV 1 -->
+                <div class="card">
+                    <div class="card-header">
+                        Backend Developer 1 (Dev 1)
+                        <span class="badge badge-be">Backend Core & Auth</span>
+                    </div>
+                    <strong>Feature Ownership:</strong> Authentication & Auth + User & Profile + Organizer Request. <br>
+                    <strong>Router/API phụ trách:</strong> `/api/v1/auth/*`, `/api/v1/users/*`, `/api/v1/organizer-requests/*` <br>
+                    <strong>Collections MongoDB:</strong> `users`, `organizer_requests` <br>
+                    <strong>Git Branch:</strong> `feature/auth-users-profile` <br>
+                    <strong>File/Folder chính trong Project:</strong> `backend/app/features/auth/`, `backend/app/features/users/`, `backend/app/features/organizer_requests/`, `backend/app/core/security/` <br>
+                    <strong>Dependency:</strong> Module nền móng. Phải bàn giao JWT middleware và `get_current_user` ở Day 2 cho cả team. <br>
+                    <strong>Deliverables:</strong> OTP verification logic, token refresh generator, profile update API, cooldown check. <br>
+                    <strong>Definition of Done:</strong> Unit test coverage > 80%, API passes Beanie schemas, JWT middleware validated.
+                </div>
+
+                <!-- BE DEV 2 -->
+                <div class="card">
+                    <div class="card-header">
+                        Backend Developer 2 (Dev 2)
+                        <span class="badge badge-be">Activity Management</span>
+                    </div>
+                    <strong>Feature Ownership:</strong> Activity Management + Activity Status Cron Job. <br>
+                    <strong>Router/API phụ trách:</strong> `/api/v1/activities/*` (Create Draft, edit, submit, cancel, search) <br>
+                    <strong>Collections MongoDB:</strong> `activities` <br>
+                    <strong>Git Branch:</strong> `feature/activities-lifecycle` <br>
+                    <strong>File/Folder chính trong Project:</strong> `backend/app/features/activities/` <br>
+                    <strong>Dependency:</strong> Phụ thuộc vào JWT middleware của Dev 1. <br>
+                    <strong>Deliverables:</strong> CRUD activities, Text Index search, Transaction 8.4 (Hủy hoạt động đồng loạt hủy đơn), Cron job quét trạng thái tự động theo ngày. <br>
+                    <strong>Definition of Done:</strong> Text search query hits MongoDB index, Cron job tested under edge-case dates, Transaction locks registrations document safely.
+                </div>
+
+                <!-- BE DEV 3 -->
+                <div class="card">
+                    <div class="card-header">
+                        Backend Developer 3 (Dev 3)
+                        <span class="badge badge-be">Registrations & Attendance</span>
+                    </div>
+                    <strong>Feature Ownership:</strong> Activity Registration + Attendance Check-in. <br>
+                    <strong>Router/API phụ trách:</strong> `/api/v1/registrations/*`, `/api/v1/attendance/*` <br>
+                    <strong>Collections MongoDB:</strong> `registrations`, `activities`, `users` <br>
+                    <strong>Git Branch:</strong> `feature/registrations-attendance` <br>
+                    <strong>File/Folder chính trong Project:</strong> `backend/app/features/registrations/`, `backend/app/features/attendance/` <br>
+                    <strong>Dependency:</strong> Phụ thuộc vào JWT của Dev 1, schema của Dev 2. <br>
+                    <strong>Deliverables:</strong> Overlap check algorithm (trùng lịch), Transaction 8.1 (Đăng ký mới), Transaction 8.2 (Volunteer tự hủy đơn), Transaction 8.3 (Điểm danh Completed tăng counter). <br>
+                    <strong>Definition of Done:</strong> Concurrency registration locks verified, zero double-registrations, overlap date check validated.
+                </div>
+
+                <!-- BE DEV 4 -->
+                <div class="card">
+                    <div class="card-header">
+                        Backend Developer 4 (Dev 4)
+                        <span class="badge badge-be">Feed & Admin Statistics</span>
+                    </div>
+                    <strong>Feature Ownership:</strong> Volunteer Feed (Posts) + Admin approval workflow + Statistics dashboard. <br>
+                    <strong>Router/API phụ trách:</strong> `/api/v1/posts/*`, `/api/v1/admin/*` <br>
+                    <strong>Collections MongoDB:</strong> `posts`, `activities`, `organizer_requests` <br>
+                    <strong>Git Branch:</strong> `feature/posts-admin-integration` <br>
+                    <strong>File/Folder chính trong Project:</strong> `backend/app/features/posts/`, `backend/app/features/admin/`, Mock Schema generator engine <br>
+                    <strong>Dependency:</strong> Phụ thuộc vào JWT của Dev 1. Dashboard statistics cần đọc cấu trúc data từ Dev 2 và 3. <br>
+                    <strong>Deliverables:</strong> Posts feed pagination, likes/shares atomic updates, Admin role/activity review API, Dashboard statistics pipeline. Bàn giao Mock API schemas. <br>
+                    <strong>Definition of Done:</strong> Paging queries are index-optimized, statistics aggregated using MongoDB pipeline, Mock schemas delivered to FE.
+                </div>
+
+                <!-- FE DEV -->
+                <div class="card" style="border-left: 4px solid var(--purple);">
+                    <div class="card-header" style="color: var(--purple);">
+                        Frontend Developer (FE Dev)
+                        <span class="badge badge-fe">UI & API Integration</span>
+                    </div>
+                    <strong>Feature Ownership:</strong> Khởi tạo UI, Components dùng chung, State Store và tích hợp API cho toàn bộ 12 màn hình dựa trên Google Stitch Prototype. <br>
+                    <strong>Screens phụ trách:</strong> SCR-01 đến SCR-12 (Tất cả giao diện của khách, Volunteer, Organizer và Admin). <br>
+                    <strong>API phụ trách tích hợp:</strong> Toàn bộ 35 Endpoints Backend. <br>
+                    <strong>Dependency với Backend:</strong> Phụ thuộc vào Mock API contract (Day 3) và Staging Server thật (Day 8+). <br>
+                    <strong>Dependency với UX/UI Designer:</strong> Figma layouts, assets, và các thiết kế UX states (Loading skeleton, Empty state, Error state, Denied, Success, Confirm). <br>
+                    <strong>Git Branch:</strong> `feature/frontend-ui-integration` <br>
+                    <strong>Deliverables:</strong> Client app hoàn chỉnh, code integration layer, Mock-to-Real API switch. <br>
+                    <strong>Daily checkpoint với UX/UI:</strong> 9:00 AM hàng ngày để duyệt layout/components, xử lý trạng thái đặc biệt và khóa cứng prototype trước khi sáp nhập API thật. <br>
+                    <strong>Definition of Done:</strong> Giao diện pixel-perfect theo mockup, responsive đầy đủ, xử lý mượt mà 6 UX states, test khói kết nối thành công 100% API thật.
+                </div>
+            </div>
+        </section>
+
+        <!-- 5. 13-DAY DEVELOPMENT SCHEDULE -->
+        <section id="schedule">
+            <h3 class="section-header">5. 13-Day Development Schedule</h3>
+            <div class="card" style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Day</th>
+                            <th>BE Dev 1</th>
+                            <th>BE Dev 2</th>
+                            <th>BE Dev 3</th>
+                            <th>BE Dev 4</th>
+                            <th>Frontend Dev</th>
+                            <th>Deliverable cuối ngày / Milestone</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="timeline-day">Day 1</td>
+                            <td>Base database Beanie init, User model</td>
+                            <td>Activities model, Draft CRUD stubs</td>
+                            <td>Registrations model, Router stubs</td>
+                            <td>Post model, Router stubs, shared models</td>
+                            <td>Init project, set up store, shared components</td>
+                            <td>Cấu trúc base repo backend + frontend chạy rỗng thành công.</td>
+                        </tr>
+                        <tr>
+                            <td class="timeline-day">Day 2</td>
+                            <td>Bcrypt password, JWT token, Auth middleware</td>
+                            <td>CRUD Activities (Draft)</td>
+                            <td>CRUD Registrations (logic check mock)</td>
+                            <td>CRUD Posts Feed base query</td>
+                            <td>UI SCR-01 &rarr; SCR-03</td>
+                            <td>JWT Authentication Middleware hoàn tất bàn giao cho team.</td>
+                        </tr>
+                        <tr class="hl-freeze">
+                            <td class="timeline-day" style="color: var(--danger);">Day 3</td>
+                            <td>Profile CRUD, Organizer request stubs</td>
+                            <td>Text Search Index setup trên Activities</td>
+                            <td>Overlap check helper, start Transaction 8.1</td>
+                            <td>Tạo Swagger OpenAPI UI, xuất bản Mock schemas</td>
+                            <td>Tích hợp API Login thật, SCR-04 &rarr; 05 UI gọi mock</td>
+                            <td style="font-weight: bold; color: var(--danger);"><span class="badge badge-danger">API FREEZE</span> Toàn bộ API Contract khóa. Mock data bàn giao FE.</td>
+                        </tr>
+                        <tr>
+                            <td class="timeline-day">Day 4</td>
+                            <td>Organizer Request cooldown date-math logic</td>
+                            <td>Submit activities stubs, start Transaction 8.4</td>
+                            <td>Transaction 8.1 done, start Transaction 8.2</td>
+                            <td>Admin Organizer request review stubs</td>
+                            <td>UI SCR-06, SCR-07 gọi mock</td>
+                            <td>API thông tin User thật tích hợp hoàn tất.</td>
+                        </tr>
+                        <tr>
+                            <td class="timeline-day">Day 5</td>
+                            <td>Unit test Auth & Profile</td>
+                            <td>Transaction 8.4 done (Organizer hủy hoạt động)</td>
+                            <td>Transaction 8.2 done (Hủy đơn auto-open Full)</td>
+                            <td>Admin Dashboard aggregation query</td>
+                            <td>UI SCR-08 &rarr; 09 gọi mock</td>
+                            <td>Toàn bộ Transaction Hủy/Đăng ký xong.</td>
+                        </tr>
+                        <tr>
+                            <td class="timeline-day">Day 6</td>
+                            <td>Helper code reviews</td>
+                            <td>Cron Job scheduler quét status tự động</td>
+                            <td>Attendance CRUD, start Transaction 8.3</td>
+                            <td>Post Search, likes/shares atomic counter</td>
+                            <td>UI SCR-11 gọi mock</td>
+                            <td>Cron Job quét trạng thái chạy thử nghiệm. Posts API xong.</td>
+                        </tr>
+                        <tr>
+                            <td class="timeline-day">Day 7</td>
+                            <td>Hỗ trợ FE tích hợp</td>
+                            <td>Cron job edge cases testing</td>
+                            <td>Transaction 8.3 done (Điểm danh completed)</td>
+                            <td>Hỗ trợ FE tích hợp Posts</td>
+                            <td>UI SCR-10, tích hợp Posts Feed thật (SCR-11)</td>
+                            <td>Attendance API xong. Posts Feed UI chạy thật 100%.</td>
+                        </tr>
+                        <tr class="hl-freeze">
+                            <td class="timeline-day" style="color: var(--warning);">Day 8</td>
+                            <td>Kiểm thử Admin flow</td>
+                            <td>Tối ưu hóa query explain()</td>
+                            <td>Kiểm thử ACID transaction</td>
+                            <td>Admin Statistics done</td>
+                            <td>Tích hợp API Activities thật (SCR-04, 05, 08, 09 chạy thật)</td>
+                            <td style="font-weight: bold; color: var(--warning);"><span class="badge badge-warning">FEATURE FREEZE</span> Đóng băng Backend. Activities chạy thật 100%.</td>
+                        </tr>
+                        <tr class="hl-integration">
+                            <td class="timeline-day" style="color: var(--primary);">Day 9</td>
+                            <td colspan="4" style="text-align: center; font-weight: 500;">Hỗ trợ Frontend Tích hợp API và sửa lỗi</td>
+                            <td>Tích hợp API Đăng ký & Hủy đơn thật (SCR-05 &rarr; SCR-06 chạy thật)</td>
+                            <td style="font-weight: bold; color: var(--primary);"><span class="badge badge-primary">Integration Phase</span> Luồng Đăng ký UAT.</td>
+                        </tr>
+                        <tr class="hl-integration">
+                            <td class="timeline-day" style="color: var(--primary);">Day 10</td>
+                            <td colspan="4" style="text-align: center; font-weight: 500;">Hỗ trợ Frontend Tích hợp API và sửa lỗi</td>
+                            <td>Tích hợp API Phê duyệt/Điểm danh, Admin và Stats (SCR-10 &rarr; 12 chạy thật)</td>
+                            <td style="font-weight: bold; color: var(--primary);"><span class="badge badge-primary">INTEGRATION COMPLETE</span> Kết nối hoàn tất 100% hệ thống.</td>
+                        </tr>
+                        <tr class="hl-testing">
+                            <td class="timeline-day" style="color: var(--purple);">Day 11</td>
+                            <td>API Security Scans</td>
+                            <td>MongoDB Index checking</td>
+                            <td>Transaction logs checking</td>
+                            <td>E2E API test suite run</td>
+                            <td>UAT cùng UX/UI Designer, sửa bug giao diện</td>
+                            <td style="font-weight: bold; color: var(--purple);"><span class="badge badge-purple">Testing Phase</span> Báo cáo kiểm thử giao diện & API.</td>
+                        </tr>
+                        <tr class="hl-rc">
+                            <td class="timeline-day" style="color: var(--success);">Day 12</td>
+                            <td colspan="4" style="text-align: center; font-weight: 500;">Sửa các bug blocker, tối ưu hóa cơ sở dữ liệu local</td>
+                            <td>Re-test fixed items, đóng gói production build</td>
+                            <td style="font-weight: bold; color: var(--success);"><span class="badge badge-success">Release Candidate</span> Deploy RC lên Staging Environment.</td>
+                        </tr>
+                        <tr class="hl-rc">
+                            <td class="timeline-day" style="color: var(--success);">Day 13</td>
+                            <td colspan="5" style="text-align: center; font-weight: bold;">Kiểm thử khói (Smoke Test) chéo toàn bộ luồng trên Staging & Production</td>
+                            <td style="font-weight: bold; color: var(--success);"><span class="badge badge-success">PRODUCTION DEPLOY</span> Dự án bàn giao.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- 6. BACKEND OWNERSHIP -->
+        <section id="ownership">
+            <h3 class="section-header">6. Backend Ownership</h3>
+            <div class="grid-cards">
+                <!-- Group 1 -->
+                <div class="card">
+                    <h4 class="card-header">
+                        Auth + Users + Requests
+                        <span class="badge badge-be">Dev 1</span>
+                    </h4>
+                    <strong>Router Prefix:</strong> `/api/v1/auth`, `/api/v1/users`, `/api/v1/organizer-requests` <br>
+                    <strong>MongoDB Collections:</strong> `users`, `organizer_requests` <br>
+                    <strong>ACID Transactions:</strong> None. <br>
+                    <strong>Main Endpoints:</strong> Register, Verify OTP, Login, Refresh Token, Get/Update profile, Upgrade Request, Request cooldown. <br>
+                    <strong>Độ khó:</strong> Medium (Yêu cầu mật mã băm, JWT, check cooldown). <br>
+                    <strong>Dependency:</strong> None (Core module).
+                </div>
+
+                <!-- Group 2 -->
+                <div class="card">
+                    <h4 class="card-header">
+                        Activities Management
+                        <span class="badge badge-be">Dev 2</span>
+                    </h4>
+                    <strong>Router Prefix:</strong> `/api/v1/activities`, `/api/v1/organizer/activities` <br>
+                    <strong>MongoDB Collections:</strong> `activities` <br>
+                    <strong>ACID Transactions:</strong> **Transaction 8.4** (Organizer hủy hoạt động - đồng loạt cập nhật trạng thái các đơn đăng ký liên quan sang `Cancelled`). <br>
+                    <strong>Main Endpoints:</strong> CRUD activity, submit for review, cancel activity, keyword Text Search. <br>
+                    <strong>Độ khó:</strong> Medium (Lập trình transaction, cron job quét status tự động và MongoDB Text Index). <br>
+                    <strong>Dependency:</strong> Phụ thuộc vào JWT middleware của Dev 1.
+                </div>
+
+                <!-- Group 3 -->
+                <div class="card">
+                    <h4 class="card-header">
+                        Registrations & Attendance
+                        <span class="badge badge-be">Dev 3</span>
+                    </h4>
+                    <strong>Router Prefix:</strong> `/api/v1/registrations`, `/api/v1/attendance` <br>
+                    <strong>MongoDB Collections:</strong> `registrations`, `activities`, `users` <br>
+                    <strong>ACID Transactions:</strong>
+                    <ul>
+                        <li>**Transaction 8.1:** Đăng ký mới (Lock, check limit, ghi đơn).</li>
+                        <li>**Transaction 8.2:** Volunteer tự hủy đơn / từ chối (Hoàn trả counter, auto-open hoạt động từ Full).</li>
+                        <li>**Transaction 8.3:** Điểm danh Completed (Đổi trạng thái đơn, cộng counter Profile User).</li>
+                    </ul>
+                    <strong>Main Endpoints:</strong> Register to activity, cancel registration, view registrations list, approve/reject registration, attendance check-in. <br>
+                    <strong>Độ khó:</strong> High (Thuật toán overlap check trùng lịch, bọc transactions session, chống race-condition tranh chấp). <br>
+                    <strong>Dependency:</strong> Phụ thuộc vào Auth (Dev 1), Activity schema (Dev 2).
+                </div>
+
+                <!-- Group 4 -->
+                <div class="card">
+                    <h4 class="card-header">
+                        Feed Posts & Admin
+                        <span class="badge badge-be">Dev 4</span>
+                    </h4>
+                    <strong>Router Prefix:</strong> `/api/v1/posts`, `/api/v1/admin` <br>
+                    <strong>MongoDB Collections:</strong> `posts`, `activities`, `organizer_requests`, `users` <br>
+                    <strong>ACID Transactions:</strong> None (Atomic counter update). <br>
+                    <strong>Main Endpoints:</strong> Create/Delete post, pagination Feed, filter hashtag, like/share post, Admin approve role request, Admin approve activity, Admin statistics charts. <br>
+                    <strong>Độ khó:</strong> Medium (MongoDB aggregation stats, cursor pagination). <br>
+                    <strong>Dependency:</strong> Phụ thuộc vào Auth (Dev 1), Activity & Registration schemas (Dev 2, Dev 3).
+                </div>
+            </div>
+        </section>
+
+        <!-- 7. FRONTEND PLAN -->
+        <section id="frontend">
+            <h3 class="section-header">7. Frontend Plan</h3>
+            <div class="card">
+                <h4 class="card-header" style="color: var(--purple);">UX/UI Designer & Frontend Collaboration Spec</h4>
+                <div class="grid-2col" style="display: grid;">
+                    <div>
+                        <strong>Screens list phụ trách (SCR-01 &rarr; SCR-12):</strong>
+                        <ul>
+                            <li>Welcome, Đăng nhập, Đăng ký, Nhập mã OTP.</li>
+                            <li>Trang chủ Volunteer (lọc danh mục, tỉnh/thành, search).</li>
+                            <li>Xem chi tiết hoạt động (Nút Đăng ký tham gia).</li>
+                            <li>Hồ sơ cá nhân (joined activity count, skills) & Form xin quyền Organizer.</li>
+                            <li>Dashboard của Organizer (Danh sách hoạt động do mình quản lý).</li>
+                            <li>Form tạo mới hoạt động (lưu Draft / gửi duyệt).</li>
+                            <li>Giao diện duyệt đơn đăng ký & Màn hình Điểm danh sau sự kiện.</li>
+                            <li>Community Feed (bài đăng chia sẻ, nút thích, chia sẻ, tag).</li>
+                            <li>Dashboard duyệt quyền & hoạt động của Admin kèm biểu đồ thống kê.</li>
+                        </ul>
+                        <strong>API Mocking Plan:</strong>
+                        <p>Từ Day 3 đến Day 7, FE sử dụng local mock service để phản hồi dữ liệu giả lập cho các API Đăng ký, Hủy đơn, Phê duyệt, Điểm danh để tự code trước UI.</p>
+                    </div>
+                    <div>
+                        <strong>Thiết kế UX States bắt buộc phối hợp UX/UI Designer:</strong>
+                        <ul>
+                            <li><strong>Loading State:</strong> Sử dụng Skeleton loaders khi đang tải danh sách hoạt động, posts feed để giao diện không bị giật lag.</li>
+                            <li><strong>Empty State:</strong> Hiển thị hình vẽ minh họa và nút reset bộ lọc khi danh sách tìm kiếm trống.</li>
+                            <li><strong>Error State:</strong> Toast đỏ báo lỗi mất kết nối mạng hoặc server 500.</li>
+                            <li><strong>Permission Denied:</strong> Popup thông báo từ chối truy cập trang quản trị nếu role không phù hợp.</li>
+                            <li><strong>Success & Confirm Dialog:</strong> Toast thông báo xanh khi đăng ký thành công, popup hỏi xác nhận trước khi Hủy đơn/Hủy sự kiện.</li>
+                        </ul>
+                        <strong>Daily Checkpoint 9:00 AM:</strong>
+                        <p>Hàng ngày, FE Dev checkpoint 15 phút với UX/UI Designer để xác nhận màn hình trước khi code, duyệt spacing/typography, test behavior của components dùng chung và khóa cứng prototype trước khi sáp nhập API thật.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 8. API ENDPOINT SUMMARY -->
+        <section id="api">
+            <h3 class="section-header">8. API Endpoint Summary</h3>
+            <div class="card" style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Method</th>
+                            <th>Endpoint Path</th>
+                            <th>Feature Category</th>
+                            <th>Auth Level</th>
+                            <th>Permission Gate</th>
+                            <th>ACID Transaction</th>
+                            <th>Owner</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Auth -->
+                        <tr>
+                            <td><span class="badge badge-warning">POST</span></td>
+                            <td>`/api/v1/auth/register`</td>
+                            <td>Authentication</td>
+                            <td>No</td>
+                            <td>Public</td>
+                            <td>No</td>
+                            <td>Dev 1</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-warning">POST</span></td>
+                            <td>`/api/v1/auth/verify-otp`</td>
+                            <td>Authentication</td>
+                            <td>No</td>
+                            <td>Public</td>
+                            <td>No</td>
+                            <td>Dev 1</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-warning">POST</span></td>
+                            <td>`/api/v1/auth/resend-otp`</td>
+                            <td>Authentication</td>
+                            <td>No</td>
+                            <td>Public</td>
+                            <td>No</td>
+                            <td>Dev 1</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-warning">POST</span></td>
+                            <td>`/api/v1/auth/login`</td>
+                            <td>Authentication</td>
+                            <td>No</td>
+                            <td>Public</td>
+                            <td>No</td>
+                            <td>Dev 1</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-warning">POST</span></td>
+                            <td>`/api/v1/auth/refresh`</td>
+                            <td>Authentication</td>
+                            <td>No</td>
+                            <td>Public</td>
+                            <td>No</td>
+                            <td>Dev 1</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-warning">POST</span></td>
+                            <td>`/api/v1/auth/logout`</td>
+                            <td>Authentication</td>
+                            <td>Yes</td>
+                            <td>Authenticated</td>
+                            <td>No</td>
+                            <td>Dev 1</td>
+                        </tr>
+                        <!-- Users -->
+                        <tr>
+                            <td><span class="badge badge-be">GET</span></td>
+                            <td>`/api/v1/users/me`</td>
+                            <td>Users & Profile</td>
+                            <td>Yes</td>
+                            <td>Authenticated</td>
+                            <td>No</td>
+                            <td>Dev 1</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-purple">PATCH</span></td>
+                            <td>`/api/v1/users/me`</td>
+                            <td>Users & Profile</td>
+                            <td>Yes</td>
+                            <td>Authenticated</td>
+                            <td>No</td>
+                            <td>Dev 1</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-be">GET</span></td>
+                            <td>`/api/v1/users/{id}`</td>
+                            <td>Users & Profile</td>
+                            <td>Yes</td>
+                            <td>Authenticated</td>
+                            <td>No</td>
+                            <td>Dev 1</td>
+                        </tr>
+                        <!-- Requests -->
+                        <tr>
+                            <td><span class="badge badge-warning">POST</span></td>
+                            <td>`/api/v1/organizer-requests`</td>
+                            <td>Organizer Request</td>
+                            <td>Yes</td>
+                            <td>Volunteer</td>
+                            <td>No</td>
+                            <td>Dev 1</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-be">GET</span></td>
+                            <td>`/api/v1/organizer-requests/latest`</td>
+                            <td>Organizer Request</td>
+                            <td>Yes</td>
+                            <td>Volunteer</td>
+                            <td>No</td>
+                            <td>Dev 1</td>
+                        </tr>
+                        <!-- Activities -->
+                        <tr>
+                            <td><span class="badge badge-be">GET</span></td>
+                            <td>`/api/v1/activities`</td>
+                            <td>Activities</td>
+                            <td>No</td>
+                            <td>Public</td>
+                            <td>No</td>
+                            <td>Dev 2</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-be">GET</span></td>
+                            <td>`/api/v1/activities/{id}`</td>
+                            <td>Activities</td>
+                            <td>No</td>
+                            <td>Public</td>
+                            <td>No</td>
+                            <td>Dev 2</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-warning">POST</span></td>
+                            <td>`/api/v1/activities`</td>
+                            <td>Activities</td>
+                            <td>Yes</td>
+                            <td>Organizer</td>
+                            <td>No</td>
+                            <td>Dev 2</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-purple">PATCH</span></td>
+                            <td>`/api/v1/activities/{id}`</td>
+                            <td>Activities</td>
+                            <td>Yes</td>
+                            <td>Organizer</td>
+                            <td>No</td>
+                            <td>Dev 2</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-warning">POST</span></td>
+                            <td>`/api/v1/activities/{id}/submit`</td>
+                            <td>Activities</td>
+                            <td>Yes</td>
+                            <td>Organizer</td>
+                            <td>No</td>
+                            <td>Dev 2</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-warning">POST</span></td>
+                            <td>`/api/v1/activities/{id}/cancel`</td>
+                            <td>Activities</td>
+                            <td>Yes</td>
+                            <td>Organizer</td>
+                            <td><span class="badge badge-danger">Transaction 8.4</span></td>
+                            <td>Dev 2</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-be">GET</span></td>
+                            <td>`/api/v1/organizer/activities`</td>
+                            <td>Activities</td>
+                            <td>Yes</td>
+                            <td>Organizer</td>
+                            <td>No</td>
+                            <td>Dev 2</td>
+                        </tr>
+                        <!-- Registrations -->
+                        <tr>
+                            <td><span class="badge badge-warning">POST</span></td>
+                            <td>`/api/v1/activities/{id}/registrations`</td>
+                            <td>Registrations</td>
+                            <td>Yes</td>
+                            <td>Volunteer</td>
+                            <td><span class="badge badge-danger">Transaction 8.1</span></td>
+                            <td>Dev 3</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-warning">POST</span></td>
+                            <td>`/api/v1/registrations/{id}/cancel`</td>
+                            <td>Registrations</td>
+                            <td>Yes</td>
+                            <td>Volunteer</td>
+                            <td><span class="badge badge-danger">Transaction 8.2</span></td>
+                            <td>Dev 3</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-be">GET</span></td>
+                            <td>`/api/v1/users/me/registrations`</td>
+                            <td>Registrations</td>
+                            <td>Yes</td>
+                            <td>Volunteer</td>
+                            <td>No</td>
+                            <td>Dev 3</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-be">GET</span></td>
+                            <td>`/api/v1/activities/{id}/registrations`</td>
+                            <td>Registrations</td>
+                            <td>Yes</td>
+                            <td>Organizer</td>
+                            <td>No</td>
+                            <td>Dev 3</td>
+                        </tr>
+                        <!-- Attendance -->
+                        <tr>
+                            <td><span class="badge badge-warning">POST</span></td>
+                            <td>`/api/v1/registrations/{id}/approve`</td>
+                            <td>Attendance</td>
+                            <td>Yes</td>
+                            <td>Organizer</td>
+                            <td><span class="badge badge-danger">Transaction 8.1/8.2</span></td>
+                            <td>Dev 3</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-warning">POST</span></td>
+                            <td>`/api/v1/registrations/{id}/reject`</td>
+                            <td>Attendance</td>
+                            <td>Yes</td>
+                            <td>Organizer</td>
+                            <td>No</td>
+                            <td>Dev 3</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-warning">POST</span></td>
+                            <td>`/api/v1/registrations/{id}/check-in`</td>
+                            <td>Attendance</td>
+                            <td>Yes</td>
+                            <td>Organizer</td>
+                            <td><span class="badge badge-danger">Transaction 8.3</span></td>
+                            <td>Dev 3</td>
+                        </tr>
+                        <!-- Posts -->
+                        <tr>
+                            <td><span class="badge badge-be">GET</span></td>
+                            <td>`/api/v1/posts`</td>
+                            <td>Volunteer Feed</td>
+                            <td>No</td>
+                            <td>Public</td>
+                            <td>No</td>
+                            <td>Dev 4</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-warning">POST</span></td>
+                            <td>`/api/v1/posts`</td>
+                            <td>Volunteer Feed</td>
+                            <td>Yes</td>
+                            <td>Authenticated</td>
+                            <td>No</td>
+                            <td>Dev 4</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-danger">DELETE</span></td>
+                            <td>`/api/v1/posts/{id}`</td>
+                            <td>Volunteer Feed</td>
+                            <td>Yes</td>
+                            <td>Authenticated</td>
+                            <td>No</td>
+                            <td>Dev 4</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-warning">POST</span></td>
+                            <td>`/api/v1/posts/{id}/like`</td>
+                            <td>Volunteer Feed</td>
+                            <td>Yes</td>
+                            <td>Authenticated</td>
+                            <td>No</td>
+                            <td>Dev 4</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-warning">POST</span></td>
+                            <td>`/api/v1/posts/{id}/share`</td>
+                            <td>Volunteer Feed</td>
+                            <td>Yes</td>
+                            <td>Authenticated</td>
+                            <td>No</td>
+                            <td>Dev 4</td>
+                        </tr>
+                        <!-- Admin -->
+                        <tr>
+                            <td><span class="badge badge-be">GET</span></td>
+                            <td>`/api/v1/admin/organizer-requests`</td>
+                            <td>Admin Workflows</td>
+                            <td>Yes</td>
+                            <td>Admin</td>
+                            <td>No</td>
+                            <td>Dev 4</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-warning">POST</span></td>
+                            <td>`/api/v1/admin/organizer-requests/{id}/approve`</td>
+                            <td>Admin Workflows</td>
+                            <td>Yes</td>
+                            <td>Admin</td>
+                            <td>No</td>
+                            <td>Dev 4</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-be">GET</span></td>
+                            <td>`/api/v1/admin/activities`</td>
+                            <td>Admin Workflows</td>
+                            <td>Yes</td>
+                            <td>Admin</td>
+                            <td>No</td>
+                            <td>Dev 4</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-warning">POST</span></td>
+                            <td>`/api/v1/admin/activities/{id}/approve`</td>
+                            <td>Admin Workflows</td>
+                            <td>Yes</td>
+                            <td>Admin</td>
+                            <td>No</td>
+                            <td>Dev 4</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge badge-be">GET</span></td>
+                            <td>`/api/v1/admin/statistics`</td>
+                            <td>Admin Workflows</td>
+                            <td>Yes</td>
+                            <td>Admin</td>
+                            <td>No</td>
+                            <td>Dev 4</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- 9. FRONTEND-BACKEND INTEGRATION -->
+        <section id="integration">
+            <h3 class="section-header">9. Frontend-Backend Integration</h3>
+            <div class="card">
+                <h4 class="card-header">Quy chuẩn kết nối và Tích hợp hệ thống</h4>
+                <ul>
+                    <li><strong>Swagger/OpenAPI UI:</strong> Xuất bản tự động tại `/docs` trên local server. Cập nhật đầy đủ kiểu dữ liệu và mô tả mã lỗi trả về để FE tự sinh code API client.</li>
+                    <li><strong>Quy chuẩn Success Response JSON:</strong>
+                        <pre style="background-color: #f1f5f9; padding: 12px; border-radius: 6px; font-size: 0.85rem;">{
+  "success": true,
+  "message": "Thực hiện thành công",
+  "data": { ... }
+}</pre>
+                    </li>
+                    <li><strong>Quy chuẩn Error Response JSON:</strong>
+                        <pre style="background-color: #f1f5f9; padding: 12px; border-radius: 6px; font-size: 0.85rem;">{
+  "success": false,
+  "error": {
+    "code": "ERROR_CODE_IN_CAPS",
+    "message": "Thông báo lỗi hiển thị lên màn hình",
+    "details": null
+  }
+}</pre>
+                    </li>
+                    <li><strong>Quy trình UAT:</strong> Ghép code chính thức từ Day 9. Triển khai CI/CD build Staging Server. FE đổi Endpoint gọi thật. Chạy walkthrough test 4 luồng nghiệp vụ lớn trước khi bàn giao.</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- 10. GIT WORKFLOW -->
+        <section id="git">
+            <h3 class="section-header">10. Git Workflow</h3>
+            <div class="card">
+                <h4 class="card-header">Quy tắc phân nhánh, Commit và Pull Request</h4>
+                <div class="grid-2col" style="display: grid;">
+                    <div>
+                        <strong>Chiến lược phân nhánh:</strong>
+                        <ul>
+                            <li>Nhánh chính: `develop` (Tích hợp), `main` (Phát hành Production).</li>
+                            <li>Tách nhánh độc lập cho từng thành viên:
+                                <ul>
+                                    <li>Dev 1: `feature/auth-users-profile`</li>
+                                    <li>Dev 2: `feature/activities-lifecycle`</li>
+                                    <li>Dev 3: `feature/registrations-attendance`</li>
+                                    <li>Dev 4: `feature/posts-admin-integration`</li>
+                                    <li>FE Dev: `feature/frontend-ui-integration`</li>
+                                </ul>
+                            </li>
+                        </ul>
+                        <strong>Commit Convention (Chuẩn viết commit):</strong>
+                        <p>Sử dụng cú pháp: `type(scope): message`. Ví dụ: `feat(auth): add verify-otp endpoint` hoặc `fix(registration): resolve overlap date calculation`.</p>
+                    </div>
+                    <div>
+                        <strong>Quy tắc PR & Code Review Assignees:</strong>
+                        <ul>
+                            <li>PR của Dev 1 &rarr; Review bởi Dev 2 / Tech Lead.</li>
+                            <li>PR của Dev 2 &rarr; Review bởi Dev 3.</li>
+                            <li>PR của Dev 3 &rarr; Review bởi Dev 1.</li>
+                            <li>PR của Dev 4 &rarr; Review bởi Dev 2.</li>
+                            <li>PR của FE Dev &rarr; Review bởi Tech Lead / Dev 4.</li>
+                        </ul>
+                        <strong>Quy tắc tránh Conflict:</strong>
+                        <p>Lập trình viên bắt buộc chạy `git pull origin develop --rebase` dưới local máy mình để giải quyết conflict trước khi tạo PR lên GitHub. File `main.py` và `shared/models.py` bị khóa cứng, chỉ Tech Lead được chỉnh sửa.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 11. RISK MANAGEMENT -->
+        <section id="risk">
+            <h3 class="section-header">11. Risk Management</h3>
+            <div class="card" style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Mô tả Rủi ro / Điểm nghẽn</th>
+                            <th>Mức độ</th>
+                            <th>Owner</th>
+                            <th>Người dự phòng</th>
+                            <th>Mitigation & Backup Scope Cut Plan</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="background-color: rgba(239, 68, 68, 0.03);">
+                            <td style="font-weight: bold; color: var(--danger);">SMS OTP gateway bị lỗi kết nối mạng</td>
+                            <td><span class="badge badge-danger">High</span></td>
+                            <td>Dev 1</td>
+                            <td>Dev 4</td>
+                            <td>Tắt gửi SMS thật, in mã OTP ra console log của server Backend. Sử dụng mã OTP test mặc định cứng là `123456`.</td>
+                        </tr>
+                        <tr style="background-color: rgba(245, 158, 11, 0.03);">
+                            <td style="font-weight: bold; color: var(--warning);">Cron Job quét status hoạt động chạy ngầm bị lỗi</td>
+                            <td><span class="badge badge-warning">Medium</span></td>
+                            <td>Dev 2</td>
+                            <td>Dev 1</td>
+                            <td>Hủy Cron job nền. Bổ sung nút bấm "Start Activity" và "Complete Activity" thủ công trên UI Dashboard của Organizer.</td>
+                        </tr>
+                        <tr style="background-color: rgba(245, 158, 11, 0.03);">
+                            <td style="font-weight: bold; color: var(--warning);">Giao dịch ACID locks bị deadlock trên Replica Set</td>
+                            <td><span class="badge badge-warning">Medium</span></td>
+                            <td>Dev 3</td>
+                            <td>Tech Lead</td>
+                            <td>Gỡ bỏ session bọc transactions của Beanie. Chuyển sang ghi tuần tự không transaction và xử lý an toàn ở tầng ứng dụng.</td>
+                        </tr>
+                        <tr style="background-color: rgba(239, 68, 68, 0.03);">
+                            <td style="font-weight: bold; color: var(--danger);">Frontend Developer bị quá tải (1 người gánh 12 screens)</td>
+                            <td><span class="badge badge-danger">High</span></td>
+                            <td>FE Dev</td>
+                            <td>Tech Lead / Dev 4</td>
+                            <td><strong>Scope Cut:</strong> Cắt giảm toàn bộ màn hình Community Posts Feed (SCR-11). Gộp chung các bảng điểm danh và duyệt đơn của Organizer làm một.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- 12. PROJECT STRUCTURE -->
+        <section id="structure">
+            <h3 class="section-header">12. Project Structure</h3>
+            <div class="card">
+                <h4 class="card-header">Cấu trúc thư mục nguồn của Project</h4>
+                <p>Cây thư mục thực tế được thiết lập tại <a href="../../Project" target="_blank" class="doc-link">Project/</a> theo mô hình hướng tính năng:</p>
+                
+                <div class="tree">Project/
+├── <span class="tree-folder">backend/</span>
+│   ├── <span class="tree-folder">app/</span>
+│   │   ├── <span class="tree-folder">core/</span>                  <span class="tree-comment"># Lớp cấu hình dùng chung toàn app</span>
+│   │   │   ├── config/ (settings.py)
+│   │   │   ├── database/ (mongodb.py, beanie.py)
+│   │   │   ├── middleware/ (cors.py)
+│   │   │   ├── security/ (jwt.py, password.py, permissions.py)
+│   │   │   ├── exceptions/ (handlers.py, custom_exceptions.py)
+│   │   │   └── utils/ (datetime.py, pagination.py, object_id.py)
+│   │   │
+│   │   ├── <span class="tree-folder">features/</span>              <span class="tree-comment"># Chứa 8 modules tính năng đóng gói độc lập</span>
+│   │   │   ├── <span class="tree-folder">auth/</span>
+│   │   │   ├── <span class="tree-folder">users/</span>
+│   │   │   ├── <span class="tree-folder">organizer_requests/</span>
+│   │   │   ├── <span class="tree-folder">activities/</span>
+│   │   │   ├── <span class="tree-folder">registrations/</span>
+│   │   │   ├── <span class="tree-folder">attendance/</span>
+│   │   │   ├── <span class="tree-folder">posts/</span>
+│   │   │   └── <span class="tree-folder">admin/</span>
+│   │   │
+│   │   ├── <span class="tree-folder">shared/</span>                <span class="tree-comment"># Phản hồi json và base models chung</span>
+│   │   └── main.py
+│   ├── tests/ (unit/, integration/, e2e/)
+│   ├── scripts/ (database/, seed/)
+│   ├── requirements.txt
+│   └── README.md
+├── <span class="tree-folder">frontend/</span> (public/, src/)
+└── README.md</div>
+
+                <strong>Chi tiết các tệp tin cấu thành một Feature:</strong>
+                <ul>
+                    <li>`router.py`: Chứa các API routes định tuyến và FastAPI parameters (không chứa logic).</li>
+                    <li>`models.py`: Khai báo Collection MongoDB Beanie ODM và các schema index của Collection đó.</li>
+                    <li>`schemas.py`: Khai báo Pydantic schemas (DTO) kiểm duyệt kiểu dữ liệu đầu vào/đầu ra.</li>
+                    <li>`services.py`: Nơi thực thi logic nghiệp vụ cốt lõi và kiểm tra nghiệp vụ.</li>
+                    <li>`repositories.py`: Lớp thực thi tương tác trực tiếp DB để dễ dàng tạo Mock DB khi chạy Unit test.</li>
+                    <li>`validators.py`: Logic kiểm duyệt nghiệp vụ bổ sung (như cooldown).</li>
+                    <li>`dependencies.py`: FastAPI Depends injection.</li>
+                    <li>`constants.py`: Hằng số nội bộ của feature.</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- 13. SOURCE OF TRUTH -->
+        <section id="truth">
+            <h3 class="section-header">13. Source of Truth</h3>
+            <div class="card">
+                <h4 class="card-header">Nguồn sự thật chính thức của dự án</h4>
+                <ul>
+                    <li><strong>Business Spec:</strong> <a href="../Business/BRD_VolunteerConnect-Project.md" class="doc-link">Docs/Business/BRD_VolunteerConnect-Project.md</a></li>
+                    <li><strong>Database ERD Sơ đồ:</strong> <a href="../Database/db_erd_design.md" class="doc-link">Docs/Database/db_erd_design.md</a></li>
+                    <li><strong>Database Schema & JSON Schema:</strong> <a href="../Database/mongodb_schema_design.md" class="doc-link">Docs/Database/mongodb_schema_design.md</a></li>
+                    <li><strong>Index Strategy:</strong> <a href="../Database/mongodb_indexes.md" class="doc-link">Docs/Database/mongodb_indexes.md</a></li>
+                    <li><strong>ACID Transaction Spec:</strong> <a href="../Database/mongodb_transactions.md" class="doc-link">Docs/Database/mongodb_transactions.md</a></li>
+                    <li><strong>Backend API Specification:</strong> <a href="../Backend/api_endpoint_design.md" class="doc-link">Docs/Backend/api_endpoint_design.md</a></li>
+                    <li><strong>Execution Plan:</strong> <a href="../Execution/fullstack_execution_plan.md" class="doc-link">Docs/Execution/fullstack_execution_plan.md</a></li>
+                    <li><strong>Development Timeline 13 days:</strong> <a href="../Execution/development_schedule.md" class="doc-link">Docs/Execution/development_schedule.md</a></li>
+                    <li><strong>Git branching guidelines:</strong> <a href="../Execution/git_workflow.md" class="doc-link">Docs/Execution/git_workflow.md</a></li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- 14. READING GUIDE -->
+        <section id="reading">
+            <h3 class="section-header">14. Reading Guide</h3>
+            <div class="card">
+                <h4 class="card-header">Bản đồ đọc tài liệu theo vai trò</h4>
+                <div class="grid-2col" style="display: grid;">
+                    <div>
+                        <strong>Backend Developers đọc:</strong>
+                        <ul>
+                            <li><a href="../Execution/team_assignment.md" class="doc-link">Docs/Execution/team_assignment.md</a> (Check DoD & Tasks)</li>
+                            <li><a href="../Execution/development_schedule.md" class="doc-link">Docs/Execution/development_schedule.md</a> (Timeline ngày)</li>
+                            <li><a href="../Backend/api_endpoint_design.md" class="doc-link">Docs/Backend/api_endpoint_design.md</a> (API payload formats)</li>
+                            <li><a href="../Database/mongodb_schema_design.md" class="doc-link">Docs/Database/mongodb_schema_design.md</a> (Copy JSON Schema)</li>
+                            <li><a href="../Execution/git_workflow.md" class="doc-link">Docs/Execution/git_workflow.md</a> (Git rebase/review rules)</li>
+                        </ul>
+                        <strong>Frontend Developer đọc:</strong>
+                        <ul>
+                            <li><a href="../Execution/frontend_backend_integration_plan.md" class="doc-link">Docs/Execution/frontend_backend_integration_plan.md</a> (Integration roadmap)</li>
+                            <li><a href="../Backend/api_endpoint_design.md" class="doc-link">Docs/Backend/api_endpoint_design.md</a> (API payloads)</li>
+                            <li><a href="../Execution/team_assignment.md" class="doc-link">Docs/Execution/team_assignment.md</a> (Screens list)</li>
+                            <li><a href="../Execution/development_schedule.md" class="doc-link">Docs/Execution/development_schedule.md</a> (Timeline ngày)</li>
+                            <li><a href="../Execution/git_workflow.md" class="doc-link">Docs/Execution/git_workflow.md</a> (Git rebase/review rules)</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <strong>UX/UI Designer đọc:</strong>
+                        <ul>
+                            <li><a href="../Business/BRD_VolunteerConnect-Project.md" class="doc-link">Docs/Business/BRD_VolunteerConnect-Project.md</a> (Nghiệp vụ)</li>
+                            <li><a href="../Execution/frontend_backend_integration_plan.md" class="doc-link">Docs/Execution/frontend_backend_integration_plan.md</a> (UX states specs)</li>
+                        </ul>
+                        <strong>QA / Tester đọc:</strong>
+                        <ul>
+                            <li><a href="../Backend/api_endpoint_design.md" class="doc-link">Docs/Backend/api_endpoint_design.md</a> (Test cases)</li>
+                            <li><a href="../Database/mongodb_seed_data.md" class="doc-link">Docs/Database/mongodb_seed_data.md</a> (Seed test data values)</li>
+                            <li><a href="../Execution/development_schedule.md" class="doc-link">Docs/Execution/development_schedule.md</a> (Milestones timeline)</li>
+                            <li><a href="../Execution/frontend_backend_integration_plan.md" class="doc-link">Docs/Execution/frontend_backend_integration_plan.md</a> (E2E integration test)</li>
+                        </ul>
+                        <strong>Tech Lead đọc:</strong>
+                        <ul>
+                            <li><a href="../Execution/fullstack_execution_plan.md" class="doc-link">Docs/Execution/fullstack_execution_plan.md</a></li>
+                            <li><a href="../Execution/risk_management.md" class="doc-link">Docs/Execution/risk_management.md</a></li>
+                            <li><a href="../Database/mongodb_schema_design.md" class="doc-link">Docs/Database/mongodb_schema_design.md</a></li>
+                            <li><a href="../Database/mongodb_transactions.md" class="doc-link">Docs/Database/mongodb_transactions.md</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+</body>
+</html>
