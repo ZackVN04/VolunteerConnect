@@ -56,7 +56,6 @@ jobs:
           file: ./backend/Dockerfile
           push: true
           tags: |
-            # Lưu ý: Thay volunteer-connect-prod-999 thành ID thật nếu dự án của bạn bị đổi ID
             asia-southeast1-docker.pkg.dev/volunteer-connect-prod-999/volunteer-connect-repo/volunteer-connect-api:${{ github.sha }}
             asia-southeast1-docker.pkg.dev/volunteer-connect-prod-999/volunteer-connect-repo/volunteer-connect-api:latest
           cache-from: type=gha
