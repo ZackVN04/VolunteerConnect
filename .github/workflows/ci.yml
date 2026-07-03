@@ -74,21 +74,25 @@ jobs:
       contents: 'read'
       id-token: 'write'
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22 (LTS)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
       - name: Authenticate to Google Cloud (Workload Identity Federation)
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: 'projects/33207334612/locations/global/workloadIdentityPools/github-pool/providers/github-provider'
           service_account: 'github-ci-sa@volunteer-connect-prod-999.iam.gserviceaccount.com'
 
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-
-      - name: Deploy to Cloud Run (CD)
-        # Sử dụng đúng Image có mã Tag trùng khớp với mã Hash (SHA) của lần Commit này
-        run: |
-          gcloud run deploy volunteer-connect-backend-service \
-            --image="asia-southeast1-docker.pkg.dev/volunteer-connect-prod-999/volunteer-connect-repo/volunteer-connect-api:${{ github.sha }}" \
-            --region="asia-southeast1" \
-            --port="8080" \
-            --service-account="cloudrun-runtime-sa@volunteer-connect-prod-999.iam.gserviceaccount.com" \
-            --allow-unauthenticated
+      - name: Deploy Infrastructure with SST (GitOps)
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          # Gắn mã Băm (SHA) của lần Commit này vào đường link Docker
+          IMAGE_URL: "asia-southeast1-docker.pkg.dev/volunteer-connect-prod-999/volunteer-connect-repo/volunteer-connect-api:${{ github.sha }}"
+        # Giao phó hoàn toàn quyền Sinh/Sát hạ tầng cho SST
+        run: npx sst deploy --stage dev

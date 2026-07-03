@@ -6,7 +6,7 @@ export default $config({
       name: "volunteer-connect-infra",
       // Tự động xóa sạch tài nguyên nếu là môi trường dev, giữ lại (retain) nếu là production
       removal: input?.stage === "production" ? "retain" : "remove",
-      home: "local",
+      home: "aws", // Chuyển sang lưu trữ State trên Đám mây AWS
       providers: {
         gcp: {
           version: "8.3.0", // Bắt buộc phải có version cho các provider ngoài AWS
@@ -33,7 +33,8 @@ export default $config({
         spec: {
           serviceAccountName: "cloudrun-runtime-sa@volunteer-connect-prod-999.iam.gserviceaccount.com", // Chạy dưới thân phận Robot này
           containers: [{
-            image: "asia-southeast1-docker.pkg.dev/volunteer-connect-prod-999/volunteer-connect-repo/volunteer-connect-api:latest",
+            // Loại bỏ tag :latest, tự động nạp đường link kèm mã SHA được cấp bởi GitHub Actions
+            image: process.env.IMAGE_URL || "asia-southeast1-docker.pkg.dev/volunteer-connect-prod-999/volunteer-connect-repo/volunteer-connect-api:latest",
             ports: [{ containerPort: 8080 }],
             envs: [
               // LƯU Ý: HÃY ĐỔI ĐƯỜNG LINK NÀY THÀNH LINK MONGODB THẬT CỦA BẠN TRƯỚC KHI DEPLOY
