@@ -90,4 +90,5 @@ jobs:
             --image="asia-southeast1-docker.pkg.dev/volunteer-connect-prod-999/volunteer-connect-repo/volunteer-connect-api:${{ github.sha }}" \
             --region="asia-southeast1" \
             --port="8080" \
+            --service-account="cloudrun-runtime-sa@volunteer-connect-prod-999.iam.gserviceaccount.com" \
             --allow-unauthenticated
