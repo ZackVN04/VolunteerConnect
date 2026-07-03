@@ -1,1 +1,61 @@
-# TODO: Implement organizer_requests router
+from fastapi import APIRouter, Depends, HTTPException, status
+from datetime import datetime, timedelta, timezone
+from app.features.users.models import User
+from app.features.auth.dependencies import get_current_user
+from app.features.organizer_requests.models import OrganizerRequest
+from app.features.organizer_requests.schemas import OrganizerRequestCreate, OrganizerRequestResponse
+from app.shared.enums import RequestStatus
+
+router = APIRouter(prefix="/api/v1/organizer-requests", tags=["Organizer Requests"])
+
+@router.post("/request-upgrade", status_code=status.HTTP_201_CREATED, response_model=OrganizerRequestResponse)
+async def request_upgrade(
+    request_data: OrganizerRequestCreate,
+    current_user: User = Depends(get_current_user)
+):
+    latest_request = await OrganizerRequest.find(
+        OrganizerRequest.user_id == current_user.id
+    ).sort(-OrganizerRequest.requested_at).first_or_none()
+    
+    if latest_request:
+        if latest_request.status == RequestStatus.APPROVED:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Account is already an organizer"
+            )
+            
+        now = datetime.now(timezone.utc)
+        cooldown_period = timedelta(days=7)
+        time_since_last_request = now - latest_request.requested_at
+        
+        if time_since_last_request < cooldown_period:
+            remaining_time = cooldown_period - time_since_last_request
+            days_left = remaining_time.days + 1
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Please wait {days_left} days before sending another request"
+            )
+
+    new_request = OrganizerRequest(
+        user_id=current_user.id,
+        organization_name=request_data.organization_name,
+        documents=request_data.documents,
+        status=RequestStatus.PENDING
+    )
+    
+    await new_request.insert()
+    return new_request
+
+@router.get("/my-request", response_model=OrganizerRequestResponse)
+async def get_my_request(current_user: User = Depends(get_current_user)):
+    latest_request = await OrganizerRequest.find(
+        OrganizerRequest.user_id == current_user.id
+    ).sort(-OrganizerRequest.requested_at).first_or_none()
+    
+    if not latest_request:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No upgrade request found"
+        )
+        
+    return latest_request
