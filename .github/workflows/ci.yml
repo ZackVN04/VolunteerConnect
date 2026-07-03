@@ -34,14 +34,19 @@ jobs:
   build-and-push:
     needs: test-python-code
     runs-on: ubuntu-latest
+    # BẮT BUỘC để WIF có thể tạo token OIDC
+    permissions:
+      contents: 'read'
+      id-token: 'write'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Authenticate to Google Cloud
+      - name: Authenticate to Google Cloud (Workload Identity Federation)
         uses: google-github-actions/auth@v2
         with:
-          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+          workload_identity_provider: 'projects/33207334612/locations/global/workloadIdentityPools/github-pool/providers/github-provider'
+          service_account: 'github-ci-sa@volunteer-connect-prod-999.iam.gserviceaccount.com'
 
       - name: Configure Docker to use Artifact Registry
         run: gcloud auth configure-docker asia-southeast1-docker.pkg.dev
@@ -64,11 +69,16 @@ jobs:
   deploy-to-cloudrun:
     needs: build-and-push # Đợi job Build xong mới được Deploy
     runs-on: ubuntu-latest
+    # BẮT BUỘC để WIF có thể tạo token OIDC
+    permissions:
+      contents: 'read'
+      id-token: 'write'
     steps:
-      - name: Authenticate to Google Cloud
+      - name: Authenticate to Google Cloud (Workload Identity Federation)
         uses: google-github-actions/auth@v2
         with:
-          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+          workload_identity_provider: 'projects/33207334612/locations/global/workloadIdentityPools/github-pool/providers/github-provider'
+          service_account: 'github-ci-sa@volunteer-connect-prod-999.iam.gserviceaccount.com'
 
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
