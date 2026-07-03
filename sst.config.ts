@@ -23,6 +23,12 @@ export default $config({
     const service = new gcp.cloudrun.Service("BackendService", {
       name: `volunteer-connect-backend-${$app.stage}`,
       location: "asia-southeast1",
+      metadata: {
+        annotations: {
+          // Bỏ comment dòng dưới để biến Server thành "ốc đảo" (Chỉ mạng nội bộ VPC mới gọi được, chặn đứng 100% Internet)
+          // "run.googleapis.com/ingress": "internal",
+        },
+      },
       template: {
         spec: {
           serviceAccountName: "cloudrun-runtime-sa@volunteer-connect-prod-999.iam.gserviceaccount.com", // Chạy dưới thân phận Robot này
@@ -40,12 +46,12 @@ export default $config({
       },
     });
 
-    // Cấp quyền Public Access (cho phép tất cả mọi người gọi API)
-    new gcp.cloudrun.IamMember("PublicAccess", {
+    // Cấp quyền gọi API (Private Access) độc quyền cho Robot Frontend
+    new gcp.cloudrun.IamMember("PrivateAccess", {
       service: service.name,
       location: service.location,
       role: "roles/run.invoker",
-      member: "allUsers",
+      member: "serviceAccount:volunteer-frontend-sa@volunteer-connect-prod-999.iam.gserviceaccount.com",
     });
 
     // Tự động xuất ra đường link Web sau khi deploy thành công
