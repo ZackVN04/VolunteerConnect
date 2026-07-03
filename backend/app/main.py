@@ -118,3 +118,13 @@ async def root():
         'message': 'Welcome to Volunteer Connect API',
         'docs_url': '/docs'
     }
+
+# =============================================================================
+# 7. CRASH TEST ENDPOINT (Dành cho SRE giám sát)
+# =============================================================================
+@app.get('/crash', tags=["System Testing"])
+async def crash_test():
+    """
+    Cố tình sinh ra lỗi HTTP 500 để kiểm tra hệ thống báo động (Alerting).
+    """
+    raise Exception("🔥 LỖI CỐ TÌNH ĐƯỢC TẠO RA ĐỂ TEST CLOUD MONITORING!")

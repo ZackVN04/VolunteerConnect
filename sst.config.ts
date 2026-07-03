@@ -54,6 +54,82 @@ export default $config({
       member: "serviceAccount:volunteer-frontend-sa@volunteer-connect-prod-999.iam.gserviceaccount.com",
     });
 
+    // =====================================================================
+    // MODULE: CLOUD MONITORING & ALERTING (SRE)
+    // =====================================================================
+    
+    // 1. Kênh Thông Báo (Notification Channel) - Nhận cảnh báo qua Email
+    const emailChannel = new gcp.monitoring.NotificationChannel("SRE_Email_Alerts", {
+      displayName: "SRE On-call Team",
+      type: "email",
+      labels: {
+        email_address: "vovankhanh937@gmail.com", // LƯU Ý: Đổi thành email thật của bạn
+      },
+    });
+
+    // 2. Chính sách Báo động (Alert Policy) - Bắt lỗi 5xx
+    const error5xxAlert = new gcp.monitoring.AlertPolicy("High_5xx_Error_Rate", {
+      displayName: "🚨 CẢNH BÁO: Lỗi 5xx tăng cao trên Cloud Run",
+      combiner: "OR",
+      conditions: [{
+        displayName: "Tỷ lệ lỗi 5xx > 0",
+        conditionThreshold: {
+          filter: `resource.type="cloud_run_revision" AND resource.labels.service_name="volunteer-connect-backend-${$app.stage}" AND metric.type="run.googleapis.com/request_count" AND metric.labels.response_code_class="5xx"`,
+          comparison: "COMPARISON_GT",
+          thresholdValue: 0,
+          duration: "60s", // Chờ 60s để gom cụm (chống Alert Fatigue)
+          aggregations: [{
+            alignmentPeriod: "60s",
+            crossSeriesReducer: "REDUCE_SUM",
+            perSeriesAligner: "ALIGN_RATE",
+          }],
+        },
+      }],
+      notificationChannels: [emailChannel.id],
+      documentation: {
+        content: "Hệ thống phát hiện lỗi 5xx tăng đột biến.\\n\\n👉 Mời xem Sổ tay Cứu thương (Runbook) tại: https://github.com/ZackVN04/VolunteerConnect/tree/main/docs/runbooks/alert_5xx.md",
+        mimeType: "text/markdown",
+      },
+    });
+
+    // 3. Bảng Điều Khiển (Dashboard) - Trực quan hóa dữ liệu
+    const sreDashboard = new gcp.monitoring.Dashboard("SRE_Dashboard", {
+      dashboardJson: JSON.stringify({
+        displayName: "SRE Dashboard - VolunteerConnect",
+        gridLayout: {
+          columns: "2",
+          widgets: [
+            {
+              title: "Lưu lượng truy cập (Traffic)",
+              xyChart: {
+                dataSets: [{
+                  timeSeriesQuery: {
+                    timeSeriesFilter: {
+                      filter: `resource.type="cloud_run_revision" AND resource.labels.service_name="volunteer-connect-backend-${$app.stage}" AND metric.type="run.googleapis.com/request_count"`,
+                      aggregation: { perSeriesAligner: "ALIGN_RATE" }
+                    }
+                  }
+                }]
+              }
+            },
+            {
+              title: "Độ trễ (Latency)",
+              xyChart: {
+                dataSets: [{
+                  timeSeriesQuery: {
+                    timeSeriesFilter: {
+                      filter: `resource.type="cloud_run_revision" AND resource.labels.service_name="volunteer-connect-backend-${$app.stage}" AND metric.type="run.googleapis.com/request_latencies"`,
+                      aggregation: { perSeriesAligner: "ALIGN_PERCENTILE_99" }
+                    }
+                  }
+                }]
+              }
+            }
+          ]
+        }
+      })
+    });
+
     // Tự động xuất ra đường link Web sau khi deploy thành công
     return {
       WebsiteURL: service.statuses.apply(s => s?.[0]?.url || "Đang khởi tạo..."),
