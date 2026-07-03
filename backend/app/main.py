@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+import json
 
 # =============================================================================
 # 1. IMPORTS
@@ -57,6 +58,47 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# =============================================================================
+# 4.5. CLOUD LOGGING MIDDLEWARE (HỘP ĐEN)
+# =============================================================================
+@app.middleware("http")
+async def cloud_logging_middleware(request: Request, call_next):
+    # 1. Bắt lấy chuỗi ID của lượt truy cập từ Google Cloud
+    trace_header = request.headers.get("X-Cloud-Trace-Context")
+    trace_id = None
+    if trace_header:
+        trace_id = trace_header.split("/")[0]
+
+    # 2. Xử lý Request như bình thường
+    response = await call_next(request)
+    
+    # 3. Phân loại mức độ nghiêm trọng (Severity)
+    severity = "INFO"
+    if response.status_code >= 500:
+        severity = "ERROR"
+    elif response.status_code >= 400:
+        severity = "WARNING"
+        
+    # 4. Đóng gói chuẩn JSON cho Cloud Logging
+    log_entry = {
+        "severity": severity,
+        "message": f"{request.method} {request.url.path} - {response.status_code}",
+        "httpRequest": {
+            "requestMethod": request.method,
+            "requestUrl": str(request.url),
+            "status": response.status_code,
+        }
+    }
+    
+    # 5. Đính kèm Trace ID để nhóm các log lại với nhau
+    if trace_id:
+        # LƯU Ý: Đã tự điền đúng Project ID của bạn vào đây
+        log_entry["logging.googleapis.com/trace"] = f"projects/volunteer-connect-prod-999/traces/{trace_id}"
+        
+    # Cloud Run sẽ tự động thu gom mọi lệnh in ra màn hình (print)
+    print(json.dumps(log_entry))
+    return response
 
 # =============================================================================
 # 5. REGISTER ROUTERS (APIs)
