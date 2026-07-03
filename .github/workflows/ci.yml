@@ -1,4 +1,4 @@
-name: CI Pipeline
+name: CI/CD Pipeline
 
 on:
   push:
@@ -43,9 +43,6 @@ jobs:
         with:
           credentials_json: ${{ secrets.GCP_CREDENTIALS }}
 
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-
       - name: Configure Docker to use Artifact Registry
         run: gcloud auth configure-docker asia-southeast1-docker.pkg.dev
 
@@ -59,7 +56,29 @@ jobs:
           file: ./backend/Dockerfile
           push: true
           tags: |
+            # Lưu ý: Thay volunteer-connect-prod-999 thành ID thật nếu dự án của bạn bị đổi ID
             asia-southeast1-docker.pkg.dev/volunteer-connect-prod-999/volunteer-connect-repo/volunteer-connect-api:${{ github.sha }}
             asia-southeast1-docker.pkg.dev/volunteer-connect-prod-999/volunteer-connect-repo/volunteer-connect-api:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  deploy-to-cloudrun:
+    needs: build-and-push # Đợi job Build xong mới được Deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Deploy to Cloud Run (CD)
+        # Sử dụng đúng Image có mã Tag trùng khớp với mã Hash (SHA) của lần Commit này
+        run: |
+          gcloud run deploy volunteer-connect-backend-service \
+            --image="asia-southeast1-docker.pkg.dev/volunteer-connect-prod-999/volunteer-connect-repo/volunteer-connect-api:${{ github.sha }}" \
+            --region="asia-southeast1" \
+            --port="8080" \
+            --allow-unauthenticated
