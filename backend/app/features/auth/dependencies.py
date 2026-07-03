@@ -1,1 +1,44 @@
-# TODO: Implement auth FastAPI dependencies
+import jwt
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
+from pydantic import ValidationError
+from beanie import PydanticObjectId
+
+from app.core.security.jwt import decode_token
+from app.features.users.models import User
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
+
+async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    
+    try:
+        payload = decode_token(token)
+        user_id: str = payload.get("sub")
+        
+        if user_id is None or payload.get("type") != "access":
+            raise credentials_exception
+            
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token expired",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    except (jwt.PyJWTError, ValidationError):
+        raise credentials_exception
+        
+    try:
+        obj_id = PydanticObjectId(user_id)
+    except Exception:
+        raise credentials_exception
+
+    user = await User.get(obj_id)
+    if user is None:
+        raise credentials_exception
+        
+    return user
