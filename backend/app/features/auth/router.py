@@ -6,12 +6,12 @@ import string
 from datetime import datetime, timedelta, timezone
 
 from app.features.users.models import User
-from app.features.users.schemas import UserCreate, UserLogin, VerifyOTP
+from app.features.users.schemas import UserCreate, UserLogin, VerifyOTP, ForgotPasswordRequest, ResetPasswordRequest
 from app.shared.enums import UserStatus
 
 from app.core.security.password import get_password_hash, verify_password
 from app.core.security.jwt import create_access_token, create_refresh_token, decode_token
-from app.core.utils.sms import send_otp_sms
+from app.core.utils.email import send_otp_email, send_reset_password_email
 
 router = APIRouter(prefix="/api/v1/auth", tags=["Authentication"])
 
@@ -61,18 +61,18 @@ async def register(user_in: UserCreate):
     )
     await new_user.insert()
     
-    # Gửi tin nhắn SMS thật tới số điện thoại (chạy ngầm không block process)
-    await send_otp_sms(user_in.phone_number, otp_code)
+    # Gửi mã OTP kích hoạt tới email đăng ký (chạy ngầm không block process)
+    await send_otp_email(user_in.email, otp_code)
     
     return {
-        "message": "Đăng ký thành công. Hệ thống đã gửi mã OTP tới số điện thoại của bạn.",
+        "message": "Đăng ký thành công. Hệ thống đã gửi mã OTP tới email của bạn.",
         "user_id": str(new_user.id)
     }
 
 @router.post("/verify-otp", status_code=status.HTTP_200_OK)
 async def verify_otp(otp_data: VerifyOTP):
-    # Tìm kiếm User bằng số điện thoại
-    user = await User.find_one(User.phone_number == otp_data.phone_number)
+    # Tìm kiếm User bằng email
+    user = await User.find_one(User.email == otp_data.email)
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Người dùng không tồn tại")
         
@@ -83,8 +83,10 @@ async def verify_otp(otp_data: VerifyOTP):
         )
         
     # KIỂM TRA EXPIRY: Kiểm tra thời gian hết hạn của OTP
-    now = datetime.now(timezone.utc)
-    if not user.otp_expiry or now > user.otp_expiry:
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    otp_expiry = user.otp_expiry.replace(tzinfo=None) if user.otp_expiry else None
+    
+    if not otp_expiry or now > otp_expiry:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, 
             detail="Mã OTP đã hết hạn. Vui lòng yêu cầu cấp lại mã mới."
@@ -114,7 +116,7 @@ async def login(credentials: UserLogin):
     if user.status == UserStatus.PENDING_OTP:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, 
-            detail="Vui lòng xác thực tài khoản qua số điện thoại trước khi đăng nhập"
+            detail="Vui lòng xác thực tài khoản qua email trước khi đăng nhập"
         )
         
     if user.status == UserStatus.BANNED:
@@ -158,3 +160,61 @@ async def refresh_token(request: RefreshTokenRequest):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Refresh token không hợp lệ"
         )
+
+@router.post("/forgot-password", status_code=status.HTTP_200_OK)
+async def forgot_password(request: ForgotPasswordRequest):
+    user = await User.find_one(User.email == request.email)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Email không tồn tại trong hệ thống"
+        )
+        
+    otp_code = generate_otp()
+    otp_expiry = datetime.now(timezone.utc) + timedelta(minutes=5)
+    
+    user.otp_code = otp_code
+    user.otp_expiry = otp_expiry
+    await user.save()
+    
+    # Gửi email khôi phục mật khẩu (chạy ngầm không block process)
+    await send_reset_password_email(request.email, otp_code)
+    
+    return {
+        "message": "Mã OTP khôi phục mật khẩu đã được gửi tới email của bạn."
+    }
+
+@router.post("/reset-password", status_code=status.HTTP_200_OK)
+async def reset_password(request: ResetPasswordRequest):
+    user = await User.find_one(User.email == request.email)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Người dùng không tồn tại"
+        )
+        
+    # KIỂM TRA EXPIRY: So sánh datetime naive
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    otp_expiry = user.otp_expiry.replace(tzinfo=None) if user.otp_expiry else None
+    
+    if not otp_expiry or now > otp_expiry:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Mã OTP đã hết hạn. Vui lòng yêu cầu cấp lại mã mới."
+        )
+        
+    if user.otp_code != request.otp_code:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Mã OTP không chính xác"
+        )
+        
+    # XÁC THỰC THÀNH CÔNG: Cập nhật mật khẩu mới và xóa sạch dữ liệu OTP
+    user.hashed_password = get_password_hash(request.new_password)
+    user.otp_code = None
+    user.otp_expiry = None
+    await user.save()
+    
+    return {
+        "message": "Khôi phục mật khẩu thành công. Bạn đã có thể đăng nhập bằng mật khẩu mới."
+    }

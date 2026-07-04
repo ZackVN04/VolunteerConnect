@@ -24,8 +24,8 @@ class UserLogin(UserBase):
     password: str
 
 class VerifyOTP(BaseModel):
-    """Xác thực OTP bằng số điện thoại thay vì email do tin nhắn gửi về điện thoại"""
-    phone_number: str
+    """Xác thực OTP bằng email"""
+    email: EmailStr
     otp_code: str = Field(..., min_length=6, max_length=6)
 
 class UserUpdate(BaseModel):
@@ -42,3 +42,11 @@ class UserProfileResponse(UserBase):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+class ResetPasswordRequest(BaseModel):
+    email: EmailStr
+    otp_code: str = Field(..., min_length=6, max_length=6)
+    new_password: str = Field(..., min_length=6)

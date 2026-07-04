@@ -6,10 +6,13 @@ from contextlib import asynccontextmanager
 from app.core.config.settings import settings
 from app.features.users.models import User
 from app.features.organizer_requests.models import OrganizerRequest
+from app.features.activities.models import Activity
+from app.core.scheduler import start_scheduler, shutdown_scheduler
 
 from app.features.auth.router import router as auth_router
 from app.features.users.router import router as users_router
 from app.features.organizer_requests.router import router as organizer_requests_router
+from app.features.activities.router import router as activities_router, organizer_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -25,10 +28,13 @@ async def lifespan(app: FastAPI):
         database=db,
         document_models=[
             User,
-            OrganizerRequest
+            OrganizerRequest,
+            Activity
         ]
     )
+    start_scheduler()
     yield
+    shutdown_scheduler()
     client.close()
 
 app = FastAPI(
@@ -41,6 +47,8 @@ app = FastAPI(
 app.include_router(auth_router)
 app.include_router(users_router)
 app.include_router(organizer_requests_router)
+app.include_router(activities_router)
+app.include_router(organizer_router)
 
 @app.get('/')
 def root():

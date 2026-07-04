@@ -6,12 +6,18 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
-    MONGO_URI: str = "mongodb://localhost:27017/volunteer_connect"
+    MONGODB_URL: str = "mongodb://localhost:27017/volunteer_connect"
 
-    # Cấu hình dịch vụ SMS Twilio
-    TWILIO_ACCOUNT_SID: str = "dummy_sid"
-    TWILIO_AUTH_TOKEN: str = "dummy_token"
-    TWILIO_PHONE_NUMBER: str = "+1234567890"
+    @property
+    def MONGO_URI(self) -> str:
+        return self.MONGODB_URL
+
+    # Cấu hình dịch vụ gửi Email (SMTP)
+    SMTP_HOST: str = "smtp.gmail.com"
+    SMTP_PORT: int = 587
+    SMTP_USERNAME: Optional[str] = None
+    SMTP_PASSWORD: Optional[str] = None
+    SMTP_FROM_EMAIL: Optional[str] = None
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
