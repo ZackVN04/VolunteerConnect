@@ -1,14 +1,24 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from typing import Optional
 
 class Settings(BaseSettings):
-    PROJECT_NAME: str = "Volunteer Connect API"
-    
-    # Database configurations
-    MONGODB_URL: str
-    DATABASE_NAME: str = "volunteer_connect"
+    SECRET_KEY: str = "super_secret_key_change_in_production"
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    MONGODB_URL: str = "mongodb://localhost:27017/volunteer_connect"
 
-    # Load environment variables from .env file
+    @property
+    def MONGO_URI(self) -> str:
+        return self.MONGODB_URL
+
+    # Cấu hình dịch vụ gửi Email (SMTP)
+    SMTP_HOST: str = "smtp.gmail.com"
+    SMTP_PORT: int = 587
+    SMTP_USERNAME: Optional[str] = None
+    SMTP_PASSWORD: Optional[str] = None
+    SMTP_FROM_EMAIL: Optional[str] = None
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
-# Create a global instance of the settings
 settings = Settings()
