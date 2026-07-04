@@ -11,7 +11,7 @@ export const Navbar: React.FC = () => {
   const isActive = (hash: string) => currentHash.startsWith(hash);
 
   const navLinkClass = (hash: string) => 
-    `font-label-sm text-body-md py-1.5 px-2.5 rounded-lg transition-all duration-200 active:scale-95 ${
+    `font-label-sm text-body-md py-1.5 px-2 xl:px-2.5 rounded-lg transition-all duration-200 active:scale-95 whitespace-nowrap ${
       isActive(hash)
         ? 'text-primary dark:text-primary-fixed border-b-2 border-primary dark:border-primary-fixed font-bold bg-primary-container/20'
         : 'text-on-surface-variant hover:text-primary hover:bg-primary-container/10'
@@ -21,7 +21,7 @@ export const Navbar: React.FC = () => {
     <header className="bg-surface sticky top-0 z-50 w-full border-b border-surface-variant shadow-sm transition-all duration-200">
       <div className="flex justify-between items-center px-4 md:px-8 py-4 w-full max-w-[1280px] mx-auto h-[72px]">
         {/* Brand/Logo */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 xl:gap-4 shrink-0">
           <a href="#/feed" className="font-headline-md text-headline-md text-primary dark:text-primary-fixed font-bold flex items-center gap-2">
             <span className="material-symbols-outlined text-primary text-3xl filled">diversity_3</span>
             <span className="tracking-tight select-none">Volunteer Connect</span>
@@ -37,7 +37,7 @@ export const Navbar: React.FC = () => {
         </div>
 
         {/* Desktop Navigation Links */}
-        <nav className="hidden lg:flex items-center gap-1">
+        <nav className="hidden lg:flex flex-row items-center flex-nowrap gap-0.5 xl:gap-1.5 shrink-0">
           {/* General Common Link */}
           <a className={navLinkClass('#/feed')} href="#/feed">Bảng Tin</a>
           <a className={navLinkClass('#/activities')} href="#/activities">Khám Phá Hoạt Động</a>
@@ -67,7 +67,7 @@ export const Navbar: React.FC = () => {
         </nav>
 
         {/* Trailing Actions */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 xl:gap-4 shrink-0">
           {/* Search bar placeholder (Desktop only) */}
           <div className="hidden xl:flex relative">
             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-base">search</span>

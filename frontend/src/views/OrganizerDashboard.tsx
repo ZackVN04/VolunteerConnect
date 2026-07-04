@@ -236,37 +236,41 @@ export const OrganizerDashboard: React.FC = () => {
             myActs.map(act => {
               const countPending = registrations.filter(r => r.activity_id === act._id && r.status === 'Pending').length;
               return (
-                <div key={act._id} className="bg-surface-container-lowest rounded-xl border border-surface-variant overflow-hidden hover:shadow-sm transition-all flex flex-col justify-between">
+                <div key={act._id} className="bg-surface-container-lowest rounded-lg border border-surface-variant overflow-hidden hover:shadow-sm transition-all flex flex-col justify-between h-[435px]">
                   <div>
-                    <div className="h-36 w-full bg-surface-container relative">
+                    <div className="h-[192px] w-full bg-surface-container relative shrink-0">
                       <img src={act.image_url || ''} alt="" className="w-full h-full object-cover" />
-                      <div className={`absolute top-3 left-3 px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                        act.status === 'Open' ? 'bg-emerald-100 text-emerald-800' :
+                      <div className={`absolute top-4 left-4 px-3 py-1 rounded-full text-xs font-bold uppercase shadow-sm ${
+                        act.status === 'Open' ? 'bg-[#E6F4EA] text-[#137333]' :
                         act.status === 'Draft' ? 'bg-slate-200 text-slate-800' :
                         act.status === 'Pending Review' ? 'bg-amber-100 text-amber-800' :
                         act.status === 'Rejected' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'
                       }`}>
-                        {act.status}
+                        {act.status === 'Open' ? 'Đang Tuyển' : act.status}
                       </div>
                     </div>
                     
-                    <div className="p-4 space-y-2">
-                      <h4 className="font-bold text-on-surface text-base line-clamp-2">{act.title}</h4>
-                      <p className="text-xs text-on-surface-variant font-medium">
-                        Khu vực: {act.location.district}, {act.location.province}
-                      </p>
-                      <p className="text-xs text-on-surface-variant">
-                        Đăng ký: <strong>{act.approved_volunteers_count}</strong> / {act.limit_volunteers} (Đang chờ duyệt: {countPending})
-                      </p>
+                    <div className="p-6 space-y-2">
+                      <h4 className="font-headline-md text-on-surface text-base md:text-lg font-bold line-clamp-2 leading-tight mb-2">{act.title}</h4>
+                      <div className="space-y-1.5 text-sm text-on-surface-variant">
+                        <p className="font-medium flex items-center gap-1.5">
+                          <span className="material-symbols-outlined text-base">location_on</span>
+                          <span>Khu vực: {act.location.district}, {act.location.province}</span>
+                        </p>
+                        <p className="flex items-center gap-1.5">
+                          <span className="material-symbols-outlined text-base">group</span>
+                          <span>Đăng ký: <strong>{act.approved_volunteers_count}</strong> / {act.limit_volunteers} (Chờ duyệt: {countPending})</span>
+                        </p>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="p-4 border-t border-surface-variant/40 flex flex-wrap gap-2">
+                  <div className="p-6 border-t border-surface-variant flex flex-wrap gap-2 mt-auto">
                     {/* Management and approval actions */}
                     {(act.status === 'Draft' || act.status === 'Rejected') && (
                       <button 
                         onClick={() => handleOpenEditModal(act)}
-                        className="flex-1 bg-surface-container hover:bg-surface-container-high text-on-surface py-2 rounded font-bold text-xs transition-colors"
+                        className="flex-grow bg-primary text-on-primary hover:bg-tertiary h-[40px] rounded-lg font-bold text-xs transition-colors"
                       >
                         Sửa Nháp
                       </button>
@@ -276,7 +280,7 @@ export const OrganizerDashboard: React.FC = () => {
                       <>
                         <button
                           onClick={() => handleOpenRegistrations(act)}
-                          className="flex-1 bg-primary text-on-primary hover:bg-tertiary py-2 rounded font-bold text-xs transition-colors relative"
+                          className="flex-grow bg-primary text-on-primary hover:bg-tertiary h-[40px] rounded-lg font-bold text-xs transition-colors relative"
                         >
                           Duyệt Đơn
                           {countPending > 0 && (
@@ -287,7 +291,7 @@ export const OrganizerDashboard: React.FC = () => {
                         </button>
                         <button
                           onClick={() => handleOpenAttendance(act)}
-                          className="flex-1 bg-secondary-container text-on-secondary-container hover:bg-secondary-fixed py-2 rounded font-bold text-xs transition-colors"
+                          className="flex-grow bg-secondary-container text-on-secondary-container hover:bg-secondary-fixed h-[40px] rounded-lg font-bold text-xs transition-colors"
                         >
                           Điểm danh
                         </button>
@@ -298,7 +302,7 @@ export const OrganizerDashboard: React.FC = () => {
                                 cancelActivity(act._id);
                               }
                             }}
-                            className="text-red-600 hover:bg-red-50 border border-red-200 px-2 py-2 rounded text-xs"
+                            className="text-red-600 hover:bg-red-50 border border-red-200 px-3 h-[40px] rounded-lg text-xs flex items-center justify-center shrink-0"
                             title="Hủy hoạt động"
                           >
                             <span className="material-symbols-outlined text-sm">delete</span>
@@ -500,7 +504,7 @@ export const OrganizerDashboard: React.FC = () => {
       {/* --- CREATE / EDIT ACTIVITY MODAL (11-Tạo hoạt động mới.html layout) --- */}
       {showCreateModal && (
         <div className="fixed inset-0 z-[100] modal-overlay flex items-center justify-center p-4">
-          <div className="bg-surface w-full max-w-3xl rounded-xl shadow-2xl flex flex-col overflow-hidden max-h-[90vh] animate-fadeIn">
+          <div className="bg-surface w-full max-w-3xl rounded-lg shadow-2xl flex flex-col overflow-hidden max-h-[90vh] animate-fadeIn">
             {/* Header */}
             <div className="flex items-center justify-between px-md py-sm border-b border-surface-variant">
               <h2 className="font-headline-md text-lg text-on-surface font-bold">
@@ -522,7 +526,7 @@ export const OrganizerDashboard: React.FC = () => {
               
               {/* Activity Image Link */}
               <div>
-                <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Ảnh bìa hoạt động</label>
+                <label className="block text-sm font-semibold text-on-surface mb-2">Ảnh bìa hoạt động</label>
                 <input 
                   type="url"
                   value={imageUrl}
@@ -534,7 +538,7 @@ export const OrganizerDashboard: React.FC = () => {
 
               {/* Title */}
               <div>
-                <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Tên hoạt động *</label>
+                <label className="block text-sm font-semibold text-on-surface mb-2">Tên hoạt động *</label>
                 <input 
                   type="text"
                   value={title}
@@ -548,7 +552,7 @@ export const OrganizerDashboard: React.FC = () => {
               {/* Category & Members Count Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-gutter">
                 <div>
-                  <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Loại hoạt động *</label>
+                  <label className="block text-sm font-semibold text-on-surface mb-2">Loại hoạt động *</label>
                   <select 
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
@@ -562,7 +566,7 @@ export const OrganizerDashboard: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Số lượng tuyển dụng *</label>
+                  <label className="block text-sm font-semibold text-on-surface mb-2">Số lượng tuyển dụng *</label>
                   <input 
                     type="number"
                     value={limitVolunteers}
@@ -576,7 +580,7 @@ export const OrganizerDashboard: React.FC = () => {
 
               {/* Description */}
               <div>
-                <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Mô tả chi tiết *</label>
+                <label className="block text-sm font-semibold text-on-surface mb-2">Mô tả chi tiết *</label>
                 <textarea 
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
@@ -592,7 +596,7 @@ export const OrganizerDashboard: React.FC = () => {
                 {/* Start */}
                 <div className="grid grid-cols-2 gap-sm">
                   <div>
-                    <label className="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Ngày bắt đầu *</label>
+                    <label className="block text-xs font-semibold text-on-surface mb-1">Ngày bắt đầu *</label>
                     <input 
                       type="date"
                       value={startDate}
@@ -602,7 +606,7 @@ export const OrganizerDashboard: React.FC = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Giờ bắt đầu</label>
+                    <label className="block text-xs font-semibold text-on-surface mb-1">Giờ bắt đầu</label>
                     <input 
                       type="time"
                       value={startTime}
@@ -614,7 +618,7 @@ export const OrganizerDashboard: React.FC = () => {
                 {/* End */}
                 <div className="grid grid-cols-2 gap-sm">
                   <div>
-                    <label className="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Ngày kết thúc *</label>
+                    <label className="block text-xs font-semibold text-on-surface mb-1">Ngày kết thúc *</label>
                     <input 
                       type="date"
                       value={endDate}
@@ -623,7 +627,7 @@ export const OrganizerDashboard: React.FC = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-1">Giờ kết thúc</label>
+                    <label className="block text-xs font-semibold text-on-surface mb-1">Giờ kết thúc</label>
                     <input 
                       type="time"
                       value={endTime}
@@ -637,7 +641,7 @@ export const OrganizerDashboard: React.FC = () => {
               {/* Location Fields */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-sm">
                 <div>
-                  <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Tỉnh / Thành phố *</label>
+                  <label className="block text-sm font-semibold text-on-surface mb-2">Tỉnh / Thành phố *</label>
                   <select 
                     value={province}
                     onChange={(e) => setProvince(e.target.value)}
@@ -650,7 +654,7 @@ export const OrganizerDashboard: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Quận / Huyện *</label>
+                  <label className="block text-sm font-semibold text-on-surface mb-2">Quận / Huyện *</label>
                   <input 
                     type="text"
                     value={district}
@@ -661,7 +665,7 @@ export const OrganizerDashboard: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Địa chỉ chi tiết *</label>
+                  <label className="block text-sm font-semibold text-on-surface mb-2">Địa chỉ chi tiết *</label>
                   <input 
                     type="text"
                     value={addressDetail}
@@ -675,7 +679,7 @@ export const OrganizerDashboard: React.FC = () => {
 
               {/* Requirements */}
               <div>
-                <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Yêu cầu & Ghi chú</label>
+                <label className="block text-sm font-semibold text-on-surface mb-2">Yêu cầu & Ghi chú</label>
                 <textarea 
                   value={requirements}
                   onChange={(e) => setRequirements(e.target.value)}
@@ -688,27 +692,27 @@ export const OrganizerDashboard: React.FC = () => {
             </div>
 
             {/* Actions footer */}
-            <div className="p-md border-t border-surface-variant flex justify-end gap-sm bg-surface-bright">
+            <div className="p-6 border-t border-surface-variant flex justify-end items-center gap-sm bg-surface-bright">
               <button 
                 onClick={() => {
                   setShowCreateModal(false);
                   window.location.hash = '#/organizer/dashboard';
                 }}
-                className="px-5 py-2.5 border border-outline-variant text-on-surface-variant rounded-lg hover:bg-surface-variant transition-colors font-medium text-xs"
+                className="px-6 h-[48px] border border-outline-variant text-on-surface-variant rounded-lg hover:bg-surface-variant transition-colors font-semibold text-sm flex items-center justify-center"
               >
                 Hủy
               </button>
               <button 
                 onClick={() => handleSubmitActivity(false)}
-                className="px-5 py-2.5 bg-surface-container-high text-on-surface hover:bg-surface-variant rounded-lg font-bold text-xs transition-colors shadow-sm"
+                className="px-6 h-[48px] bg-surface-container-high text-on-surface hover:bg-surface-variant rounded-lg font-bold text-sm transition-colors shadow-sm flex items-center justify-center"
               >
                 Lưu Nháp
               </button>
               <button 
                 onClick={() => handleSubmitActivity(true)}
-                className="px-6 py-2.5 bg-primary text-on-primary hover:bg-tertiary rounded-lg font-bold text-xs shadow-sm transition-colors flex items-center gap-1"
+                className="px-8 h-[48px] bg-primary text-on-primary hover:bg-tertiary rounded-lg font-bold text-sm shadow-sm transition-colors flex items-center justify-center gap-1.5"
               >
-                <span className="material-symbols-outlined text-sm font-bold">publish</span>
+                <span className="material-symbols-outlined text-base font-bold">publish</span>
                 Gửi Phê Duyệt
               </button>
             </div>

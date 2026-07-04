@@ -65,21 +65,108 @@ export const FeedView: React.FC = () => {
 
         {/* Stats Grid */}
         <div className="lg:w-1/2 grid grid-cols-2 gap-gutter w-full">
-          <div className="bg-surface-container-lowest rounded-xl p-6 border border-surface-variant flex flex-col items-center justify-center text-center shadow-sm">
+          <div className="bg-surface-container-lowest rounded-lg p-6 border border-surface-variant flex flex-col items-center justify-center text-center shadow-sm">
             <span className="material-symbols-outlined text-primary text-4xl mb-2 filled">favorite</span>
             <span className="font-headline-md text-headline-md text-on-surface font-bold">{(12400 + totalVolunteers).toLocaleString()}+</span>
-            <span className="font-body-md text-body-md text-on-surface-variant text-sm mt-1">Tình nguyện viên</span>
+            <span className="font-body-md text-body-md text-on-surface-variant mt-1">Tình nguyện viên</span>
           </div>
-          <div className="bg-surface-container-lowest rounded-xl p-6 border border-surface-variant flex flex-col items-center justify-center text-center shadow-sm">
-            <span className="material-symbols-outlined text-tertiary text-4xl mb-2 filled">event_available</span>
+          <div className="bg-surface-container-lowest rounded-lg p-6 border border-surface-variant flex flex-col items-center justify-center text-center shadow-sm">
+            <span className="material-symbols-outlined text-primary text-4xl mb-2 filled">event_available</span>
             <span className="font-headline-md text-headline-md text-on-surface font-bold">{(850 + totalProjectsCompleted).toLocaleString()}+</span>
-            <span className="font-body-md text-body-md text-on-surface-variant text-sm mt-1">Chiến dịch hoàn thành</span>
+            <span className="font-body-md text-body-md text-on-surface-variant mt-1">Chiến dịch hoàn thành</span>
           </div>
-          <div className="bg-surface-container-lowest rounded-xl p-6 border border-surface-variant flex flex-col items-center justify-center text-center col-span-2 shadow-sm">
-            <span className="material-symbols-outlined text-primary-container text-4xl mb-2 filled">volunteer_activism</span>
+          <div className="bg-surface-container-lowest rounded-lg p-6 border border-surface-variant flex flex-col items-center justify-center text-center col-span-2 shadow-sm">
+            <span className="material-symbols-outlined text-[#2ECC71] text-4xl mb-2 filled">volunteer_activism</span>
             <span className="font-headline-md text-headline-md text-on-surface font-bold">{(totalHours).toLocaleString()}+</span>
-            <span className="font-body-md text-body-md text-on-surface-variant text-sm mt-1">Giờ đóng góp xã hội</span>
+            <span className="font-body-md text-body-md text-on-surface-variant mt-1">Giờ đóng góp xã hội</span>
           </div>
+        </div>
+      </section>
+
+      {/* Featured Activities Grid */}
+      <section className="flex flex-col gap-6 text-left">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 border-b border-surface-variant pb-4">
+          <div className="flex flex-col gap-2">
+            <h2 className="font-headline-md text-headline-md text-on-surface font-bold">
+              Hoạt Động Nổi Bật
+            </h2>
+            <p className="font-body-md text-body-md text-on-surface-variant text-sm">
+              Khám phá các hoạt động tình nguyện nổi bật và đăng ký tham gia ngay hôm nay.
+            </p>
+          </div>
+          <a 
+            href="#/activities" 
+            className="text-primary hover:text-primary/80 font-semibold text-sm flex items-center gap-1 transition-colors group"
+          >
+            Xem tất cả hoạt động
+            <span className="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
+          </a>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
+          {activities
+            .filter(act => act.status === 'Open' || act.status === 'Full')
+            .slice(0, 3)
+            .map(act => (
+              <div 
+                key={act._id} 
+                className="bg-surface-container-lowest border border-surface-variant rounded-lg overflow-hidden flex flex-col h-[435px] transition-all duration-200 hover:shadow-md"
+              >
+                {/* Image & Category tag */}
+                <div className="relative h-[192px] w-full bg-surface-container-low shrink-0">
+                  <img 
+                    src={act.image_url || 'https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=600'} 
+                    alt={act.title} 
+                    className="w-full h-full object-cover"
+                  />
+                  <span className="absolute top-4 left-4 bg-secondary-fixed text-primary font-bold text-xs px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">
+                    {act.categories[0] || 'Tình nguyện'}
+                  </span>
+                </div>
+
+                {/* Content */}
+                <div className="p-6 flex flex-col justify-between flex-grow">
+                  {/* Title & Status */}
+                  <div className="flex justify-between items-start gap-3">
+                    <h3 className="font-headline-md text-on-surface text-base md:text-lg font-semibold line-clamp-2 leading-tight">
+                      {act.title}
+                    </h3>
+                    <span className={`shrink-0 flex items-center gap-1 px-2 py-0.5 rounded font-bold text-xs ${
+                      act.status === 'Open' ? 'bg-[#E6F4EA] text-[#137333]' : 'bg-red-50 text-red-600'
+                    }`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${act.status === 'Open' ? 'bg-[#137333]' : 'bg-red-600'}`}></span>
+                      {act.status === 'Open' ? 'Đang tuyển' : 'Đã đầy'}
+                    </span>
+                  </div>
+
+                  {/* Details */}
+                  <div className="space-y-2 my-4">
+                    <div className="flex items-center gap-2 text-on-surface-variant text-sm">
+                      <span className="material-symbols-outlined text-base">calendar_month</span>
+                      <span>
+                        {new Date(act.start_date).toLocaleDateString('vi-VN')}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-on-surface-variant text-sm">
+                      <span className="material-symbols-outlined text-base">location_on</span>
+                      <span className="line-clamp-1">
+                        {act.location.district}, {act.location.province}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Button */}
+                  <div className="border-t border-surface-variant pt-4 mt-auto">
+                    <a 
+                      href={`#/activity/${act._id}`}
+                      className="w-full bg-primary hover:bg-primary/95 text-white font-bold h-[52px] rounded-lg transition-all duration-200 active:scale-95 flex justify-center items-center gap-2 shadow-sm text-sm"
+                    >
+                      Xem chi tiết
+                    </a>
+                  </div>
+                </div>
+              </div>
+            ))}
         </div>
       </section>
 

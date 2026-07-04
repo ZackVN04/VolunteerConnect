@@ -241,45 +241,43 @@ export const ActivityListView: React.FC = () => {
             {sortedActivities.map(act => {
               const pctFull = Math.min(100, Math.round((act.approved_volunteers_count / act.limit_volunteers) * 100));
               return (
-                <article key={act._id} className="bg-surface-container-lowest rounded-xl border border-surface-variant overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 flex flex-col group relative">
-                  <div className="relative h-44 overflow-hidden bg-surface-container">
+                <article key={act._id} className="bg-surface-container-lowest rounded-lg border border-surface-variant overflow-hidden hover:shadow-md transition-all duration-300 flex flex-col group relative h-[435px]">
+                  <div className="relative h-[192px] overflow-hidden bg-surface-container shrink-0">
                     <img 
                       alt={act.title} 
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                      className="w-full h-full object-cover transition-transform duration-500" 
                       src={act.image_url || 'https://images.unsplash.com/photo-1544027993-37dbfe43562a?q=80&w=600'}
                     />
-                    <div className="absolute top-3 left-3 bg-secondary-container/90 text-on-tertiary-container px-2.5 py-1 rounded-full font-label-sm text-[11px] flex items-center gap-1 shadow-sm backdrop-blur-sm">
-                      <span className="material-symbols-outlined text-[14px] filled">tag</span> 
+                    <div className="absolute top-4 left-4 bg-secondary-fixed text-primary font-bold text-xs px-3 py-1.5 rounded-full uppercase tracking-wider shadow-sm">
                       {act.categories[0] || 'Hoạt động'}
                     </div>
-                    <div className={`absolute top-3 right-3 px-2.5 py-1 rounded-full font-label-sm text-[11px] font-bold shadow-sm ${
-                      act.status === 'Full' 
-                        ? 'bg-amber-100 text-amber-800' 
-                        : 'bg-emerald-100 text-emerald-800'
+                    <div className={`absolute top-4 right-4 px-2 py-0.5 rounded font-bold text-xs flex items-center gap-1 shadow-sm ${
+                      act.status === 'Open' ? 'bg-[#E6F4EA] text-[#137333]' : 'bg-red-50 text-red-600'
                     }`}>
-                      {act.status === 'Full' ? 'Đầy chỗ' : 'Đang Tuyển'}
+                      <span className={`w-1.5 h-1.5 rounded-full ${act.status === 'Open' ? 'bg-[#137333]' : 'bg-red-600'}`}></span>
+                      {act.status === 'Open' ? 'Đang Tuyển' : 'Đầy chỗ'}
                     </div>
                   </div>
                   
-                  <div className="p-5 flex-grow flex flex-col">
-                    <h3 className="font-headline-md text-base leading-snug text-on-surface mb-3 line-clamp-2 font-bold group-hover:text-primary transition-colors">
+                  <div className="p-6 flex-grow flex flex-col justify-between">
+                    <h3 className="font-headline-md text-on-surface text-base md:text-lg font-bold mb-3 line-clamp-2 leading-tight">
                       {act.title}
                     </h3>
                     
-                    <div className="space-y-2.5 mb-5 flex-grow text-on-surface-variant text-xs">
-                      <div className="flex items-start gap-2">
-                        <span className="material-symbols-outlined text-primary text-[18px]">calendar_today</span>
+                    <div className="space-y-2.5 my-3 text-on-surface-variant text-sm">
+                      <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-on-surface-variant text-base">calendar_month</span>
                         <span>
-                          {new Date(act.start_date).toLocaleDateString('vi-VN', { weekday: 'short', day: 'numeric', month: 'numeric' })} • {new Date(act.start_date).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                          {new Date(act.start_date).toLocaleDateString('vi-VN')}
                         </span>
                       </div>
-                      <div className="flex items-start gap-2">
-                        <span className="material-symbols-outlined text-primary text-[18px]">location_on</span>
+                      <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-on-surface-variant text-base">location_on</span>
                         <span className="line-clamp-1">{act.location.district}, {act.location.province}</span>
                       </div>
-                      <div className="flex items-start gap-2">
-                        <span className="material-symbols-outlined text-primary text-[18px]">group</span>
-                        <span>Đã duyệt: <strong>{act.approved_volunteers_count}</strong> / {act.limit_volunteers} tình nguyện viên</span>
+                      <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-on-surface-variant text-base">group</span>
+                        <span>Đã duyệt: <strong>{act.approved_volunteers_count}</strong> / {act.limit_volunteers}</span>
                       </div>
 
                       {/* Recruitment progress bar */}
@@ -293,13 +291,14 @@ export const ActivityListView: React.FC = () => {
                       </div>
                     </div>
 
-                    <a 
-                      href={`#/activity/${act._id}`}
-                      className="w-full font-label-sm text-xs bg-primary text-on-primary text-center px-4 py-3 rounded-lg hover:bg-tertiary transition-colors active:scale-95 shadow-sm mt-auto font-bold flex items-center justify-center gap-1"
-                    >
-                      Xem chi tiết
-                      <span className="material-symbols-outlined text-sm">arrow_forward</span>
-                    </a>
+                    <div className="border-t border-surface-variant pt-4 mt-auto">
+                      <a 
+                        href={`#/activity/${act._id}`}
+                        className="w-full bg-primary hover:bg-primary/95 text-white font-bold h-[52px] rounded-lg transition-all duration-200 active:scale-95 flex justify-center items-center gap-2 shadow-sm text-sm"
+                      >
+                        Xem chi tiết
+                      </a>
+                    </div>
                   </div>
                 </article>
               );

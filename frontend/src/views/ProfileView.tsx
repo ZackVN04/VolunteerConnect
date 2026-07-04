@@ -67,12 +67,12 @@ export const ProfileView: React.FC = () => {
       <section className="lg:col-span-4 flex flex-col gap-md">
         
         {/* Profile Card */}
-        <div className="bg-surface-container-lowest rounded-xl p-6 border border-surface-container shadow-sm flex flex-col items-center text-center">
+        <div className="bg-surface-container-lowest rounded-lg p-6 border border-surface-variant shadow-sm flex flex-col items-center text-center">
           {!isEditing && (
             <div className="w-full flex justify-end mb-2">
               <button 
                 onClick={() => setIsEditing(true)}
-                className="flex items-center gap-1 text-primary font-label-sm text-xs hover:bg-primary-container/20 px-2.5 py-1 rounded-md transition-colors font-bold"
+                className="flex items-center gap-1 text-primary font-label-sm text-sm hover:bg-primary-container/20 px-2.5 py-1 rounded-md transition-colors font-bold"
               >
                 <span className="material-symbols-outlined text-sm">edit</span> Chỉnh sửa
               </button>
@@ -95,14 +95,14 @@ export const ProfileView: React.FC = () => {
           </div>
 
           <h1 className="font-headline-md text-xl text-on-surface mb-1 font-bold">{currentUser.profile.full_name}</h1>
-          <p className="font-body-md text-xs text-on-surface-variant mb-4">
+          <p className="font-body-md text-sm text-on-surface-variant mb-4">
             {currentUser.role === 'Admin' ? 'Quản trị viên toàn hệ thống' :
              currentUser.role === 'Organizer' ? 'Nhà tổ chức hoạt động' : 'Tình nguyện viên tích cực'}
           </p>
 
           {/* About Me Section */}
           <div className="w-full text-left mb-4">
-            <h3 className="font-label-sm text-xs text-on-surface mb-2 uppercase tracking-wider font-bold">Giới thiệu bản thân</h3>
+            <h3 className="font-label-sm text-sm text-on-surface mb-2 uppercase tracking-wider font-bold">Giới thiệu bản thân</h3>
             {isEditing ? (
               <textarea
                 value={bio}
@@ -111,7 +111,7 @@ export const ProfileView: React.FC = () => {
                 placeholder="Mô tả bản thân của bạn..."
               />
             ) : (
-              <p className="font-body-md text-xs text-on-surface-variant leading-relaxed">
+              <p className="font-body-md text-sm text-on-surface-variant leading-relaxed">
                 {currentUser.profile.bio || 'Chưa có thông tin giới thiệu.'}
               </p>
             )}
@@ -119,7 +119,7 @@ export const ProfileView: React.FC = () => {
 
           {/* Volunteer level tracker */}
           <div className="w-full text-left mb-6">
-            <div className="flex justify-between items-center mb-1.5 text-xs font-semibold">
+            <div className="flex justify-between items-center mb-1.5 text-sm font-semibold">
               <span className="text-on-surface">Cấp độ tình nguyện</span>
               <span className="text-primary">
                 {currentUser.profile.joined_activity_count >= 5 ? 'Vàng (Gold) 🥇' : 
@@ -132,7 +132,7 @@ export const ProfileView: React.FC = () => {
                 style={{ width: `${Math.min(100, (currentUser.profile.joined_activity_count / 5) * 100)}%` }}
               ></div>
             </div>
-            <p className="text-[10px] text-on-surface-variant mt-1 text-right">
+            <p className="text-xs text-on-surface-variant mt-1 text-right">
               {currentUser.profile.joined_activity_count >= 5 ? 'Đã đạt cấp Gold' : `Cần hoàn thành ${5 - currentUser.profile.joined_activity_count} hoạt động nữa để lên Vàng`}
             </p>
           </div>
@@ -174,7 +174,7 @@ export const ProfileView: React.FC = () => {
               ) : (
                 <button
                   onClick={() => setShowRequestModal(true)}
-                  className="w-full bg-transparent border-2 border-primary text-primary hover:bg-primary hover:text-white px-4 py-2.5 rounded-lg font-label-sm text-xs font-bold transition-all duration-200 active:scale-95 text-center flex items-center justify-center gap-1"
+                  className="w-full bg-transparent border-2 border-primary text-primary hover:bg-primary hover:text-white px-4 py-3 rounded-lg font-label-sm text-sm font-bold transition-all duration-200 active:scale-95 text-center flex items-center justify-center gap-1"
                 >
                   <span className="material-symbols-outlined text-sm">workspace_premium</span>
                   Yêu cầu vai trò Tổ chức (Organizer)
@@ -185,10 +185,10 @@ export const ProfileView: React.FC = () => {
         </div>
 
         {/* Contact/Details Panel */}
-        <div className="bg-surface-container-lowest rounded-xl p-6 border border-surface-container shadow-sm">
-          <h3 className="font-label-sm text-xs text-on-surface mb-3 uppercase tracking-wider font-bold">Thông tin liên hệ</h3>
+        <div className="bg-surface-container-lowest rounded-lg p-6 border border-surface-variant shadow-sm">
+          <h3 className="font-label-sm text-sm text-on-surface mb-3 uppercase tracking-wider font-bold">Thông tin liên hệ</h3>
           {isEditing ? (
-            <ul className="flex flex-col gap-3 text-xs">
+            <ul className="flex flex-col gap-3 text-sm">
               {!isVirtualEmail && (
                 <li className="flex items-center gap-3">
                   <span className="material-symbols-outlined text-primary text-base">mail</span>
@@ -196,7 +196,7 @@ export const ProfileView: React.FC = () => {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="flex-grow p-1.5 bg-surface-container-low border border-outline-variant rounded-md text-xs outline-none focus:border-primary"
+                    className="flex-grow p-1.5 bg-surface-container-low border border-outline-variant rounded-md text-sm outline-none focus:border-primary"
                   />
                 </li>
               )}
@@ -207,12 +207,12 @@ export const ProfileView: React.FC = () => {
                   value={province}
                   onChange={(e) => setProvince(e.target.value)}
                   placeholder="Thành phố/Khu vực"
-                  className="flex-grow p-1.5 bg-surface-container-low border border-outline-variant rounded-md text-xs outline-none focus:border-primary"
+                  className="flex-grow p-1.5 bg-surface-container-low border border-outline-variant rounded-md text-sm outline-none focus:border-primary"
                 />
               </li>
             </ul>
           ) : (
-            <ul className="flex flex-col gap-3 text-xs text-on-surface-variant font-medium">
+            <ul className="flex flex-col gap-3 text-sm text-on-surface-variant font-medium">
               {!isVirtualEmail && (
                 <li className="flex items-center gap-3">
                   <span className="material-symbols-outlined text-primary text-base">mail</span>
@@ -238,8 +238,8 @@ export const ProfileView: React.FC = () => {
         </div>
 
         {/* Skills Panel */}
-        <div className="bg-surface-container-lowest rounded-xl p-6 border border-surface-container shadow-sm">
-          <h3 className="font-label-sm text-xs text-on-surface mb-3 uppercase tracking-wider font-bold">Kỹ năng</h3>
+        <div className="bg-surface-container-lowest rounded-lg p-6 border border-surface-variant shadow-sm">
+          <h3 className="font-label-sm text-sm text-on-surface mb-3 uppercase tracking-wider font-bold">Kỹ năng</h3>
           {isEditing ? (
             <div className="flex flex-col gap-2">
               <input 
@@ -247,7 +247,7 @@ export const ProfileView: React.FC = () => {
                 value={skillsStr}
                 onChange={(e) => setSkillsStr(e.target.value)}
                 placeholder="ví dụ: Giao tiếp, Làm việc nhóm, Sơ cứu..."
-                className="w-full p-2 bg-surface-container-low border border-outline-variant rounded-lg text-xs focus:border-primary outline-none"
+                className="w-full p-2 bg-surface-container-low border border-outline-variant rounded-lg text-sm focus:border-primary outline-none"
               />
               <p className="text-[10px] text-on-surface-variant">Phân cách các kỹ năng bằng dấu phẩy</p>
             </div>
@@ -255,12 +255,12 @@ export const ProfileView: React.FC = () => {
             <div className="flex flex-wrap gap-2">
               {currentUser.profile.skills.length > 0 ? (
                 currentUser.profile.skills.map((skill, idx) => (
-                  <span key={idx} className="bg-secondary-container text-on-secondary-container px-3 py-1 rounded-full text-xs font-semibold">
+                  <span key={idx} className="bg-secondary-container text-on-secondary-container px-3 py-1 rounded-full text-sm font-semibold">
                     {skill}
                   </span>
                 ))
               ) : (
-                <span className="text-xs text-on-surface-variant italic">Chưa khai báo kỹ năng</span>
+                <span className="text-sm text-on-surface-variant italic">Chưa khai báo kỹ năng</span>
               )}
             </div>
           )}
@@ -271,13 +271,13 @@ export const ProfileView: React.FC = () => {
           <div className="flex gap-3">
             <button 
               onClick={handleSaveProfile}
-              className="flex-grow bg-primary text-on-primary hover:bg-tertiary px-4 py-2.5 rounded-lg font-label-sm text-xs font-bold shadow transition-colors"
+              className="flex-grow bg-primary text-on-primary hover:bg-tertiary px-4 py-3 rounded-lg font-label-sm text-sm font-bold shadow transition-colors"
             >
               Lưu thay đổi
             </button>
             <button 
               onClick={handleCancelEdit}
-              className="flex-grow bg-surface-container-high text-on-surface hover:bg-surface-variant px-4 py-2.5 rounded-lg font-label-sm text-xs font-bold transition-colors"
+              className="flex-grow bg-surface-container-high text-on-surface hover:bg-surface-variant px-4 py-3 rounded-lg font-label-sm text-sm font-bold transition-colors"
             >
               Hủy
             </button>
@@ -288,7 +288,7 @@ export const ProfileView: React.FC = () => {
       {/* Right Column: Stats & Completed Activities */}
       <section className="lg:col-span-8 flex flex-col gap-md">
         {/* Profile Hero Stats Panel */}
-        <div className="bg-primary-container/20 text-on-primary-container rounded-xl p-8 flex flex-col items-center justify-center text-center relative overflow-hidden shadow-sm border border-primary-container/30 min-h-[250px]">
+        <div className="bg-primary-container/20 text-on-primary-container rounded-lg p-8 flex flex-col items-center justify-center text-center relative overflow-hidden shadow-sm border border-surface-variant min-h-[250px]">
           {/* Decorative gradients */}
           <div className="absolute -top-10 -left-10 w-40 h-40 bg-primary/10 rounded-full blur-2xl"></div>
           <div className="absolute -bottom-10 -right-10 w-60 h-60 bg-tertiary/10 rounded-full blur-3xl"></div>
@@ -298,7 +298,7 @@ export const ProfileView: React.FC = () => {
           <p className="font-headline-md text-base opacity-90 font-semibold uppercase tracking-wide">Số hoạt động đã tham gia hoàn thành</p>
           
           <div className="mt-4">
-            <span className="bg-surface-container-lowest text-primary px-4 py-1.5 rounded-full text-xs font-bold shadow-sm uppercase tracking-wider">
+            <span className="bg-surface-container-lowest text-primary px-4 py-1.5 rounded-full text-sm font-bold shadow-sm uppercase tracking-wider">
               {currentUser.profile.joined_activity_count >= 5 ? 'Top 5% Contributor' : 
                currentUser.profile.joined_activity_count >= 1 ? 'Top 20% Contributor' : 'Thành viên mới'}
             </span>
@@ -312,38 +312,38 @@ export const ProfileView: React.FC = () => {
           </h3>
 
           {completedRegs.length === 0 ? (
-            <div className="bg-surface-container-lowest rounded-xl p-8 border border-surface-container text-center space-y-3 shadow-sm">
+            <div className="bg-surface-container-lowest rounded-lg p-8 border border-surface-variant text-center space-y-3 shadow-sm">
               <span className="material-symbols-outlined text-outline text-4xl">history_toggle_off</span>
               <p className="text-sm text-on-surface-variant italic">Bạn chưa hoàn thành hoạt động nào trên hệ thống.</p>
-              <a href="#/activities" className="inline-block bg-primary text-on-primary px-4 py-2 rounded-lg font-medium text-xs shadow hover:bg-tertiary transition-colors">
+              <a href="#/activities" className="inline-block bg-primary text-on-primary px-4 py-2 rounded-lg font-medium text-sm shadow hover:bg-tertiary transition-colors">
                 Khám phá chiến dịch ngay
               </a>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
               {completedRegs.map(reg => (
-                <div key={reg._id} className="bg-surface-container-lowest rounded-xl border border-surface-container shadow-sm overflow-hidden hover:shadow-md transition-all flex flex-col">
-                  <div className="h-36 w-full bg-surface-container relative">
-                    <div className="absolute top-3 left-3 bg-secondary-container text-on-secondary-container px-2.5 py-1 rounded text-xs font-bold uppercase">
+                <div key={reg._id} className="bg-surface-container-lowest rounded-lg border border-surface-variant shadow-sm overflow-hidden hover:shadow-md transition-all flex flex-col h-[320px]">
+                  <div className="h-36 w-full bg-surface-container relative shrink-0">
+                    <div className="absolute top-4 left-4 bg-secondary-fixed text-primary px-3 py-1 rounded-full text-xs font-bold uppercase shadow-sm">
                       Hoàn thành
                     </div>
                   </div>
-                  <div className="p-4 flex-grow flex flex-col justify-between">
+                  <div className="p-6 flex-grow flex flex-col justify-between">
                     <div>
-                      <h4 className="font-body-lg text-sm text-on-surface font-bold line-clamp-2 mb-2">
+                      <h4 className="font-headline-md text-on-surface text-base font-bold line-clamp-2 leading-tight mb-2">
                         {reg.denormalized_activity.title}
                       </h4>
-                      <p className="text-xs text-on-surface-variant mb-4">
+                      <p className="text-sm text-on-surface-variant mb-4">
                         Diễn ra từ: {new Date(reg.denormalized_activity.start_date).toLocaleDateString('vi-VN')}
                       </p>
                     </div>
-                    <div className="flex items-center justify-between text-xs text-on-surface-variant border-t border-surface-variant/40 pt-3">
+                    <div className="flex items-center justify-between text-sm text-on-surface-variant border-t border-surface-variant pt-3">
                       <span className="flex items-center gap-1">
-                        <span className="material-symbols-outlined text-sm text-primary">event_available</span>
+                        <span className="material-symbols-outlined text-base">event_available</span>
                         Đã điểm danh
                       </span>
-                      <span className="flex items-center gap-1 text-primary font-bold">
-                        <span className="material-symbols-outlined text-sm">verified</span> Completed
+                      <span className="flex items-center gap-1 text-[#137333] font-bold">
+                        <span className="material-symbols-outlined text-base">verified</span> Completed
                       </span>
                     </div>
                   </div>
