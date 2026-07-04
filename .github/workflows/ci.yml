@@ -1,0 +1,114 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - chore/setup-docker-deployment
+      - feat/frontend-deployment
+
+jobs:
+  test-python-code:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Pytest
+        run: pytest
+
+  build-and-push:
+    needs: test-python-code
+    runs-on: ubuntu-latest
+    # BẮT BUỘC để WIF có thể tạo token OIDC
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud (Workload Identity Federation)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: 'projects/33207334612/locations/global/workloadIdentityPools/github-pool/providers/github-provider'
+          service_account: 'github-ci-sa@volunteer-connect-prod-999.iam.gserviceaccount.com'
+
+      - name: Configure Docker to use Artifact Registry
+        run: gcloud auth configure-docker asia-southeast1-docker.pkg.dev
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: |
+            asia-southeast1-docker.pkg.dev/volunteer-connect-prod-999/volunteer-connect-repo/volunteer-connect-api:${{ github.sha }}
+            asia-southeast1-docker.pkg.dev/volunteer-connect-prod-999/volunteer-connect-repo/volunteer-connect-api:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and Push Docker Image (Frontend)
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          tags: |
+            asia-southeast1-docker.pkg.dev/volunteer-connect-prod-999/volunteer-connect-repo/volunteer-connect-frontend:${{ github.sha }}
+            asia-southeast1-docker.pkg.dev/volunteer-connect-prod-999/volunteer-connect-repo/volunteer-connect-frontend:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy-to-cloudrun:
+    needs: build-and-push # Đợi job Build xong mới được Deploy
+    runs-on: ubuntu-latest
+    # BẮT BUỘC để WIF có thể tạo token OIDC
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22 (LTS)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Authenticate to Google Cloud (Workload Identity Federation)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: 'projects/33207334612/locations/global/workloadIdentityPools/github-pool/providers/github-provider'
+          service_account: 'github-ci-sa@volunteer-connect-prod-999.iam.gserviceaccount.com'
+
+      - name: Deploy Infrastructure with SST (GitOps)
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          # Gắn mã Băm (SHA) của lần Commit này vào đường link Docker
+          IMAGE_URL: "asia-southeast1-docker.pkg.dev/volunteer-connect-prod-999/volunteer-connect-repo/volunteer-connect-api:${{ github.sha }}"
+          FRONTEND_IMAGE_URL: "asia-southeast1-docker.pkg.dev/volunteer-connect-prod-999/volunteer-connect-repo/volunteer-connect-frontend:${{ github.sha }}"
+        # Chạy unlock trước để bẻ khóa nếu có lỗi, sau đó deploy bình thường
+        run: |
+          npx sst unlock --stage dev || true
+          npx sst deploy --stage dev

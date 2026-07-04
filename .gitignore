@@ -7,6 +7,9 @@ venv/
 env/
 .idea/
 .vscode/
+
+# sst
+.sst
 # GitNexus & Claude AI configs
 .gitnexus/
 .claude/
