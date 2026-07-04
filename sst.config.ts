@@ -26,7 +26,7 @@ export default $config({
       metadata: {
         annotations: {
           // Bỏ comment dòng dưới để biến Server thành "ốc đảo" (Chỉ mạng nội bộ VPC mới gọi được, chặn đứng 100% Internet)
-          // "run.googleapis.com/ingress": "internal",
+          "run.googleapis.com/ingress": "internal",
         },
       },
       template: {
