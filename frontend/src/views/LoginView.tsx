@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { authService, formatPhoneE164 } from '../services/apiService';
+import { authService } from '../services/apiService';
 
 const USE_REAL_BACKEND = import.meta.env.VITE_USE_REAL_BACKEND === 'true';
 
@@ -10,19 +10,17 @@ interface LoginViewProps {
 
 export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToRegister }) => {
   const { users, loginAs, setCurrentUser } = useApp();
-  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!phone.trim()) return;
+    if (!email.trim()) return;
 
     if (USE_REAL_BACKEND) {
       try {
-        const formattedPhone = formatPhoneE164(phone.trim());
-        const virtualEmail = `${formattedPhone.replace('+', '')}@volunteerconnect.com`;
-        const { token, user } = await authService.login(virtualEmail, password);
+        const { token, user } = await authService.login(email.trim(), password);
         localStorage.setItem('token', token);
         setCurrentUser(user);
         window.location.hash = '#/feed';
@@ -33,7 +31,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToRegister }) =>
     }
 
     // Search user
-    const matchedUser = users.find(u => u.phone === phone.trim());
+    const matchedUser = users.find(u => u.email === email.trim());
     if (matchedUser) {
       loginAs(matchedUser._id);
       window.location.hash = '#/feed';
@@ -83,26 +81,26 @@ export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToRegister }) =>
 
           {/* Form */}
           <form className="space-y-4" onSubmit={handleSubmit}>
-            {/* Phone/Email Field */}
+            {/* Email Field */}
             <div className="space-y-1">
-              <label className="block font-label-sm text-xs text-on-surface font-semibold" htmlFor="phone">
-                Số điện thoại
+              <label className="block font-label-sm text-xs text-on-surface font-semibold" htmlFor="email">
+                Email đăng nhập
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <span className="material-symbols-outlined text-outline text-sm">
-                    phone
+                    mail
                   </span>
                 </div>
                 <input 
                   className="w-full pl-10 pr-4 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg focus:outline-none focus:border-primary text-sm placeholder-on-surface-variant/50 text-on-surface" 
-                  id="phone" 
-                  name="phone"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="Ví dụ: 0987654321" 
+                  id="email" 
+                  name="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Ví dụ: nguyenvana@gmail.com" 
                   required 
-                  type="tel"
+                  type="email"
                 />
               </div>
             </div>

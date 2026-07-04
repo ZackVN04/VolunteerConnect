@@ -219,10 +219,12 @@ export const ProfileView: React.FC = () => {
                   <span>{currentUser.email || 'Chưa điền email'}</span>
                 </li>
               )}
-              <li className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-primary text-base">phone</span>
-                <span>{currentUser.phone}</span>
-              </li>
+              {!currentUser.phone?.startsWith('+84') && (
+                <li className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-primary text-base">phone</span>
+                  <span>{currentUser.phone}</span>
+                </li>
+              )}
               <li className="flex items-center gap-3">
                 <span className="material-symbols-outlined text-primary text-base">location_on</span>
                 <span>{currentUser.profile.area_of_interest || 'Chưa điền khu vực'}</span>

@@ -3,12 +3,14 @@ import { authService } from '../services/apiService';
 
 interface OTPVerifyViewProps {
   phoneNumber: string;
+  email?: string;
   onVerifySuccess: () => void;
   onBackToLogin: () => void;
 }
 
 export const OTPVerifyView: React.FC<OTPVerifyViewProps> = ({
   phoneNumber,
+  email,
   onVerifySuccess,
   onBackToLogin
 }) => {
@@ -51,7 +53,7 @@ export const OTPVerifyView: React.FC<OTPVerifyViewProps> = ({
         <div className="absolute inset-0 bg-gradient-to-t from-black/35 to-transparent"></div>
         <div className="absolute bottom-12 left-12 right-12 text-white z-10 space-y-2">
           <h2 className="font-headline-md text-2xl font-bold">Xác Thực OTP</h2>
-          <p className="text-sm opacity-90 leading-relaxed max-w-md">Vui lòng nhập mã OTP được gửi đến số điện thoại của bạn để kích hoạt tài khoản.</p>
+          <p className="text-sm opacity-90 leading-relaxed max-w-md">Vui lòng nhập mã OTP được gửi tới tài khoản của bạn để kích hoạt.</p>
         </div>
       </div>
 
@@ -64,7 +66,7 @@ export const OTPVerifyView: React.FC<OTPVerifyViewProps> = ({
         <div className="w-full max-w-md space-y-6">
           <div className="text-center space-y-2">
             <h1 className="text-2xl md:text-3xl text-on-surface font-bold">Nhập mã OTP</h1>
-            <p className="text-sm text-on-surface-variant">Mã xác thực đã được gửi tới số điện thoại: <span className="font-bold text-primary">{phoneNumber}</span></p>
+            <p className="text-sm text-on-surface-variant">Mã xác thực đã được gửi tới: <span className="font-bold text-primary">{email || phoneNumber}</span></p>
           </div>
 
           {errorMsg && (

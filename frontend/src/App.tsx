@@ -19,6 +19,7 @@ const AppContent: React.FC = () => {
   const [currentHash, setCurrentHash] = useState(window.location.hash || '#/feed');
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [otpVerifyPhone, setOtpVerifyPhone] = useState<string | null>(null);
+  const [otpVerifyEmail, setOtpVerifyEmail] = useState<string | null>(null);
 
   // Hash Routing Listener
   useEffect(() => {
@@ -44,11 +45,16 @@ const AppContent: React.FC = () => {
       return (
         <OTPVerifyView 
           phoneNumber={otpVerifyPhone}
+          email={otpVerifyEmail || undefined}
           onVerifySuccess={() => {
             setOtpVerifyPhone(null);
+            setOtpVerifyEmail(null);
             setIsRegisterMode(false); // take back to login page
           }}
-          onBackToLogin={() => setOtpVerifyPhone(null)}
+          onBackToLogin={() => {
+            setOtpVerifyPhone(null);
+            setOtpVerifyEmail(null);
+          }}
         />
       );
     }
@@ -56,8 +62,9 @@ const AppContent: React.FC = () => {
       return (
         <RegisterView 
           onNavigateToLogin={() => setIsRegisterMode(false)} 
-          onRegisterSuccess={(registeredPhone: string) => {
+          onRegisterSuccess={(registeredPhone: string, email: string) => {
             setOtpVerifyPhone(registeredPhone);
+            setOtpVerifyEmail(email);
           }}
         />
       );
