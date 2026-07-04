@@ -51,7 +51,7 @@ export const DemoController: React.FC = () => {
             </div>
             <div>
               <p className="font-bold text-white leading-tight">{currentUser.profile.full_name}</p>
-              <p className="text-xs text-outline-variant mt-0.5">SĐT: {currentUser.phone} • {currentUser.email || 'Không có email'}</p>
+              <p className="text-xs text-outline-variant mt-0.5">SĐT: {currentUser.phone}{currentUser.email && !currentUser.email.endsWith('@volunteerconnect.com') ? ` • ${currentUser.email}` : ''}</p>
             </div>
           </div>
         </div>

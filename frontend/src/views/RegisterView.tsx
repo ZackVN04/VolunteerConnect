@@ -1,35 +1,53 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { authService } from '../services/apiService';
+import { authService, formatPhoneE164 } from '../services/apiService';
 
 const USE_REAL_BACKEND = import.meta.env.VITE_USE_REAL_BACKEND === 'true';
 
 interface RegisterViewProps {
   onNavigateToLogin: () => void;
+  onRegisterSuccess: (registeredPhone: string) => void;
 }
 
-export const RegisterView: React.FC<RegisterViewProps> = ({ onNavigateToLogin }) => {
+export const RegisterView: React.FC<RegisterViewProps> = ({ onNavigateToLogin, onRegisterSuccess }) => {
   const { users, setCurrentUser } = useApp();
   const [fullname, setFullname] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fullname.trim() || !phone.trim() || !password.trim()) {
+    if (!fullname.trim() || !phone.trim() || !password.trim() || !confirmPassword.trim()) {
       alert('Vui lòng điền đầy đủ thông tin');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      alert('Mật khẩu nhập lại không khớp.');
       return;
     }
 
     if (USE_REAL_BACKEND) {
       try {
-        const { token, user } = await authService.register(fullname, phone, password);
-        localStorage.setItem('token', token);
-        setCurrentUser(user);
-        alert('Đăng ký tài khoản thành công! Bạn đã được đăng nhập tự động.');
-        window.location.hash = '#/feed';
+        const formattedPhone = formatPhoneE164(phone.trim());
+        const virtualEmail = `${formattedPhone.replace('+', '')}@volunteerconnect.com`;
+        await authService.register(virtualEmail, phone.trim(), password);
+        alert('Đăng ký tài khoản thành công! Hệ thống đã gửi mã OTP tới số điện thoại của bạn.');
+        onRegisterSuccess(phone.trim());
       } catch (err: any) {
-        alert(err.response?.data?.message || 'Đăng ký thất bại. Vui lòng thử lại.');
+        let errorMsg = 'Đăng ký thất bại. Vui lòng thử lại.';
+        const data = err.response?.data;
+        if (data) {
+          if (typeof data.detail === 'string') {
+            errorMsg = data.detail;
+          } else if (Array.isArray(data.detail)) {
+            errorMsg = data.detail.map((d: any) => d.msg).join('\n');
+          } else if (data.message) {
+            errorMsg = data.message;
+          }
+        }
+        alert(errorMsg);
       }
       return;
     }
@@ -151,6 +169,24 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ onNavigateToLogin })
                   name="password" 
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••" 
+                  required
+                  type="password" 
+                />
+              </div>
+            </div>
+
+            {/* Confirm Password Input */}
+            <div className="space-y-1">
+              <label className="block font-label-sm text-xs text-on-surface font-semibold" htmlFor="confirmPassword">Nhập lại mật khẩu *</label>
+              <div className="relative">
+                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-sm">lock_reset</span>
+                <input 
+                  className="w-full pl-10 pr-4 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-sm text-on-surface placeholder-outline-variant/60 focus:outline-none focus:border-primary" 
+                  id="confirmPassword" 
+                  name="confirmPassword" 
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="••••••••" 
                   required
                   type="password" 

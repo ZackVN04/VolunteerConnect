@@ -21,6 +21,9 @@ export interface UserProfile {
   area_of_interest: string | null;
   skills: string[];
   joined_activity_count: number;
+  avatar_url?: string;
+  organizer_request_status?: 'None' | 'Pending' | 'Approved' | 'Rejected';
+  organizer_request_feedback?: string | null;
 }
 
 export interface User {
@@ -197,47 +200,71 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     if (USE_REAL_BACKEND) {
       const loadBackendData = async () => {
         try {
+          // 1. Load offline simulated collections first
+          const localDataRaw = localStorage.getItem('volunteer_connect_db');
+          if (localDataRaw) {
+            const db = JSON.parse(localDataRaw);
+            setActivities((db.activities || []) as Activity[]);
+            setRegistrations((db.registrations || []) as Registration[]);
+            setPosts((db.posts || []) as Post[]);
+            if (!organizerRequests.length) {
+              setOrganizerRequests((db.organizerRequests || []) as OrganizerRequest[]);
+            }
+          } else {
+            setActivities((initialMockData.activities || []) as Activity[]);
+            setRegistrations((initialMockData.registrations || []) as Registration[]);
+            setPosts((initialMockData.posts || []) as Post[]);
+          }
+
+          // 2. Load backend session details
           let activeUser: User | null = null;
           const token = localStorage.getItem('token');
           if (token) {
             try {
               activeUser = await authService.getCurrentUser();
+              
+              // Load organizer request status from backend if Volunteer
+              if (activeUser && activeUser.role === 'Volunteer') {
+                try {
+                  const req = await organizerService.getMyRequest();
+                  if (req) {
+                    const profileStatusMap: Record<string, 'None' | 'Pending' | 'Approved' | 'Rejected'> = {
+                      'pending': 'Pending',
+                      'approved': 'Approved',
+                      'rejected': 'Rejected'
+                    };
+                    const requestStatusMap: Record<string, 'Pending' | 'Approved' | 'Rejected'> = {
+                      'pending': 'Pending',
+                      'approved': 'Approved',
+                      'rejected': 'Rejected'
+                    };
+                    activeUser.profile.organizer_request_status = profileStatusMap[req.status] || 'None';
+                    const reqObj: OrganizerRequest = {
+                      _id: req.id || req._id,
+                      volunteer_id: activeUser._id,
+                      reason: req.organization_name,
+                      experience: req.documents?.[0] || '',
+                      contact_phone: req.documents?.[1] || '',
+                      status: requestStatusMap[req.status] || 'Pending',
+                      admin_feedback: null,
+                      created_at: req.requested_at,
+                      reviewed_at: null,
+                      reviewed_by: null,
+                      denormalized_volunteer: {
+                        name: activeUser.profile.full_name,
+                        email: activeUser.email || ''
+                      }
+                    };
+                    setOrganizerRequests([reqObj]);
+                  }
+                } catch (e) {
+                  activeUser.profile.organizer_request_status = 'None';
+                }
+              }
+              
               setCurrentUserInternal(activeUser);
             } catch (e) {
               console.warn("Lỗi khôi phục phiên đăng nhập backend:", e);
-            }
-          }
-          const [acts, pts] = await Promise.all([
-            activityService.getAll(),
-            postService.getAll()
-          ]);
-          setActivities(acts);
-          setPosts(pts);
-
-          if (activeUser) {
-            if (activeUser.role === 'Volunteer') {
-              const regs = await registrationService.getVolunteerRegistrations();
-              setRegistrations(regs);
-              try {
-                const req = await organizerService.getLatestRequest();
-                setOrganizerRequests(req ? [req] : []);
-              } catch (e) {
-                setOrganizerRequests([]);
-              }
-            } else if (activeUser.role === 'Organizer') {
-              const orgActs = await activityService.getOrganizerActivities();
-              const regsPromises = orgActs.map(a => 
-                registrationService.getActivityRegistrations(a._id).catch(() => [] as Registration[])
-              );
-              const regsLists = await Promise.all(regsPromises);
-              setRegistrations(regsLists.flat());
-            } else if (activeUser.role === 'Admin') {
-              const [reqs, adminActs] = await Promise.all([
-                adminService.getOrganizerRequests(),
-                adminService.getActivities().catch(() => acts)
-              ]);
-              setOrganizerRequests(reqs);
-              setActivities(adminActs);
             }
           }
         } catch (e) {
@@ -651,12 +678,36 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     if (USE_REAL_BACKEND) {
       return (async () => {
         try {
-          await organizerService.submitRequest(reason, experience, contactPhone);
-          const req = await organizerService.getLatestRequest();
-          setOrganizerRequests(req ? [req] : []);
+          const req = await organizerService.submitRequest(reason, experience, contactPhone);
+          const statusMap: Record<string, 'Pending' | 'Approved' | 'Rejected'> = {
+            'pending': 'Pending',
+            'approved': 'Approved',
+            'rejected': 'Rejected'
+          };
+          const reqObj: OrganizerRequest = {
+            _id: req.id || req._id,
+            volunteer_id: currentUser?._id || '',
+            reason: req.organization_name,
+            experience: req.documents?.[0] || '',
+            contact_phone: req.documents?.[1] || '',
+            status: statusMap[req.status] || 'Pending',
+            admin_feedback: null,
+            created_at: req.requested_at,
+            reviewed_at: null,
+            reviewed_by: null,
+            denormalized_volunteer: {
+              name: currentUser?.profile.full_name || '',
+              email: currentUser?.email || ''
+            }
+          };
+          setOrganizerRequests([reqObj]);
+          if (currentUser) {
+            currentUser.profile.organizer_request_status = 'Pending';
+            setCurrentUserInternal({ ...currentUser });
+          }
           return { success: true };
         } catch (e: any) {
-          return { success: false, error: e.response?.data?.error?.message || e.response?.data?.message || 'Lỗi gửi yêu cầu' };
+          return { success: false, error: e.response?.data?.detail || e.response?.data?.message || 'Lỗi gửi yêu cầu' };
         }
       })();
     }
@@ -966,7 +1017,10 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     if (USE_REAL_BACKEND) {
       (async () => {
         try {
-          await userService.updateProfile(updatedProfile, email, province);
+          await userService.updateProfile({
+            full_name: updatedProfile.full_name || currentUser?.profile.full_name,
+            avatar_url: updatedProfile.avatar_url || currentUser?.profile.avatar_url
+          });
           const user = await authService.getCurrentUser();
           setCurrentUserInternal(user);
         } catch (e) {

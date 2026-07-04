@@ -11,12 +11,14 @@ import OrganizerDashboard from './views/OrganizerDashboard';
 import AdminDashboard from './views/AdminDashboard';
 import LoginView from './views/LoginView';
 import RegisterView from './views/RegisterView';
+import OTPVerifyView from './views/OTPVerifyView';
 import './App.css';
 
 const AppContent: React.FC = () => {
   const { currentUser } = useApp();
   const [currentHash, setCurrentHash] = useState(window.location.hash || '#/feed');
   const [isRegisterMode, setIsRegisterMode] = useState(false);
+  const [otpVerifyPhone, setOtpVerifyPhone] = useState<string | null>(null);
 
   // Hash Routing Listener
   useEffect(() => {
@@ -36,10 +38,29 @@ const AppContent: React.FC = () => {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
-  // If not logged in, show Login or Register screens
+  // If not logged in, show Login, Register, or OTP verification screens
   if (!currentUser) {
+    if (otpVerifyPhone) {
+      return (
+        <OTPVerifyView 
+          phoneNumber={otpVerifyPhone}
+          onVerifySuccess={() => {
+            setOtpVerifyPhone(null);
+            setIsRegisterMode(false); // take back to login page
+          }}
+          onBackToLogin={() => setOtpVerifyPhone(null)}
+        />
+      );
+    }
     if (isRegisterMode) {
-      return <RegisterView onNavigateToLogin={() => setIsRegisterMode(false)} />;
+      return (
+        <RegisterView 
+          onNavigateToLogin={() => setIsRegisterMode(false)} 
+          onRegisterSuccess={(registeredPhone: string) => {
+            setOtpVerifyPhone(registeredPhone);
+          }}
+        />
+      );
     }
     return <LoginView onNavigateToRegister={() => setIsRegisterMode(true)} />;
   }

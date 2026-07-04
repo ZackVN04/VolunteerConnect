@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { authService } from '../services/apiService';
+import { authService, formatPhoneE164 } from '../services/apiService';
 
 const USE_REAL_BACKEND = import.meta.env.VITE_USE_REAL_BACKEND === 'true';
 
@@ -20,12 +20,14 @@ export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToRegister }) =>
 
     if (USE_REAL_BACKEND) {
       try {
-        const { token, user } = await authService.login(phone.trim(), password);
+        const formattedPhone = formatPhoneE164(phone.trim());
+        const virtualEmail = `${formattedPhone.replace('+', '')}@volunteerconnect.com`;
+        const { token, user } = await authService.login(virtualEmail, password);
         localStorage.setItem('token', token);
         setCurrentUser(user);
         window.location.hash = '#/feed';
       } catch (err: any) {
-        setErrorMsg(err.response?.data?.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.');
+        setErrorMsg(err.response?.data?.detail || err.response?.data?.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.');
       }
       return;
     }
@@ -81,12 +83,16 @@ export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToRegister }) =>
 
           {/* Form */}
           <form className="space-y-4" onSubmit={handleSubmit}>
-            {/* Phone Field */}
+            {/* Phone/Email Field */}
             <div className="space-y-1">
-              <label className="block font-label-sm text-xs text-on-surface font-semibold" htmlFor="phone">Số điện thoại</label>
+              <label className="block font-label-sm text-xs text-on-surface font-semibold" htmlFor="phone">
+                Số điện thoại
+              </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <span className="material-symbols-outlined text-outline text-sm">phone</span>
+                  <span className="material-symbols-outlined text-outline text-sm">
+                    phone
+                  </span>
                 </div>
                 <input 
                   className="w-full pl-10 pr-4 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg focus:outline-none focus:border-primary text-sm placeholder-on-surface-variant/50 text-on-surface" 
@@ -94,7 +100,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToRegister }) =>
                   name="phone"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  placeholder="Nhập số điện thoại đăng nhập..." 
+                  placeholder="Ví dụ: 0987654321" 
                   required 
                   type="tel"
                 />

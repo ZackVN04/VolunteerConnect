@@ -7,7 +7,8 @@ export const ProfileView: React.FC = () => {
   // Edit mode state
   const [isEditing, setIsEditing] = useState(false);
   const [bio, setBio] = useState(currentUser?.profile.bio || '');
-  const [email, setEmail] = useState(currentUser?.email || '');
+  const isVirtualEmail = currentUser?.email?.endsWith('@volunteerconnect.com') || false;
+  const [email, setEmail] = useState(isVirtualEmail ? '' : (currentUser?.email || ''));
   const [province, setProvince] = useState(currentUser?.profile.area_of_interest || '');
   const [skillsStr, setSkillsStr] = useState(currentUser?.profile.skills.join(', ') || '');
 
@@ -39,7 +40,7 @@ export const ProfileView: React.FC = () => {
 
   const handleCancelEdit = () => {
     setBio(currentUser.profile.bio || '');
-    setEmail(currentUser.email || '');
+    setEmail(isVirtualEmail ? '' : (currentUser.email || ''));
     setProvince(currentUser.profile.area_of_interest || '');
     setSkillsStr(currentUser.profile.skills.join(', '));
     setIsEditing(false);
@@ -188,15 +189,17 @@ export const ProfileView: React.FC = () => {
           <h3 className="font-label-sm text-xs text-on-surface mb-3 uppercase tracking-wider font-bold">Thông tin liên hệ</h3>
           {isEditing ? (
             <ul className="flex flex-col gap-3 text-xs">
-              <li className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-primary text-base">mail</span>
-                <input 
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="flex-grow p-1.5 bg-surface-container-low border border-outline-variant rounded-md text-xs outline-none focus:border-primary"
-                />
-              </li>
+              {!isVirtualEmail && (
+                <li className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-primary text-base">mail</span>
+                  <input 
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="flex-grow p-1.5 bg-surface-container-low border border-outline-variant rounded-md text-xs outline-none focus:border-primary"
+                  />
+                </li>
+              )}
               <li className="flex items-center gap-3">
                 <span className="material-symbols-outlined text-primary text-base">location_on</span>
                 <input 
@@ -210,10 +213,12 @@ export const ProfileView: React.FC = () => {
             </ul>
           ) : (
             <ul className="flex flex-col gap-3 text-xs text-on-surface-variant font-medium">
-              <li className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-primary text-base">mail</span>
-                <span>{currentUser.email || 'Chưa điền email'}</span>
-              </li>
+              {!isVirtualEmail && (
+                <li className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-primary text-base">mail</span>
+                  <span>{currentUser.email || 'Chưa điền email'}</span>
+                </li>
+              )}
               <li className="flex items-center gap-3">
                 <span className="material-symbols-outlined text-primary text-base">phone</span>
                 <span>{currentUser.phone}</span>
