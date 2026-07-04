@@ -55,6 +55,14 @@ export default $config({
       member: "serviceAccount:volunteer-frontend-sa@volunteer-connect-prod-999.iam.gserviceaccount.com",
     });
 
+    // Mở toang cửa cho khách hàng truy cập API Backend (Public Access) để truy cập được Swagger và gọi API từ React SPA
+    new gcp.cloudrun.IamMember("BackendPublicAccess", {
+      service: service.name,
+      location: service.location,
+      role: "roles/run.invoker",
+      member: "allUsers",
+    });
+
     // =====================================================================
     // MODULE: FRONTEND CLOUD RUN
     // =====================================================================
