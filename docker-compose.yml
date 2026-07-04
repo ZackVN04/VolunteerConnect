@@ -19,6 +19,24 @@ services:
       - vc_network
     restart: unless-stopped
 
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # Truyền biến này vào Stage 1 (Builder) của Dockerfile
+        - VITE_API_URL=http://localhost:8080/api
+    container_name: volunteer_connect_frontend
+    ports:
+      - "3000:80"
+    environment:
+      - VITE_API_URL=http://localhost:8080/api
+    depends_on:
+      - backend
+    networks:
+      - vc_network
+    restart: unless-stopped
+
   mongodb:
     image: mongo:7.0
     container_name: volunteer_connect_mongodb

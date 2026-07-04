@@ -56,6 +56,35 @@ export default $config({
     });
 
     // =====================================================================
+    // MODULE: FRONTEND CLOUD RUN
+    // =====================================================================
+    const frontendService = new gcp.cloudrun.Service("FrontendService", {
+      name: `volunteer-connect-frontend-${$app.stage}`,
+      location: "asia-southeast1",
+      template: {
+        spec: {
+          containers: [{
+            // Nạp link ảnh Docker của Frontend (kèm mã SHA từ GitHub Actions)
+            image: process.env.FRONTEND_IMAGE_URL || "asia-southeast1-docker.pkg.dev/volunteer-connect-prod-999/volunteer-connect-repo/volunteer-connect-frontend:latest",
+            ports: [{ containerPort: 80 }],
+            envs: [
+              // CỰC KỲ QUAN TRỌNG: Tự động trích xuất URL của Backend để bơm vào Frontend
+              { name: "VITE_API_URL", value: service.statuses.apply(s => s?.[0]?.url || "") }
+            ],
+          }],
+        },
+      },
+    });
+
+    // Mở toang cửa cho khách hàng truy cập web Frontend (Public Access)
+    new gcp.cloudrun.IamMember("PublicAccess", {
+      service: frontendService.name,
+      location: frontendService.location,
+      role: "roles/run.invoker",
+      member: "allUsers", // Mọi người trên thế giới đều vào được
+    });
+
+    // =====================================================================
     // MODULE: CLOUD MONITORING & ALERTING (SRE)
     // =====================================================================
     
@@ -131,9 +160,10 @@ export default $config({
       })
     });
 
-    // Tự động xuất ra đường link Web sau khi deploy thành công
+    // Tự động xuất ra 2 đường link Web sau khi deploy thành công
     return {
-      WebsiteURL: service.statuses.apply(s => s?.[0]?.url || "Đang khởi tạo..."),
+      BackendURL: service.statuses.apply(s => s?.[0]?.url || "Đang khởi tạo..."),
+      FrontendURL: frontendService.statuses.apply(s => s?.[0]?.url || "Đang khởi tạo..."),
     };
   },
 });
