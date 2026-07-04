@@ -26,7 +26,7 @@ export default $config({
       metadata: {
         annotations: {
           // Bỏ comment dòng dưới để biến Server thành "ốc đảo" (Chỉ mạng nội bộ VPC mới gọi được, chặn đứng 100% Internet)
-          "run.googleapis.com/ingress": "internal",
+          // "run.googleapis.com/ingress": "internal",
         },
       },
       template: {
@@ -88,7 +88,7 @@ export default $config({
     // =====================================================================
     // MODULE: CLOUD MONITORING & ALERTING (SRE)
     // =====================================================================
-    
+
     // 1. Kênh Thông Báo (Notification Channel) - Nhận cảnh báo qua Email
     const emailChannel = new gcp.monitoring.NotificationChannel("SRE_Email_Alerts", {
       displayName: "SRE On-call Team",
