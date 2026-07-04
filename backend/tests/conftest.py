@@ -1,0 +1,37 @@
+import pytest
+import asyncio
+from motor.motor_asyncio import AsyncIOMotorClient
+from beanie import init_beanie
+
+from app.core.config.settings import settings
+from app.features.users.models import User
+from app.features.organizer_requests.models import OrganizerRequest
+from app.features.activities.models import Activity
+
+@pytest.fixture(scope="function", autouse=True)
+async def initialize_db():
+    """Khởi tạo kết nối Beanie MongoDB một lần duy nhất cho toàn bộ session test"""
+    # Tránh lỗi tương thích phiên bản Beanie và Motor
+    AsyncIOMotorClient.append_metadata = lambda self, *args, **kwargs: None
+    
+    client = AsyncIOMotorClient(settings.MONGO_URI)
+    try:
+        # Sử dụng DB test chuyên dụng nếu cấu hình có, hoặc fall back về default db
+        db = client.get_default_database()
+        if db is None:
+            db = client["volunteer_connect"]
+    except Exception:
+        db = client["volunteer_connect"]
+        
+    await init_beanie(
+        database=db,
+        document_models=[
+            User,
+            OrganizerRequest,
+            Activity
+        ]
+    )
+    
+    yield
+    
+    client.close()
