@@ -11,15 +11,6 @@ on:
 jobs:
   test-python-code:
     runs-on: ubuntu-latest
-    services:
-      mongodb:
-        image: mongo:latest
-        ports:
-          - 27017:27017
-        options: >-
-          --name mongodb
-          --replSet rs0
-          --bind_ip_all
     defaults:
       run:
         working-directory: backend
@@ -39,8 +30,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Initiate MongoDB Replica Set for Transactions
+      - name: Start MongoDB Replica Set
         run: |
+          docker run --name mongodb -d -p 27017:27017 mongo:latest mongod --replSet rs0 --bind_ip_all
+          sleep 5
           docker exec mongodb mongosh --eval "rs.initiate({_id: 'rs0', members: [{_id: 0, host: 'localhost:27017'}]})"
           sleep 5
 
