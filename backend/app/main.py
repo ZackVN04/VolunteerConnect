@@ -1,4 +1,6 @@
-from fastapi import FastAPI
+import json
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from beanie import init_beanie
 from contextlib import asynccontextmanager
@@ -14,8 +16,12 @@ from app.features.users.router import router as users_router
 from app.features.organizer_requests.router import router as organizer_requests_router
 from app.features.activities.router import router as activities_router, organizer_router
 
+# =============================================================================
+# 1. LIFESPAN (Startup and Shutdown events)
+# =============================================================================
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    print("🚀 Starting up server... Connecting to MongoDB...")
     # Bỏ qua lỗi tương thích phiên bản giữa Beanie và Motor (MotorDatabase object is not callable)
     AsyncIOMotorClient.append_metadata = lambda self, *args, **kwargs: None
     
@@ -24,6 +30,7 @@ async def lifespan(app: FastAPI):
         db = client.get_default_database()
     except Exception:
         db = client["volunteer_connect"]
+        
     await init_beanie(
         database=db,
         document_models=[
@@ -32,55 +39,18 @@ async def lifespan(app: FastAPI):
             Activity
         ]
     )
+    
     start_scheduler()
-    yield
+    print("✅ Server is ready to accept requests!")
+    
+    yield  # Server is running here
+    
+    print("🛑 Shutting down server...")
     shutdown_scheduler()
     client.close()
 
-app = FastAPI(
-    title='Volunteer Connect API',
-    description='Volunteer and Organizer connection platform API',
-    version='1.0.0',
-    lifespan=lifespan
-)
-
-app.include_router(auth_router)
-app.include_router(users_router)
-app.include_router(organizer_requests_router)
-app.include_router(activities_router)
-app.include_router(organizer_router)
-
-# TODO: Import routers from features when implemented
-# from app.features.auth.router import router as auth_router
-# from app.features.users.router import router as users_router
-# from app.features.activities.router import router as activities_router
-
 # =============================================================================
-# 2. LIFESPAN (Startup and Shutdown events)
-# =============================================================================
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """
-    Executes before the server starts receiving requests.
-    Ideal place to initialize database connections.
-    """
-    print("🚀 Starting up server... Connecting to MongoDB...")
-    
-    # Initialize MongoDB connection using Beanie
-    await init_db()
-    
-    print("✅ Server is ready to accept requests!")
-    
-    yield # Server is running here
-    
-    """
-    Executes when the server shuts down (Ctrl+C).
-    Ideal place to gracefully close database connections or clear resources.
-    """
-    print("🛑 Shutting down server...")
-
-# =============================================================================
-# 3. FASTAPI APP INITIALIZATION
+# 2. FASTAPI APP INITIALIZATION
 # =============================================================================
 app = FastAPI(
     title='Volunteer Connect API',
@@ -90,19 +60,18 @@ app = FastAPI(
 )
 
 # =============================================================================
-# 4. CORS MIDDLEWARE CONFIGURATION
+# 3. CORS MIDDLEWARE CONFIGURATION
 # =============================================================================
-# CORS is essential for the Frontend (React/Vue) to call the API without being blocked
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # TODO: In production, replace "*" with specific frontend URLs
+    allow_origins=["*"],  # Trong môi trường production nên cấu hình cụ thể
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # =============================================================================
-# 4.5. CLOUD LOGGING MIDDLEWARE (HỘP ĐEN)
+# 4. CLOUD LOGGING MIDDLEWARE (HỘP ĐEN)
 # =============================================================================
 @app.middleware("http")
 async def cloud_logging_middleware(request: Request, call_next):
@@ -135,7 +104,6 @@ async def cloud_logging_middleware(request: Request, call_next):
     
     # 5. Đính kèm Trace ID để nhóm các log lại với nhau
     if trace_id:
-        # LƯU Ý: Đã tự điền đúng Project ID của bạn vào đây
         log_entry["logging.googleapis.com/trace"] = f"projects/volunteer-connect-prod-999/traces/{trace_id}"
         
     # Cloud Run sẽ tự động thu gom mọi lệnh in ra màn hình (print)
@@ -145,10 +113,11 @@ async def cloud_logging_middleware(request: Request, call_next):
 # =============================================================================
 # 5. REGISTER ROUTERS (APIs)
 # =============================================================================
-# TODO: Uncomment these lines when the respective router files are implemented
-# app.include_router(auth_router, prefix="/api/v1/auth", tags=["Authentication"])
-# app.include_router(users_router, prefix="/api/v1/users", tags=["Users"])
-# app.include_router(activities_router, prefix="/api/v1/activities", tags=["Activities"])
+app.include_router(auth_router)
+app.include_router(users_router)
+app.include_router(organizer_requests_router)
+app.include_router(activities_router)
+app.include_router(organizer_router)
 
 # =============================================================================
 # 6. ROOT ENDPOINT (Health Check)

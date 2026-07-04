@@ -78,8 +78,8 @@ async def banned_user():
 # ==========================================
 
 @pytest.mark.asyncio
-@patch("app.features.auth.router.send_otp_sms", new_callable=AsyncMock)
-async def test_register_success(mock_send_sms, async_client):
+@patch("app.features.auth.router.send_otp_email", new_callable=AsyncMock)
+async def test_register_success(mock_send_email, async_client):
     """Happy Path: Successful registration with valid data (Expects 201)."""
     payload = {
         "email": TEST_EMAIL,
@@ -91,13 +91,13 @@ async def test_register_success(mock_send_sms, async_client):
     data = response.json()
     assert "user_id" in data
     
-    # Check if the Twilio SMS mock was called (Does not send real SMS)
-    mock_send_sms.assert_called_once()
-    assert mock_send_sms.call_args[0][0] == TEST_PHONE
+    # Check if the email send mock was called (Does not send real email)
+    mock_send_email.assert_called_once()
+    assert mock_send_email.call_args[0][0] == TEST_EMAIL
 
 @pytest.mark.asyncio
-@patch("app.features.auth.router.send_otp_sms", new_callable=AsyncMock)
-async def test_register_duplicate_email(mock_send_sms, async_client, active_user):
+@patch("app.features.auth.router.send_otp_email", new_callable=AsyncMock)
+async def test_register_duplicate_email(mock_send_email, async_client, active_user):
     """Negative Case: Registration with an already existing email (Expects 400)."""
     payload = {
         "email": TEST_EMAIL,
@@ -107,11 +107,11 @@ async def test_register_duplicate_email(mock_send_sms, async_client, active_user
     response = await async_client.post("/api/v1/auth/register", json=payload)
     assert response.status_code == 400
     assert "Email" in response.json()["detail"]
-    mock_send_sms.assert_not_called()
+    mock_send_email.assert_not_called()
 
 @pytest.mark.asyncio
-@patch("app.features.auth.router.send_otp_sms", new_callable=AsyncMock)
-async def test_register_duplicate_phone(mock_send_sms, async_client, active_user):
+@patch("app.features.auth.router.send_otp_email", new_callable=AsyncMock)
+async def test_register_duplicate_phone(mock_send_email, async_client, active_user):
     """Negative Case: Registration with an already existing phone number (Expects 400)."""
     payload = {
         "email": "test_QA_unique@example.com",
@@ -120,7 +120,7 @@ async def test_register_duplicate_phone(mock_send_sms, async_client, active_user
     }
     response = await async_client.post("/api/v1/auth/register", json=payload)
     assert response.status_code == 400
-    mock_send_sms.assert_not_called()
+    mock_send_email.assert_not_called()
 
 @pytest.mark.asyncio
 async def test_register_invalid_phone_format(async_client):
@@ -141,7 +141,7 @@ async def test_register_invalid_phone_format(async_client):
 async def test_verify_otp_success(async_client, pending_user):
     """Happy Path: Successful OTP verification (Expects 200, status = ACTIVE)."""
     payload = {
-        "phone_number": pending_user.phone_number,
+        "email": pending_user.email,
         "otp_code": "123456"
     }
     response = await async_client.post("/api/v1/auth/verify-otp", json=payload)
@@ -156,7 +156,7 @@ async def test_verify_otp_success(async_client, pending_user):
 async def test_verify_otp_invalid_code(async_client, pending_user):
     """Negative Case: Incorrect OTP code (Expects 400)."""
     payload = {
-        "phone_number": pending_user.phone_number,
+        "email": pending_user.email,
         "otp_code": "000000"
     }
     response = await async_client.post("/api/v1/auth/verify-otp", json=payload)
@@ -170,7 +170,7 @@ async def test_verify_otp_expired(async_client, pending_user):
     await pending_user.save()
     
     payload = {
-        "phone_number": pending_user.phone_number,
+        "email": pending_user.email,
         "otp_code": "123456"
     }
     response = await async_client.post("/api/v1/auth/verify-otp", json=payload)
@@ -180,7 +180,7 @@ async def test_verify_otp_expired(async_client, pending_user):
 async def test_verify_otp_already_active(async_client, active_user):
     """Negative Case: Attempting to verify an already active user (Expects 400)."""
     payload = {
-        "phone_number": active_user.phone_number,
+        "email": active_user.email,
         "otp_code": "123456"
     }
     response = await async_client.post("/api/v1/auth/verify-otp", json=payload)
@@ -265,3 +265,62 @@ async def test_refresh_token_expired(async_client, active_user):
     
     response = await async_client.post("/api/v1/auth/refresh-token", json=payload)
     assert response.status_code == 401
+
+# ==========================================
+# 5. TEST CASES FOR FORGOT & RESET PASSWORD
+# ==========================================
+
+@pytest.mark.asyncio
+@patch("app.features.auth.router.send_reset_password_email", new_callable=AsyncMock)
+async def test_forgot_password_success(mock_send_email, async_client, active_user):
+    """Happy Path: Request OTP for password reset (Expects 200)."""
+    payload = {"email": active_user.email}
+    response = await async_client.post("/api/v1/auth/forgot-password", json=payload)
+    assert response.status_code == 200
+    assert "Mã OTP" in response.json()["message"]
+    
+    mock_send_email.assert_called_once()
+    assert mock_send_email.call_args[0][0] == active_user.email
+    
+    # Check if the user document got updated with OTP code in DB
+    updated_user = await User.get(active_user.id)
+    assert updated_user.otp_code is not None
+
+@pytest.mark.asyncio
+async def test_forgot_password_email_not_found(async_client):
+    """Negative Case: Request OTP with email that doesn't exist (Expects 404)."""
+    payload = {"email": "non_existent_email@example.com"}
+    response = await async_client.post("/api/v1/auth/forgot-password", json=payload)
+    assert response.status_code == 404
+
+@pytest.mark.asyncio
+async def test_reset_password_success(async_client, active_user):
+    """Happy Path: Successfully reset password with correct OTP (Expects 200)."""
+    # 1. Manually set an OTP code for password reset on the active user
+    active_user.otp_code = "654321"
+    active_user.otp_expiry = datetime.now(timezone.utc) + timedelta(minutes=5)
+    await active_user.save()
+    
+    # 2. Call the reset-password endpoint
+    payload = {
+        "email": active_user.email,
+        "otp_code": "654321",
+        "new_password": "NewStrongPassword456!"
+    }
+    response = await async_client.post("/api/v1/auth/reset-password", json=payload)
+    assert response.status_code == 200
+    assert "Khôi phục mật khẩu thành công" in response.json()["message"]
+    
+    # 3. Check that the password hash has changed, and OTP fields are cleared
+    updated_user = await User.get(active_user.id)
+    assert updated_user.otp_code is None
+    assert updated_user.otp_expiry is None
+    
+    # 4. Verify login succeeds with the new password
+    login_payload = {
+        "email": active_user.email,
+        "password": "NewStrongPassword456!"
+    }
+    login_response = await async_client.post("/api/v1/auth/login", json=login_payload)
+    assert login_response.status_code == 200
+    assert "access_token" in login_response.json()
