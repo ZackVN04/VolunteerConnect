@@ -1,6 +1,9 @@
 __pycache__/
 *.pyc
 .env
-.venv/
-venv/
-env/
+.venv
+# GitNexus & Claude AI configs
+.gitnexus/
+.claude/
+AGENTS.md
+CLAUDE.md

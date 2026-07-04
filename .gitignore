@@ -7,3 +7,8 @@ venv/
 env/
 .idea/
 .vscode/
+# GitNexus & Claude AI configs
+.gitnexus/
+.claude/
+AGENTS.md
+CLAUDE.md
