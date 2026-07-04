@@ -2,6 +2,16 @@
 node_modules/
 __pycache__/
 .env
-.venv
+.venv/
+venv/
+env/
 .idea/
 .vscode/
+
+# sst
+.sst
+# GitNexus & Claude AI configs
+.gitnexus/
+.claude/
+AGENTS.md
+CLAUDE.md
