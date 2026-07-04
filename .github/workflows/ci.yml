@@ -6,6 +6,7 @@ on:
       - main
       - chore/setup-docker-deployment
       - feat/frontend-deployment
+      - fix/*
 
 jobs:
   test-python-code:
