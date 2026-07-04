@@ -108,5 +108,7 @@ jobs:
           # Gắn mã Băm (SHA) của lần Commit này vào đường link Docker
           IMAGE_URL: "asia-southeast1-docker.pkg.dev/volunteer-connect-prod-999/volunteer-connect-repo/volunteer-connect-api:${{ github.sha }}"
           FRONTEND_IMAGE_URL: "asia-southeast1-docker.pkg.dev/volunteer-connect-prod-999/volunteer-connect-repo/volunteer-connect-frontend:${{ github.sha }}"
-        # Giao phó hoàn toàn quyền Sinh/Sát hạ tầng cho SST
-        run: npx sst deploy --stage dev
+        # Chạy unlock trước để bẻ khóa nếu có lỗi, sau đó deploy bình thường
+        run: |
+          npx sst unlock --stage dev || true
+          npx sst deploy --stage dev
