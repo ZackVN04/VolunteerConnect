@@ -63,6 +63,7 @@ export default $config({
       location: "asia-southeast1",
       template: {
         spec: {
+          serviceAccountName: "volunteer-frontend-sa@volunteer-connect-prod-999.iam.gserviceaccount.com", // Chạy dưới thân phận thẻ Căn cước Frontend
           containers: [{
             // Nạp link ảnh Docker của Frontend (kèm mã SHA từ GitHub Actions)
             image: process.env.FRONTEND_IMAGE_URL || "asia-southeast1-docker.pkg.dev/volunteer-connect-prod-999/volunteer-connect-repo/volunteer-connect-frontend:latest",
