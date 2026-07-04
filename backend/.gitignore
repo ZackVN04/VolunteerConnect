@@ -4,3 +4,9 @@ __pycache__/
 .venv/
 venv/
 env/
+.venv
+# GitNexus & Claude AI configs
+.gitnexus/
+.claude/
+AGENTS.md
+CLAUDE.md

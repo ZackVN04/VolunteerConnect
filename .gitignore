@@ -10,3 +10,8 @@ env/
 
 # sst
 .sst
+# GitNexus & Claude AI configs
+.gitnexus/
+.claude/
+AGENTS.md
+CLAUDE.md
