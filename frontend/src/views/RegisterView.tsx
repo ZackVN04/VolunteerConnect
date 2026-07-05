@@ -37,7 +37,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ onNavigateToLogin, o
       try {
         const randomPhone = generateRandomPhoneE164();
         await authService.register(email.trim(), randomPhone, password);
-        alert('Đăng ký tài khoản thành công! Hệ thống đã gửi mã OTP xác thực tới số điện thoại ảo đăng ký.');
+        alert('Đăng ký tài khoản thành công! Hệ thống đã gửi mã OTP xác thực tới địa chỉ email đăng ký.');
         onRegisterSuccess(randomPhone, email.trim());
       } catch (err: any) {
         let errorMsg = 'Đăng ký thất bại. Vui lòng thử lại.';

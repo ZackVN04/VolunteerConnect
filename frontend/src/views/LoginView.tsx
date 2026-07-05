@@ -138,29 +138,32 @@ export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToRegister }) =>
             </button>
           </form>
 
-          {/* Divider */}
-          <div className="relative flex items-center py-2">
-            <div className="flex-grow border-t border-outline-variant"></div>
-            <span className="flex-shrink-0 mx-4 font-body-md text-xs text-on-surface-variant font-semibold">hoặc đăng nhập nhanh bằng các tài khoản Demo</span>
-            <div className="flex-grow border-t border-outline-variant"></div>
-          </div>
+          {/* Divider and Demo Login Quick Switcher (Hidden in Real Backend mode) */}
+          {!USE_REAL_BACKEND && (
+            <>
+              <div className="relative flex items-center py-2">
+                <div className="flex-grow border-t border-outline-variant"></div>
+                <span className="flex-shrink-0 mx-4 font-body-md text-xs text-on-surface-variant font-semibold">hoặc đăng nhập nhanh bằng các tài khoản Demo</span>
+                <div className="flex-grow border-t border-outline-variant"></div>
+              </div>
 
-          {/* Demo Login Quick Switcher buttons inside login form */}
-          <div className="grid grid-cols-2 gap-2">
-            {users.slice(0, 4).map(u => (
-              <button
-                key={u._id}
-                onClick={() => {
-                  loginAs(u._id);
-                  window.location.hash = '#/feed';
-                }}
-                className="p-2 border border-outline-variant hover:bg-primary-container/10 hover:border-primary/50 rounded-lg text-left transition-colors flex flex-col justify-between text-xs bg-surface-container-low"
-              >
-                <span className="font-bold text-on-surface truncate w-full text-[11px]">{u.profile.full_name}</span>
-                <span className="text-[9px] text-primary font-bold uppercase mt-0.5">{u.role}</span>
-              </button>
-            ))}
-          </div>
+              <div className="grid grid-cols-2 gap-2">
+                {users.slice(0, 4).map(u => (
+                  <button
+                    key={u._id}
+                    onClick={() => {
+                      loginAs(u._id);
+                      window.location.hash = '#/feed';
+                    }}
+                    className="p-2 border border-outline-variant hover:bg-primary-container/10 hover:border-primary/50 rounded-lg text-left transition-colors flex flex-col justify-between text-xs bg-surface-container-low"
+                  >
+                    <span className="font-bold text-on-surface truncate w-full text-[11px]">{u.profile.full_name}</span>
+                    <span className="text-[9px] text-primary font-bold uppercase mt-0.5">{u.role}</span>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
 
           {/* Sign up Link */}
           <p className="text-center font-body-md text-xs text-on-surface-variant pt-2">
