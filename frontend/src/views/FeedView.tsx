@@ -125,7 +125,7 @@ export const FeedView: React.FC = () => {
                 </div>
 
                 {/* Content */}
-                <div className="p-6 flex flex-col justify-between flex-grow">
+                <div className="pt-6 px-6 pb-8 flex flex-col justify-between flex-grow">
                   {/* Title & Status */}
                   <div className="flex justify-between items-start gap-3">
                     <h3 className="font-headline-md text-on-surface text-base md:text-lg font-semibold line-clamp-2 leading-tight">

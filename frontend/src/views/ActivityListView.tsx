@@ -259,7 +259,7 @@ export const ActivityListView: React.FC = () => {
                     </div>
                   </div>
                   
-                  <div className="p-6 flex-grow flex flex-col justify-between">
+                  <div className="pt-6 px-6 pb-8 flex-grow flex flex-col justify-between">
                     <h3 className="font-headline-md text-on-surface text-base md:text-lg font-bold mb-3 line-clamp-2 leading-tight">
                       {act.title}
                     </h3>

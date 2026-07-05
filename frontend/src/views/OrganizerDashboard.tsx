@@ -265,7 +265,7 @@ export const OrganizerDashboard: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="p-6 border-t border-surface-variant flex flex-wrap gap-2 mt-auto">
+                  <div className="pt-4 px-6 pb-8 border-t border-surface-variant flex flex-wrap gap-2 mt-auto">
                     {/* Management and approval actions */}
                     {(act.status === 'Draft' || act.status === 'Rejected') && (
                       <button 
