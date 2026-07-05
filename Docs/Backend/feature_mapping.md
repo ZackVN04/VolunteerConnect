@@ -27,7 +27,7 @@ Mọi đặc tả trong tài liệu tuân thủ nghiêm ngặt theo các Source 
 Dưới đây là chi tiết phân tách từng Feature cốt lõi của hệ thống Backend:
 
 ## 2.1. Feature: Authentication & Authorization (Xác thực & Phân quyền)
-*   **Business Purpose:** Quản lý quy trình đăng ký tài khoản, đăng nhập, đăng xuất, gửi/xác minh mã SMS OTP số điện thoại, quản lý mã thông báo JWT (Access Token, Refresh Token), và Middleware phân quyền người dùng (`Volunteer`, `Organizer`, `Admin`).
+*   **Business Purpose:** Quản lý quy trình đăng ký tài khoản, đăng nhập, đăng xuất, gửi/xác minh mã Email OTP qua hòm thư Gmail, quản lý mã thông báo JWT (Access Token, Refresh Token), và Middleware phân quyền người dùng (`Volunteer`, `Organizer`, `Admin`).
 *   **Collection chính:** `users`
 *   **Collection phụ:** Không có.
 *   **MongoDB Transaction liên quan:** Không có (Thao tác đơn tài liệu cấp root).
@@ -211,7 +211,7 @@ Quy trình dependencies xác lập thứ tự phát triển của hệ thống:
 
 | Feature | Complexity | Estimated Days | Parallel Development | Ghi chú lý do độ khó |
 | :--- | :--- | :---: | :---: | :--- |
-| **Authentication & Auth** | Medium | 2 | Không | Đòi hỏi xử lý mật mã băm, luồng gửi SMS OTP, partial TTL index và JWT expiration. |
+| **Authentication & Auth** | Medium | 2 | Không | Đòi hỏi xử lý mật mã băm, luồng gửi Email OTP, partial TTL index và JWT expiration. |
 | **User & Profile** | Low | 1 | Có | Chỉ là CRUD cơ bản trên collection `users`. |
 | **Organizer Request** | Low | 1 | Có | CRUD yêu cầu và kiểm tra điều kiện cooldown dựa trên date. |
 | **Activity Management** | Medium | 2 | Có | Thiết lập Cron Job chuyển đổi trạng thái tự động và cấu hình Text Index tìm kiếm. |
