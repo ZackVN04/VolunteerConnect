@@ -13,6 +13,7 @@ export const ProfileView: React.FC = () => {
   const [skillsStr, setSkillsStr] = useState(currentUser?.profile.skills.join(', ') || '');
   const [fullName, setFullName] = useState(currentUser?.profile.full_name || '');
   const [avatarUrl, setAvatarUrl] = useState(currentUser?.profile.avatar_url || '');
+  const [phone, setPhone] = useState(currentUser?.phone || '');
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -53,7 +54,7 @@ export const ProfileView: React.FC = () => {
       .map(s => s.trim())
       .filter(s => s.length > 0);
 
-    updateProfile({ bio, skills, full_name: fullName, avatar_url: avatarUrl }, email, province);
+    updateProfile({ bio, skills, full_name: fullName, avatar_url: avatarUrl }, email, province, phone.trim());
     setIsEditing(false);
   };
 
@@ -64,6 +65,7 @@ export const ProfileView: React.FC = () => {
     setSkillsStr(currentUser.profile.skills.join(', '));
     setFullName(currentUser.profile.full_name || '');
     setAvatarUrl(currentUser.profile.avatar_url || '');
+    setPhone(currentUser.phone || '');
     setIsEditing(false);
   };
 
@@ -257,10 +259,20 @@ export const ProfileView: React.FC = () => {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="flex-grow p-1.5 bg-surface-container-low border border-outline-variant rounded-md text-sm outline-none focus:border-primary"
+                    className="flex-grow p-1.5 bg-surface-container-low border border-outline-variant rounded-md text-sm outline-none focus:border-primary text-on-surface"
                   />
                 </li>
               )}
+              <li className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-primary text-base">phone</span>
+                <input 
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="Số điện thoại"
+                  className="flex-grow p-1.5 bg-surface-container-low border border-outline-variant rounded-md text-sm outline-none focus:border-primary text-on-surface"
+                />
+              </li>
               <li className="flex items-center gap-3">
                 <span className="material-symbols-outlined text-primary text-base">location_on</span>
                 <input 
@@ -268,7 +280,7 @@ export const ProfileView: React.FC = () => {
                   value={province}
                   onChange={(e) => setProvince(e.target.value)}
                   placeholder="Thành phố/Khu vực"
-                  className="flex-grow p-1.5 bg-surface-container-low border border-outline-variant rounded-md text-sm outline-none focus:border-primary"
+                  className="flex-grow p-1.5 bg-surface-container-low border border-outline-variant rounded-md text-sm outline-none focus:border-primary text-on-surface"
                 />
               </li>
             </ul>
@@ -280,12 +292,10 @@ export const ProfileView: React.FC = () => {
                   <span>{currentUser.email || 'Chưa điền email'}</span>
                 </li>
               )}
-              {!currentUser.phone?.startsWith('+84') && (
-                <li className="flex items-center gap-3">
-                  <span className="material-symbols-outlined text-primary text-base">phone</span>
-                  <span>{currentUser.phone}</span>
-                </li>
-              )}
+              <li className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-primary text-base">phone</span>
+                <span>{currentUser.phone || 'Chưa điền số điện thoại'}</span>
+              </li>
               <li className="flex items-center gap-3">
                 <span className="material-symbols-outlined text-primary text-base">location_on</span>
                 <span>{currentUser.profile.area_of_interest || 'Chưa điền khu vực'}</span>

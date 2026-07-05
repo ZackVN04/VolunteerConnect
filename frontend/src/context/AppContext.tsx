@@ -153,7 +153,7 @@ interface AppContextType {
   reviewActivity: (activityId: string, approve: boolean) => void;
   createPost: (content: string, images: string[], hashtags: string[]) => void;
   likePost: (postId: string) => void;
-  updateProfile: (updatedProfile: Partial<UserProfile>, email: string, province: string) => void;
+  updateProfile: (updatedProfile: Partial<UserProfile>, email: string, province: string, phone?: string) => void;
   resetDatabase: () => void;
 }
 
@@ -1013,7 +1013,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   // Edit/Update Profile Details
-  const updateProfile = (updatedProfile: Partial<UserProfile>, email: string, province: string) => {
+  const updateProfile = (updatedProfile: Partial<UserProfile>, email: string, province: string, phone?: string) => {
     if (USE_REAL_BACKEND) {
       if (!currentUser) return;
       (async () => {
@@ -1028,6 +1028,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           if (updatedProfile.bio !== undefined) extra.bio = updatedProfile.bio;
           if (updatedProfile.skills !== undefined) extra.skills = updatedProfile.skills;
           if (province !== undefined) extra.area_of_interest = province;
+          if (phone !== undefined) extra.phone = phone;
           localStorage.setItem(extraKey, JSON.stringify(extra));
 
           // Only send full_name and avatar_url to backend
@@ -1052,6 +1053,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     const updatedUser: User = {
       ...currentUser,
       email: email || currentUser.email,
+      phone: phone || currentUser.phone,
       profile: {
         ...currentUser.profile,
         ...updatedProfile,

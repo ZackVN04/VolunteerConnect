@@ -39,7 +39,7 @@ export const mapBackendUserToFrontend = (beUser: any): User => {
 
   return {
     _id: userId,
-    phone: beUser.phone_number,
+    phone: localExtra.phone !== undefined ? localExtra.phone : beUser.phone_number,
     is_phone_verified: beUser.status === 'active',
     otp_code: null,
     otp_expires_at: null,

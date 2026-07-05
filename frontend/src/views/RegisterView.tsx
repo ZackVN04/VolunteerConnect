@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { authService } from '../services/apiService';
+import { authService, formatPhoneE164 } from '../services/apiService';
 
 const USE_REAL_BACKEND = import.meta.env.VITE_USE_REAL_BACKEND === 'true';
 
@@ -9,21 +9,17 @@ interface RegisterViewProps {
   onRegisterSuccess: (registeredPhone: string, email: string) => void;
 }
 
-const generateRandomPhoneE164 = (): string => {
-  const digits = Math.floor(100000000 + Math.random() * 900000000).toString();
-  return `+84${digits}`;
-};
-
 export const RegisterView: React.FC<RegisterViewProps> = ({ onNavigateToLogin, onRegisterSuccess }) => {
   const { users, setCurrentUser } = useApp();
   const [fullname, setFullname] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fullname.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()) {
+    if (!fullname.trim() || !email.trim() || !phone.trim() || !password.trim() || !confirmPassword.trim()) {
       alert('Vui lòng điền đầy đủ thông tin');
       return;
     }
@@ -33,12 +29,17 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ onNavigateToLogin, o
       return;
     }
 
+    const formattedPhone = formatPhoneE164(phone.trim());
+    if (!/^\+?[0-9]{10,15}$/.test(formattedPhone.replace('+', ''))) {
+      alert('Số điện thoại không hợp lệ. Vui lòng nhập từ 10 đến 15 chữ số.');
+      return;
+    }
+
     if (USE_REAL_BACKEND) {
       try {
-        const randomPhone = generateRandomPhoneE164();
-        await authService.register(email.trim(), randomPhone, password);
+        await authService.register(email.trim(), formattedPhone, password);
         alert('Đăng ký tài khoản thành công! Hệ thống đã gửi mã OTP xác thực tới địa chỉ email đăng ký.');
-        onRegisterSuccess(randomPhone, email.trim());
+        onRegisterSuccess(formattedPhone, email.trim());
       } catch (err: any) {
         let errorMsg = 'Đăng ký thất bại. Vui lòng thử lại.';
         const data = err.response?.data;
@@ -64,10 +65,9 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ onNavigateToLogin, o
     }
 
     // Simulating user creation
-    const randomPhone = generateRandomPhoneE164();
     const newUser = {
       _id: `user_${Date.now()}`,
-      phone: randomPhone,
+      phone: formattedPhone,
       is_phone_verified: true,
       otp_code: null,
       otp_expires_at: null,
@@ -159,6 +159,24 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ onNavigateToLogin, o
                   placeholder="ví dụ: nguyenvana@gmail.com" 
                   required
                   type="email" 
+                />
+              </div>
+            </div>
+
+            {/* Phone Input */}
+            <div className="space-y-1">
+              <label className="block font-label-sm text-xs text-on-surface font-semibold" htmlFor="phone">Số điện thoại *</label>
+              <div className="relative">
+                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-sm">phone</span>
+                <input 
+                  className="w-full pl-10 pr-4 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-sm text-on-surface placeholder-outline-variant/60 focus:outline-none focus:border-primary" 
+                  id="phone" 
+                  name="phone" 
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="ví dụ: 0912345678" 
+                  required
+                  type="tel" 
                 />
               </div>
             </div>
