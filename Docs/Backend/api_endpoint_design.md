@@ -73,20 +73,20 @@ Hệ thống áp dụng chuẩn thiết kế RESTful API phổ biến:
 ### Endpoint 5.1.1: Đăng ký tài khoản Volunteer mới
 *   **HTTP Method:** `POST`
 *   **Endpoint:** `/api/v1/auth/register`
-*   **Mục đích:** Tạo mới tài khoản người dùng, vai trò mặc định là `Volunteer`. Kích hoạt gửi mã OTP qua số điện thoại.
+*   **Mục đích:** Tạo mới tài khoản người dùng, vai trò mặc định là `Volunteer`. Kích hoạt gửi mã OTP qua địa chỉ Email.
 *   **Authentication:** No (Public)
 *   **Authorization:** Public
 *   **Collection liên quan:** `users`
 *   **Transaction:** No
 *   **Endpoint Category:** Authentication
 *   **Đặc tính:**
-    *   *Độ khó:* Medium (Cần mã hóa mật khẩu, kiểm tra trùng số điện thoại).
+    *   *Độ khó:* Medium (Cần mã hóa mật khẩu, kiểm tra trùng số điện thoại/email).
     *   *Transaction / Upload / Paging / Search / Filter / Sort:* No.
 
 ### Endpoint 5.1.2: Xác minh OTP kích hoạt tài khoản
 *   **HTTP Method:** `POST`
 *   **Endpoint:** `/api/v1/auth/verify-otp`
-*   **Mục đích:** Người dùng nhập mã OTP nhận được qua SMS để xác minh số điện thoại và chuyển trạng thái `is_phone_verified` thành `true`.
+*   **Mục đích:** Người dùng nhập mã OTP nhận được qua Email để xác minh hòm thư và chuyển trạng thái tài khoản `status` thành `ACTIVE`.
 *   **Authentication:** No
 *   **Authorization:** Public
 *   **Collection liên quan:** `users`

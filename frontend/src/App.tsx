@@ -1,122 +1,185 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import React, { useState, useEffect } from 'react';
+import { AppContextProvider, useApp } from './context/AppContext';
+import Navbar from './components/Navbar';
+import FeedView from './views/FeedView';
+import ActivityListView from './views/ActivityListView';
+import ActivityDetailView from './views/ActivityDetailView';
+import ProfileView from './views/ProfileView';
+import MyRegistrationsView from './views/MyRegistrationsView';
+import OrganizerDashboard from './views/OrganizerDashboard';
+import AdminDashboard from './views/AdminDashboard';
+import LoginView from './views/LoginView';
+import RegisterView from './views/RegisterView';
+import OTPVerifyView from './views/OTPVerifyView';
+import ForgotPasswordView from './views/ForgotPasswordView';
+import './App.css';
 
-function App() {
-  const [count, setCount] = useState(0)
+const AppContent: React.FC = () => {
+  const { currentUser } = useApp();
+  const [currentHash, setCurrentHash] = useState(window.location.hash || '#/feed');
+  const [isRegisterMode, setIsRegisterMode] = useState(false);
+  const [otpVerifyPhone, setOtpVerifyPhone] = useState<string | null>(null);
+  const [otpVerifyEmail, setOtpVerifyEmail] = useState<string | null>(null);
+
+  // Hash Routing Listener
+  useEffect(() => {
+    const handleHashChange = () => {
+      // Normalize base hash path
+      const hash = window.location.hash || '#/feed';
+      setCurrentHash(hash);
+      window.scrollTo(0, 0); // scroll to top on navigate
+    };
+    
+    // Set default route if none exists
+    if (!window.location.hash) {
+      window.location.hash = '#/feed';
+    }
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  // If not logged in, show Login, Register, Forgot Password, or OTP verification screens
+  if (!currentUser) {
+    if (currentHash === '#/forgot-password') {
+      return (
+        <ForgotPasswordView 
+          onBackToLogin={() => {
+            window.location.hash = '#/feed';
+          }}
+        />
+      );
+    }
+    if (otpVerifyPhone || otpVerifyEmail) {
+      return (
+        <OTPVerifyView 
+          phoneNumber={otpVerifyPhone || otpVerifyEmail || ""}
+          email={otpVerifyEmail || undefined}
+          onVerifySuccess={() => {
+            setOtpVerifyPhone(null);
+            setOtpVerifyEmail(null);
+            setIsRegisterMode(false); // take back to login page
+          }}
+          onBackToLogin={() => {
+            setOtpVerifyPhone(null);
+            setOtpVerifyEmail(null);
+          }}
+        />
+      );
+    }
+    if (isRegisterMode) {
+      return (
+        <RegisterView 
+          onNavigateToLogin={() => setIsRegisterMode(false)} 
+          onRegisterSuccess={(registeredPhone: string, email: string) => {
+            setOtpVerifyPhone(registeredPhone);
+            setOtpVerifyEmail(email);
+          }}
+        />
+      );
+    }
+    return (
+      <LoginView 
+        onNavigateToRegister={() => setIsRegisterMode(true)} 
+        onNavigateToOTP={(email) => {
+          setOtpVerifyEmail(email);
+        }}
+      />
+    );
+  }
+
+  // Parse Hash Route
+  const getRouteView = () => {
+    const cleanHash = currentHash.split('?')[0]; // strip params
+
+    if (cleanHash === '#/feed') {
+      return <FeedView />;
+    }
+    
+    if (cleanHash === '#/activities') {
+      return <ActivityListView />;
+    }
+    
+    // Hash details path matcher: #/activity/act_001
+    if (cleanHash.startsWith('#/activity/')) {
+      const parts = cleanHash.split('/');
+      const id = parts[2];
+      return <ActivityDetailView activityId={id} />;
+    }
+
+    if (cleanHash === '#/my-registrations') {
+      if (currentUser.role !== 'Volunteer') {
+        window.location.hash = '#/feed';
+        return <FeedView />;
+      }
+      return <MyRegistrationsView />;
+    }
+
+    if (cleanHash === '#/profile') {
+      return <ProfileView />;
+    }
+
+    if (cleanHash === '#/organizer/dashboard') {
+      if (currentUser.role !== 'Organizer') {
+        window.location.hash = '#/feed';
+        return <FeedView />;
+      }
+      return <OrganizerDashboard />;
+    }
+
+    if (cleanHash === '#/admin/dashboard') {
+      if (currentUser.role !== 'Admin') {
+        window.location.hash = '#/feed';
+        return <FeedView />;
+      }
+      return <AdminDashboard />;
+    }
+
+    // Default Fallback
+    return <FeedView />;
+  };
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <div className="min-h-screen flex flex-col bg-background text-on-surface antialiased transition-all">
+      {/* Top Navigation Bar */}
+      <Navbar />
 
-      <div className="ticks"></div>
+      {/* Main Content Area */}
+      <main className="flex-grow w-full">
+        {getRouteView()}
+      </main>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+      {/* Footer (Matching design mockup styles) */}
+      <footer className="bg-surface-container-low dark:bg-inverse-surface border-t border-surface-variant w-full mt-auto py-8">
+        <div className="w-full py-2 px-4 md:px-8 flex flex-col md:flex-row justify-between items-center gap-6 max-w-[1280px] mx-auto text-left">
+          <div className="flex flex-col gap-2">
+            <span className="font-headline-md text-base text-primary dark:text-primary-fixed font-bold flex items-center gap-1.5 select-none">
+              <span className="material-symbols-outlined text-sm">diversity_3</span>
+              Volunteer Connect
+            </span>
+            <span className="text-xs text-on-surface-variant">
+              © 2026 Volunteer Connect. Nền tảng kết nối tình nguyện cộng đồng.
+            </span>
+          </div>
+          
+          <nav className="flex flex-wrap gap-4 text-xs font-semibold">
+            <a className="text-on-surface-variant hover:text-primary transition-colors" href="#/feed">Bảng Tin</a>
+            <a className="text-on-surface-variant hover:text-primary transition-colors" href="#/activities">Khám Phá</a>
+            <a className="text-on-surface-variant hover:text-primary transition-colors" href="#/profile">Hồ Sơ</a>
+            <a className="text-on-surface-variant hover:text-primary transition-colors" href="#/terms">Chính Sách Bảo Mật</a>
+          </nav>
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+      </footer>
+    </div>
+  );
+};
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
-}
+const App: React.FC = () => {
+  return (
+    <AppContextProvider>
+      <AppContent />
+    </AppContextProvider>
+  );
+};
 
-export default App
+export default App;

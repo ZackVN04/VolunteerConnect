@@ -41,35 +41,22 @@ Mục tiêu chính là chuyển đổi mô hình dữ liệu logic (Logical Data
 ## 3.1. Collection: `users`
 
 ### Purpose
-Lưu trữ thông tin tài khoản, cấu hình bảo mật xác thực (OTP số điện thoại), phân quyền vai trò người dùng và hồ sơ năng lực cá nhân (Volunteer Profile).
+Lưu trữ thông tin tài khoản, cấu hình bảo mật xác thực (Email OTP), phân quyền vai trò người dùng và thông tin cá nhân.
 
 ### Document Structure
 | Field | BSON Type | Required | Nullable | Default | Description |
 | :--- | :--- | :---: | :---: | :--- | :--- |
 | `_id` | objectId | **Yes** | No | Auto | Khóa chính duy nhất của User |
-| `phone` | string | **Yes** | No | None | Số điện thoại dùng đăng ký/đăng nhập |
-| `is_phone_verified` | bool | **Yes** | No | `false` | Trạng thái xác minh số điện thoại |
-| `otp_code` | string | No | **Yes** | null | Mã xác minh OTP đã băm |
-| `otp_expires_at` | date | No | **Yes** | null | Thời điểm mã OTP hết hạn |
-| `otp_send_count` | int | **Yes** | No | 0 | Số lần đã gửi OTP trong chu kỳ hiện tại |
-| `otp_cooldown_until` | date | No | **Yes** | null | Thời điểm được phép yêu cầu gửi OTP mới |
-| `email` | string | No | **Yes** | null | Thư điện tử của người dùng (Sparse Unique) |
-| `password_hash` | string | **Yes** | No | None | Mật khẩu tài khoản đã băm |
-| `role` | string | **Yes** | No | "Volunteer" | Vai trò: `"Volunteer"`, `"Organizer"`, `"Admin"` |
+| `email` | string | **Yes** | No | None | Địa chỉ Email dùng đăng ký, đăng nhập và nhận OTP |
+| `hashed_password` | string | **Yes** | No | None | Mật khẩu tài khoản đã băm |
+| `phone_number` | string | **Yes** | No | None | Số điện thoại của người dùng |
+| `full_name` | string | No | **Yes** | null | Họ và tên đầy đủ |
+| `avatar_url` | string | No | **Yes** | null | Đường dẫn ảnh đại diện |
+| `role` | string | **Yes** | No | "VOLUNTEER" | Vai trò: `"VOLUNTEER"`, `"ORGANIZER"`, `"ADMIN"` |
+| `status` | string | **Yes** | No | "PENDING_OTP" | Trạng thái tài khoản: `"PENDING_OTP"`, `"ACTIVE"`, `"BANNED"` |
+| `otp_code` | string | No | **Yes** | null | Mã xác minh OTP 6 số (dưới dạng text) |
+| `otp_expiry` | date | No | **Yes** | null | Thời điểm mã OTP hết hạn |
 | `created_at` | date | **Yes** | No | NOW | Ngày khởi tạo tài khoản |
-| `updated_at` | date | **Yes** | No | NOW | Ngày cập nhật tài khoản gần nhất |
-| `profile` | object | **Yes** | No | `{}` | **Embedded Document** hồ sơ cá nhân |
-
-### Embedded Documents
-*   `profile`: Chứa các trường thông tin hồ sơ của tình nguyện viên để tối ưu hóa việc truy xuất hồ sơ cá nhân 1:1 không cần dùng `$lookup`.
-    *   `profile.full_name` (string): Họ và tên đầy đủ.
-    *   `profile.bio` (string, nullable): Giới thiệu bản thân.
-    *   `profile.area_of_interest` (string, nullable): Khu vực/thể loại quan tâm.
-    *   `profile.skills` (array of strings): Các kỹ năng tình nguyện.
-    *   `profile.joined_activity_count` (int): Bộ đếm tổng số hoạt động hoàn thành.
-
-### Array Fields
-*   `profile.skills`: Mảng lưu các chuỗi kỹ năng của tình nguyện viên. Giới hạn số lượng phần tử tối đa để tránh Unbounded Array.
 
 ### Reference
 *   Không tham chiếu đến collection khác (Đây là Aggregate Root gốc).
@@ -177,21 +164,21 @@ db.createCollection("users", {
 
 ### Index Strategy
 ```javascript
-// Index doc doc lap de dang nhap nhanh bang so dien thoai (Unique)
-db.users.createIndex({ "phone": 1 }, { unique: true, name: "idx_unique_phone" });
+// Index cho email để đăng nhập và kiểm tra trùng lặp (Unique)
+db.users.createIndex({ "email": 1 }, { unique: true, name: "idx_unique_email" });
 
-// Index cho email (Sparse Unique de bo qua cac tai khoan email la null)
-db.users.createIndex({ "email": 1 }, { unique: true, sparse: true, name: "idx_sparse_email" });
+// Index cho số điện thoại để đăng ký và liên hệ (Unique)
+db.users.createIndex({ "phone_number": 1 }, { unique: true, name: "idx_unique_phone" });
 
 // Index de Admin loc nguoi dung theo vai tro
 db.users.createIndex({ "role": 1 }, { name: "idx_role" });
 
-// Partial TTL Index: Tu dong xoa tai khoan dang ky rinh sau 1 gio neu chua xac thuc OTP sdt
+// Partial TTL Index: Tự động xóa tài khoản rác sau 1 giờ nếu chưa xác thực OTP qua Email
 db.users.createIndex(
   { "created_at": 1 },
   {
     expireAfterSeconds: 3600,
-    partialFilterExpression: { "is_phone_verified": false },
+    partialFilterExpression: { "status": "PENDING_OTP" },
     name: "idx_ttl_unverified_users"
   }
 );
@@ -204,24 +191,16 @@ db.users.createIndex(
 ```json
 {
   "_id": { "$oid": "64a1b021f92e0717281f9a01" },
-  "phone": "0987654321",
-  "is_phone_verified": true,
-  "otp_code": "$2b$10$EixZaYVK1fsAH1S.p0f.Ouz08GZJ.aWw728H2fOa2sA18sUv1",
-  "otp_expires_at": { "$date": "2026-07-02T03:55:00.000Z" },
-  "otp_send_count": 1,
-  "otp_cooldown_until": { "$date": "2026-07-02T03:51:00.000Z" },
   "email": "nguyenvana@gmail.com",
-  "password_hash": "$2b$12$Z7xQyM7PvZ9sRz2eQ4.0t.v7T8gW1zO1sZ1uO8w2",
-  "role": "Volunteer",
-  "created_at": { "$date": "2026-07-02T03:45:00.000Z" },
-  "updated_at": { "$date": "2026-07-02T03:45:00.000Z" },
-  "profile": {
-    "full_name": "Nguyễn Văn A",
-    "bio": "Sinh viên đam mê các hoạt động dọn rác bảo vệ môi trường và hỗ trợ trẻ em khó khăn.",
-    "area_of_interest": "Môi trường, Giáo dục",
-    "skills": ["Dạy học", "Kỹ năng làm việc nhóm", "Giao tiếp"],
-    "joined_activity_count": 3
-  }
+  "hashed_password": "$2b$12$Z7xQyM7PvZ9sRz2eQ4.0t.v7T8gW1zO1sZ1uO8w2",
+  "phone_number": "+84987654321",
+  "full_name": "Nguyễn Văn A",
+  "avatar_url": "https://example.com/avatars/nguyenvana.png",
+  "role": "VOLUNTEER",
+  "status": "ACTIVE",
+  "otp_code": null,
+  "otp_expiry": null,
+  "created_at": { "$date": "2026-07-02T03:45:00.000Z" }
 }
 ```
 
@@ -853,8 +832,8 @@ db.posts.createIndex({ "content": "text" }, { name: "idx_content_text_search" })
 
 | Target Collection | Index Fields | Index Type | Name | Purpose / Business Flow |
 | :--- | :--- | :--- | :--- | :--- |
-| `users` | `{ phone: 1 }` | Single, Unique | `idx_unique_phone` | Đăng nhập/xác minh OTP duy nhất |
-| `users` | `{ email: 1 }` | Single, Sparse Unique | `idx_sparse_email` | Liên kết email duy nhất (cho phép null) |
+| `users` | `{ email: 1 }` | Single, Unique | `idx_unique_email` | Đăng nhập và nhận OTP qua Email duy nhất |
+| `users` | `{ phone_number: 1 }` | Single, Unique | `idx_unique_phone` | Số điện thoại duy nhất trong hệ thống |
 | `users` | `{ role: 1 }` | Single | `idx_role` | Admin phân lọc danh sách người dùng |
 | `users` | `{ created_at: 1 }` | Partial TTL | `idx_ttl_unverified_users` | Tự động dọn dẹp tài khoản rác chưa OTP sau 1h |
 | `organizer_requests` | `{ status: 1 }` | Single | `idx_status` | Admin duyệt nhanh danh sách Pending |
@@ -936,8 +915,8 @@ db.runCommand({
 Kiểm duyệt thiết kế vật lý trước khi triển khai:
 
 *   **✔ Schema khớp ERD:** Cấu trúc 5 Collection thiết kế khớp hoàn toàn 100% với ERD Eraser.io đã thống nhất.
-*   **✔ Loại bỏ trường dư/thiếu:** Đã chuyển trường `phone` của User lên cấp gốc (Root level) để phục vụ xác thực OTP và lược bỏ trường `phone` cũ trong embedded profile để tránh trùng lặp dữ liệu không cần thiết. Các trường OTP phục vụ flow đăng ký mới được khai báo rõ ràng.
+*   **✔ Loại bỏ trường dư/thiếu:** Đã chuyển trường `email` và `phone_number` của User lên cấp gốc (Root level) để phục vụ đăng ký, đăng nhập và xác thực OTP, đồng thời lược bỏ các cấu trúc embedded profile dư thừa để làm phẳng dữ liệu, tăng hiệu năng truy vấn. Các trường OTP phục vụ flow đăng ký mới (`otp_code`, `otp_expiry`) được khai báo rõ ràng.
 *   **✔ Đầy đủ ràng buộc Validation:** Các regex pattern định dạng số điện thoại và email, cùng các giới hạn số lượng bộ đếm lớn hơn hoặc bằng 0 đã được đưa đầy đủ vào `$jsonSchema` để ngăn chặn dữ liệu rác từ tầng DB.
 *   **✔ Chiến lược lập Index tối ưu:** Bổ sung Compound Index phục vụ Cron Job quét trạng thái tự động và Compound Unique Index để chống lỗi race condition đăng ký trùng lặp.
-*   **✔ Không có nguy cơ tràn bộ nhớ:** Toàn bộ các mảng lưu trữ (`skills`, `categories`, `images`, `hashtags`) đều được thiết kế giới hạn dung lượng vật lý rõ ràng. Không có cấu trúc mảng vô hạn. Kích thước tối đa mỗi document ước tính luôn nằm dưới mức 10KB (so với giới hạn 16MB của BSON).
+*   **✔ Không có nguy cơ tràn bộ nhớ:** Toàn bộ các mảng lưu trữ (`categories`, `images`, `hashtags`) đều được thiết kế giới hạn dung lượng vật lý rõ ràng. Không có cấu trúc mảng vô hạn. Kích thước tối đa mỗi document ước tính luôn nằm dưới mức 10KB (so với giới hạn 16MB của BSON).
 *   **✔ Tương thích tối đa MongoDB 7.x+:** Toàn bộ cú pháp và kiểu dữ liệu được thiết kế tương thích hoàn hảo với các hệ thống MongoDB Atlas và MongoDB Community thế hệ mới.

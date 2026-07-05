@@ -84,7 +84,8 @@ async def test_register_success(mock_send_email, async_client):
     payload = {
         "email": TEST_EMAIL,
         "phone_number": TEST_PHONE,
-        "password": TEST_PASSWORD
+        "password": TEST_PASSWORD,
+        "full_name": "Test User"
     }
     response = await async_client.post("/api/v1/auth/register", json=payload)
     assert response.status_code == 201
@@ -102,7 +103,8 @@ async def test_register_duplicate_email(mock_send_email, async_client, active_us
     payload = {
         "email": TEST_EMAIL,
         "phone_number": "+84999999990",
-        "password": TEST_PASSWORD
+        "password": TEST_PASSWORD,
+        "full_name": "Test User"
     }
     response = await async_client.post("/api/v1/auth/register", json=payload)
     assert response.status_code == 400
@@ -116,7 +118,8 @@ async def test_register_duplicate_phone(mock_send_email, async_client, active_us
     payload = {
         "email": "test_QA_unique@example.com",
         "phone_number": TEST_PHONE,
-        "password": TEST_PASSWORD
+        "password": TEST_PASSWORD,
+        "full_name": "Test User"
     }
     response = await async_client.post("/api/v1/auth/register", json=payload)
     assert response.status_code == 400
@@ -128,10 +131,35 @@ async def test_register_invalid_phone_format(async_client):
     payload = {
         "email": "test_QA_invalid@example.com",
         "phone_number": "0123456",  # Missing + and country code
-        "password": TEST_PASSWORD
+        "password": TEST_PASSWORD,
+        "full_name": "Test User"
     }
     response = await async_client.post("/api/v1/auth/register", json=payload)
     assert response.status_code == 422  # Pydantic validation error
+
+@pytest.mark.asyncio
+@patch("app.features.auth.router.send_otp_email", new_callable=AsyncMock)
+async def test_register_phone_normalization_success(mock_send_email, async_client):
+    """Happy Path: Registration succeeds by automatically normalizing phone format (e.g. starting with 0, containing dashes)."""
+    # Teardown any leftover test data
+    await User.find_one(User.email == "test_QA_normalize@example.com").delete()
+    
+    payload = {
+        "email": "test_QA_normalize@example.com",
+        "phone_number": "099-999-9999",  # Starts with 0, contains dashes
+        "password": TEST_PASSWORD,
+        "full_name": "Test User"
+    }
+    response = await async_client.post("/api/v1/auth/register", json=payload)
+    assert response.status_code == 201
+    
+    # Verify the database has the normalized phone number
+    user = await User.find_one(User.email == "test_QA_normalize@example.com")
+    assert user.phone_number == "+84999999999"
+    assert user.full_name == "Test User"
+    
+    # Teardown
+    await user.delete()
 
 # ==========================================
 # 2. TEST CASES FOR OTP VERIFICATION (VERIFY OTP)
@@ -324,3 +352,74 @@ async def test_reset_password_success(async_client, active_user):
     login_response = await async_client.post("/api/v1/auth/login", json=login_payload)
     assert login_response.status_code == 200
     assert "access_token" in login_response.json()
+
+# ==========================================
+# 6. TEST CASES FOR RESEND OTP
+# ==========================================
+
+@pytest.mark.asyncio
+@patch("app.features.auth.router.send_otp_email", new_callable=AsyncMock)
+async def test_resend_otp_success(mock_send_email, async_client, pending_user):
+    """Happy Path: Resend OTP succeeds after cooldown (OTP expiry is reset/modified)."""
+    # Set the OTP expiry to be in 3 minutes, meaning 2 minutes has passed (cooldown > 1 min is satisfied)
+    pending_user.otp_expiry = datetime.now(timezone.utc) + timedelta(minutes=3)
+    await pending_user.save()
+
+    payload = {"email": pending_user.email}
+    response = await async_client.post("/api/v1/auth/resend-otp", json=payload)
+    assert response.status_code == 200
+    assert "Mã OTP mới đã được gửi" in response.json()["message"]
+
+    mock_send_email.assert_called_once()
+    assert mock_send_email.call_args[0][0] == pending_user.email
+
+    # Check that a new OTP was generated in DB and expiry reset to 5 mins
+    updated_user = await User.get(pending_user.id)
+    assert updated_user.otp_code != "123456"  # Generated new OTP code
+    assert updated_user.otp_expiry > datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(minutes=4)
+
+@pytest.mark.asyncio
+async def test_resend_otp_cooldown_error(async_client, pending_user):
+    """Negative Case: Resend OTP fails when requesting within the 1-minute cooldown."""
+    # Set OTP expiry to 4.5 minutes, meaning only 30 seconds has passed since creation (within 1-min cooldown)
+    pending_user.otp_expiry = datetime.now(timezone.utc) + timedelta(minutes=4, seconds=30)
+    await pending_user.save()
+
+    payload = {"email": pending_user.email}
+    response = await async_client.post("/api/v1/auth/resend-otp", json=payload)
+    assert response.status_code == 400
+    assert "Vui lòng đợi 1 phút" in response.json()["detail"]
+
+@pytest.mark.asyncio
+async def test_resend_otp_not_found(async_client):
+    """Negative Case: Resend OTP fails for non-existent email (Expects 404)."""
+    payload = {"email": "non_existent_email@example.com"}
+    response = await async_client.post("/api/v1/auth/resend-otp", json=payload)
+    assert response.status_code == 404
+    assert "Người dùng không tồn tại" in response.json()["detail"]
+
+@pytest.mark.asyncio
+async def test_resend_otp_already_active(async_client, active_user):
+    """Negative Case: Resend OTP fails for an already active user (Expects 400)."""
+    payload = {"email": active_user.email}
+    response = await async_client.post("/api/v1/auth/resend-otp", json=payload)
+    assert response.status_code == 400
+    assert "Tài khoản đã được xác thực" in response.json()["detail"]
+
+@pytest.mark.asyncio
+@patch("app.features.auth.router.send_otp_email", new_callable=AsyncMock)
+async def test_register_overwrite_pending_user(mock_send_email, async_client, pending_user):
+    """Happy Path: Registering with an existing but unverified (PENDING_OTP) email overwrites/deletes it (Expects 201)."""
+    payload = {
+        "email": pending_user.email,
+        "phone_number": "+84999999992",  # Different phone
+        "password": "brand_new_password_123",
+        "full_name": "New Owner Name"
+    }
+    response = await async_client.post("/api/v1/auth/register", json=payload)
+    assert response.status_code == 201
+    
+    # Verify the user has been updated with the new password and details
+    updated_user = await User.find_one(User.email == pending_user.email)
+    assert updated_user.full_name == "New Owner Name"
+    assert updated_user.phone_number == "+84999999992"
