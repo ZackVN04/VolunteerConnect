@@ -1,0 +1,374 @@
+{
+  "users": [
+    {
+      "_id": "user_admin_001",
+      "phone": "0901234567",
+      "is_phone_verified": true,
+      "otp_code": null,
+      "otp_expires_at": null,
+      "otp_send_count": 0,
+      "otp_cooldown_until": null,
+      "email": "admin@volunteerconnect.org",
+      "password_hash": "$2b$10$xyzAdminHash",
+      "role": "Admin",
+      "created_at": "2026-06-01T08:00:00Z",
+      "updated_at": "2026-06-01T08:00:00Z",
+      "profile": {
+        "full_name": "Trần Cao Minh (Admin)",
+        "bio": "Hệ thống quản trị viên chính thức của Volunteer Connect. Chịu trách nhiệm duyệt hoạt động và cấp quyền.",
+        "area_of_interest": "Toàn quốc",
+        "skills": ["Quản lý", "Điều phối dự án", "Giải quyết sự cố"],
+        "joined_activity_count": 0
+      }
+    },
+    {
+      "_id": "user_vol_a_002",
+      "phone": "0987654321",
+      "is_phone_verified": true,
+      "otp_code": null,
+      "otp_expires_at": null,
+      "otp_send_count": 0,
+      "otp_cooldown_until": null,
+      "email": "nguyenvana@gmail.com",
+      "password_hash": "$2b$10$xyzVolAHash",
+      "role": "Volunteer",
+      "created_at": "2026-06-15T09:30:00Z",
+      "updated_at": "2026-06-15T09:30:00Z",
+      "profile": {
+        "full_name": "Nguyễn Văn A",
+        "bio": "Mong muốn được đóng góp sức trẻ cho các hoạt động cộng đồng. Thích dọn rác và trồng cây.",
+        "area_of_interest": "TP. Hồ Chí Minh",
+        "skills": ["Giao tiếp tốt", "Làm việc nhóm", "Nhiệt huyết"],
+        "joined_activity_count": 0
+      }
+    },
+    {
+      "_id": "user_org_b_003",
+      "phone": "0912345678",
+      "is_phone_verified": true,
+      "otp_code": null,
+      "otp_expires_at": null,
+      "otp_send_count": 0,
+      "otp_cooldown_until": null,
+      "email": "lethib@greenlife.org",
+      "password_hash": "$2b$10$xyzOrgBHash",
+      "role": "Organizer",
+      "created_at": "2026-05-10T10:00:00Z",
+      "updated_at": "2026-06-20T14:30:00Z",
+      "profile": {
+        "full_name": "Lê Thị B (Green Life)",
+        "bio": "Trưởng nhóm Green Life Việt Nam. Tổ chức các hoạt động môi trường từ năm 2022.",
+        "area_of_interest": "Miền Nam",
+        "skills": ["Tổ chức sự kiện", "Thuyết trình", "Sơ cứu chấn thương"],
+        "joined_activity_count": 5
+      }
+    },
+    {
+      "_id": "user_vol_c_004",
+      "phone": "0934567890",
+      "is_phone_verified": true,
+      "otp_code": null,
+      "otp_expires_at": null,
+      "otp_send_count": 0,
+      "otp_cooldown_until": null,
+      "email": "levanc@gmail.com",
+      "password_hash": "$2b$10$xyzVolCHash",
+      "role": "Volunteer",
+      "created_at": "2026-06-20T07:15:00Z",
+      "updated_at": "2026-06-25T17:40:00Z",
+      "profile": {
+        "full_name": "Lê Văn C",
+        "bio": "Sinh viên y khoa mong muốn tham gia các hoạt động thiện nguyện y tế, dạy học trẻ em nghèo.",
+        "area_of_interest": "Hà Nội",
+        "skills": ["Sơ cấp cứu", "Dạy học tiếng Anh", "Chụp ảnh"],
+        "joined_activity_count": 1
+      }
+    },
+    {
+      "_id": "user_vol_d_005",
+      "phone": "0956789012",
+      "is_phone_verified": true,
+      "otp_code": null,
+      "otp_expires_at": null,
+      "otp_send_count": 0,
+      "otp_cooldown_until": null,
+      "email": "phamthid@gmail.com",
+      "password_hash": "$2b$10$xyzVolDHash",
+      "role": "Volunteer",
+      "created_at": "2026-06-22T11:20:00Z",
+      "updated_at": "2026-06-22T11:20:00Z",
+      "profile": {
+        "full_name": "Phạm Thị D",
+        "bio": "Yêu động vật và thích hỗ trợ các chiến dịch bảo vệ động vật hoang dã, cứu trợ thiên tai.",
+        "area_of_interest": "Đà Nẵng",
+        "skills": ["Nấu ăn", "Lái xe", "Truyền thông"],
+        "joined_activity_count": 0
+      }
+    }
+  ],
+  "organizer_requests": [
+    {
+      "_id": "req_001",
+      "volunteer_id": "user_vol_a_002",
+      "reason": "Tôi là đại diện câu lạc bộ 'Sách Cho Em' khu vực TP.HCM. Tôi muốn xin quyền tạo hoạt động để đăng tuyển tình nguyện viên quyên góp và phân loại sách cũ cho trẻ em vùng cao.",
+      "experience": "Đã từng tổ chức 3 chương trình quyên góp quần áo ấm và sách vở cho trẻ em nghèo tại Lâm Đồng năm 2024 và 2025.",
+      "contact_phone": "0987654321",
+      "status": "Pending",
+      "admin_feedback": null,
+      "created_at": "2026-07-02T10:00:00Z",
+      "reviewed_at": null,
+      "reviewed_by": null,
+      "denormalized_volunteer": {
+        "name": "Nguyễn Văn A",
+        "email": "nguyenvana@gmail.com"
+      }
+    },
+    {
+      "_id": "req_002",
+      "volunteer_id": "user_vol_c_004",
+      "reason": "Chúng tôi muốn tổ chức các buổi khám bệnh và cấp phát thuốc miễn phí cho người già neo đơn.",
+      "experience": "CLB Y Khoa trẻ Hà Nội, phối hợp cùng các bệnh viện địa phương.",
+      "contact_phone": "0934567890",
+      "status": "Approved",
+      "admin_feedback": "Yêu cầu hợp lệ, chúc nhóm hoạt động tốt.",
+      "created_at": "2026-06-21T08:00:00Z",
+      "reviewed_at": "2026-06-22T09:00:00Z",
+      "reviewed_by": "user_admin_001",
+      "denormalized_volunteer": {
+        "name": "Lê Văn C",
+        "email": "levanc@gmail.com"
+      }
+    }
+  ],
+  "activities": [
+    {
+      "_id": "act_001",
+      "organizer_id": "user_org_b_003",
+      "title": "Community Clean-up Day - Chung Tay Dọn Rác Kênh Nhiêu Lộc",
+      "description": "Chiến dịch định kỳ của Green Life nhằm dọn sạch rác thải nhựa dọc bờ kênh Nhiêu Lộc, tuyên truyền bảo vệ nguồn nước sạch và phân phát túi rác tự hủy cho các hộ dân lân cận.",
+      "categories": ["Môi trường", "Hỗ trợ cộng đồng"],
+      "location": {
+        "province": "TP. Hồ Chí Minh",
+        "district": "Quận 3",
+        "address_detail": "Bờ kênh Nhiêu Lộc - Thị Nghè, đoạn gần Cầu Công Lý"
+      },
+      "start_date": "2026-07-10T07:00:00Z",
+      "end_date": "2026-07-10T11:00:00Z",
+      "limit_volunteers": 50,
+      "approved_volunteers_count": 2,
+      "requirements": "Mang theo khẩu trang, giày thể thao, quần áo thoải mái. Có sức khỏe tốt. Các dụng cụ thu gom như bao tải, kẹp gắp sẽ được Ban tổ chức cung cấp.",
+      "image_url": "https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=600",
+      "status": "Open",
+      "created_at": "2026-07-01T09:00:00Z",
+      "updated_at": "2026-07-02T15:00:00Z",
+      "denormalized_organizer": {
+        "name": "Lê Thị B (Green Life)"
+      }
+    },
+    {
+      "_id": "act_002",
+      "organizer_id": "user_org_b_003",
+      "title": "Gây Quỹ Mua Sách Vở Cho Trẻ Em Vùng Cao",
+      "description": "Chiến dịch quyên góp sách cũ, đồ dùng học tập và gây quỹ mua 200 bộ sách giáo khoa mới cho các em học sinh tại điểm trường khó khăn xã Pa Cheo, huyện Bát Xát, tỉnh Lào Cai.",
+      "categories": ["Giáo dục", "Gây quỹ"],
+      "location": {
+        "province": "Lào Cai",
+        "district": "Bát Xát",
+        "address_detail": "Trường tiểu học số 2 Pa Cheo"
+      },
+      "start_date": "2026-08-15T08:00:00Z",
+      "end_date": "2026-08-16T17:00:00Z",
+      "limit_volunteers": 10,
+      "approved_volunteers_count": 0,
+      "requirements": "Có kỹ năng đóng gói, phân loại tốt. Ưu tiên các bạn tình nguyện viên có khả năng di chuyển lên vùng cao đi trao quà.",
+      "image_url": "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?q=80&w=600",
+      "status": "Pending Review",
+      "created_at": "2026-07-02T14:00:00Z",
+      "updated_at": "2026-07-02T14:00:00Z",
+      "denormalized_organizer": {
+        "name": "Lê Thị B (Green Life)"
+      }
+    },
+    {
+      "_id": "act_003",
+      "organizer_id": "user_org_b_003",
+      "title": "Phát Cơm Từ Thiện 'Bữa Ăn 0 Đồng' Tại Bệnh Viện Ung Bướu",
+      "description": "Chương trình chuẩn bị và phát 500 suất cơm trưa dinh dưỡng miễn phí cho bệnh nhân nghèo và thân nhân đang điều trị tại Bệnh viện Ung Bướu TP.HCM.",
+      "categories": ["Từ thiện"],
+      "location": {
+        "province": "TP. Hồ Chí Minh",
+        "district": "Bình Thạnh",
+        "address_detail": "Cổng Bệnh viện Ung bướu TP.HCM, số 3 Nơ Trang Long"
+      },
+      "start_date": "2026-06-25T06:00:00Z",
+      "end_date": "2026-06-25T12:00:00Z",
+      "limit_volunteers": 20,
+      "approved_volunteers_count": 20,
+      "requirements": "Đeo tạp dề và găng tay trong quá trình chuẩn bị và phát thức ăn. Giữ thái độ nhã nhặn, tôn trọng bệnh nhân.",
+      "image_url": "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?q=80&w=600",
+      "status": "Completed",
+      "created_at": "2026-06-10T08:00:00Z",
+      "updated_at": "2026-06-25T13:00:00Z",
+      "denormalized_organizer": {
+        "name": "Lê Thị B (Green Life)"
+      }
+    },
+    {
+      "_id": "act_004",
+      "organizer_id": "user_org_b_003",
+      "title": "Nhặt Rác Bãi Biển Mỹ Khê Đà Nẵng",
+      "description": "Hoạt động tự phát dọn dẹp làm sạch bãi cát vào buổi chiều cuối tuần để chào đón mùa du lịch hè không rác thải nhựa.",
+      "categories": ["Môi trường"],
+      "location": {
+        "province": "Đà Nẵng",
+        "district": "Sơn Trà",
+        "address_detail": "Bãi biển Mỹ Khê, khu vực ngã ba Võ Nguyên Giáp - Nguyễn Văn Thoại"
+      },
+      "start_date": "2026-07-05T15:30:00Z",
+      "end_date": "2026-07-05T18:00:00Z",
+      "limit_volunteers": 30,
+      "approved_volunteers_count": 0,
+      "requirements": "Yêu môi trường, sẵn sàng lao động tay chân.",
+      "image_url": "https://images.unsplash.com/photo-1559136555-9303baea8ebd?q=80&w=600",
+      "status": "Draft",
+      "created_at": "2026-07-02T16:20:00Z",
+      "updated_at": "2026-07-02T16:20:00Z",
+      "denormalized_organizer": {
+        "name": "Lê Thị B (Green Life)"
+      }
+    }
+  ],
+  "registrations": [
+    {
+      "_id": "reg_vol_b_act_001",
+      "volunteer_id": "user_vol_c_004",
+      "activity_id": "act_001",
+      "status": "Approved",
+      "created_at": "2026-07-02T01:00:00Z",
+      "updated_at": "2026-07-02T03:00:00Z",
+      "reviewed_at": "2026-07-02T03:00:00Z",
+      "participation_updated_at": null,
+      "denormalized_volunteer": {
+        "name": "Lê Văn C",
+        "phone": "0934567890",
+        "email": "levanc@gmail.com"
+      },
+      "denormalized_activity": {
+        "title": "Community Clean-up Day - Chung Tay Dọn Rác Kênh Nhiêu Lộc",
+        "status": "Open",
+        "start_date": "2026-07-10T07:00:00Z",
+        "end_date": "2026-07-10T11:00:00Z"
+      }
+    },
+    {
+      "_id": "reg_vol_d_act_001",
+      "volunteer_id": "user_vol_d_005",
+      "activity_id": "act_001",
+      "status": "Pending",
+      "created_at": "2026-07-02T10:30:00Z",
+      "updated_at": "2026-07-02T10:30:00Z",
+      "reviewed_at": null,
+      "participation_updated_at": null,
+      "denormalized_volunteer": {
+        "name": "Phạm Thị D",
+        "phone": "0956789012",
+        "email": "phamthid@gmail.com"
+      },
+      "denormalized_activity": {
+        "title": "Community Clean-up Day - Chung Tay Dọn Rác Kênh Nhiêu Lộc",
+        "status": "Open",
+        "start_date": "2026-07-10T07:00:00Z",
+        "end_date": "2026-07-10T11:00:00Z"
+      }
+    },
+    {
+      "_id": "reg_vol_b_act_003",
+      "volunteer_id": "user_vol_c_004",
+      "activity_id": "act_003",
+      "status": "Completed",
+      "created_at": "2026-06-15T08:00:00Z",
+      "updated_at": "2026-06-25T13:00:00Z",
+      "reviewed_at": "2026-06-16T09:00:00Z",
+      "participation_updated_at": "2026-06-25T13:00:00Z",
+      "denormalized_volunteer": {
+        "name": "Lê Văn C",
+        "phone": "0934567890",
+        "email": "levanc@gmail.com"
+      },
+      "denormalized_activity": {
+        "title": "Phát Cơm Từ Thiện 'Bữa Ăn 0 Đồng' Tại Bệnh Viện Ung Bướu",
+        "status": "Completed",
+        "start_date": "2026-06-25T06:00:00Z",
+        "end_date": "2026-06-25T12:00:00Z"
+      }
+    },
+    {
+      "_id": "reg_vol_d_act_003",
+      "volunteer_id": "user_vol_d_005",
+      "activity_id": "act_003",
+      "status": "Absent",
+      "created_at": "2026-06-16T10:00:00Z",
+      "updated_at": "2026-06-25T13:00:00Z",
+      "reviewed_at": "2026-06-17T09:00:00Z",
+      "participation_updated_at": "2026-06-25T13:00:00Z",
+      "denormalized_volunteer": {
+        "name": "Phạm Thị D",
+        "phone": "0956789012",
+        "email": "phamthid@gmail.com"
+      },
+      "denormalized_activity": {
+        "title": "Phát Cơm Từ Thiện 'Bữa Ăn 0 Đồng' Tại Bệnh Viện Ung Bướu",
+        "status": "Completed",
+        "start_date": "2026-06-25T06:00:00Z",
+        "end_date": "2026-06-25T12:00:00Z"
+      }
+    }
+  ],
+  "posts": [
+    {
+      "_id": "post_001",
+      "author_id": "user_org_b_003",
+      "content": "Một ngày làm việc hết công suất của cả nhóm tại Bệnh viện Ung bướu! Cảm ơn 20 bạn tình nguyện viên tuyệt vời đã chung tay trao gửi 500 suất cơm nghĩa tình đến tay người bệnh. Những nụ cười và lời cảm ơn từ mọi người chính là động lực lớn nhất của chúng tôi. Hẹn gặp lại các bạn ở các chương trình tới của Green Life nhé!",
+      "images": [
+        "https://images.unsplash.com/photo-1593113598332-cd288d649433?q=80&w=600",
+        "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?q=80&w=600"
+      ],
+      "visibility": "Public",
+      "status": "Active",
+      "hashtags": ["tuthien", "greenlife", "volunteerconnect", "buaan0dong"],
+      "like_count": 48,
+      "comment_count": 12,
+      "share_count": 5,
+      "created_at": "2026-06-25T14:00:00Z",
+      "updated_at": "2026-06-25T14:00:00Z",
+      "deleted_at": null,
+      "denormalized_author": {
+        "name": "Lê Thị B (Green Life)",
+        "role": "Organizer",
+        "organization_name": "Green Life Việt Nam"
+      }
+    },
+    {
+      "_id": "post_002",
+      "author_id": "user_vol_c_004",
+      "content": "Hoạt động thiện nguyện đầu tiên mình tham gia qua app Volunteer Connect! Thực sự rất ý nghĩa và chuyên nghiệp. App giúp mình dễ dàng tìm kiếm hoạt động thích hợp và đăng ký nhanh chóng. Sẽ tiếp tục đồng hành cùng cộng đồng trong nhiều chiến dịch sắp tới!",
+      "images": [
+        "https://images.unsplash.com/photo-1544027993-37dbfe43562a?q=80&w=600"
+      ],
+      "visibility": "Public",
+      "status": "Active",
+      "hashtags": ["volunteer", "volunteerconnect", "traoyeuthuong"],
+      "like_count": 25,
+      "comment_count": 3,
+      "share_count": 1,
+      "created_at": "2026-06-26T08:30:00Z",
+      "updated_at": "2026-06-26T08:30:00Z",
+      "deleted_at": null,
+      "denormalized_author": {
+        "name": "Lê Văn C",
+        "role": "Volunteer",
+        "organization_name": null
+      }
+    }
+  ]
+}
