@@ -27,3 +27,31 @@ class RegistrationRepository:
     async def create(self, registration: Registration, session=None) -> Registration:
         await registration.insert(session=session)
         return registration
+
+    async def list_volunteer_registrations(
+        self, volunteer_id: PydanticObjectId, status: str | None = None, skip: int = 0, limit: int = 10
+    ) -> tuple[List[Registration], int]:
+        query = {"volunteer_id": volunteer_id}
+        if status:
+            query["status"] = status
+            
+        cursor = Registration.find(query).sort("-created_at")
+        
+        total = await cursor.count()
+        registrations = await cursor.skip(skip).limit(limit).to_list()
+        
+        return registrations, total
+
+    async def list_activity_registrations(
+        self, activity_id: PydanticObjectId, status: str | None = None, skip: int = 0, limit: int = 10
+    ) -> tuple[List[Registration], int]:
+        query = {"activity_id": activity_id}
+        if status:
+            query["status"] = status
+            
+        cursor = Registration.find(query).sort("created_at")
+        
+        total = await cursor.count()
+        registrations = await cursor.skip(skip).limit(limit).to_list()
+        
+        return registrations, total

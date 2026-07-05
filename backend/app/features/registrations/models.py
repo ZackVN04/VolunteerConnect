@@ -24,6 +24,7 @@ class Registration(Document):
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     reviewed_at: Optional[datetime] = None
     participation_updated_at: Optional[datetime] = None
+    rejection_reason: Optional[str] = None
     denormalized_volunteer: DenormalizedVolunteer
     denormalized_activity: DenormalizedActivity
 

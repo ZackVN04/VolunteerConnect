@@ -8,7 +8,7 @@ from app.features.activities.constants import ActivityStatus
 from app.features.registrations.models import Registration, DenormalizedVolunteer, DenormalizedActivity
 from app.features.registrations.repositories import RegistrationRepository
 from app.features.registrations.constants import RegistrationStatus, ReviewAction
-from app.features.registrations.schemas import BulkReviewRequest, BulkReviewResponse
+from app.features.registrations.schemas import BulkApproveRequest, BulkRejectRequest, RejectRequest, BulkReviewResponse
 
 class RegistrationService:
     def __init__(self, repository: RegistrationRepository):
@@ -128,7 +128,7 @@ class RegistrationService:
 
         return registration
 
-    async def bulk_review_registrations(self, organizer: User, activity_id: str, request: BulkReviewRequest) -> BulkReviewResponse:
+    async def bulk_approve_registrations(self, organizer: User, activity_id: str, request: "BulkApproveRequest") -> "BulkReviewResponse":
         try:
             act_id = PydanticObjectId(activity_id)
         except Exception:
@@ -142,20 +142,20 @@ class RegistrationService:
         if activity.organizer_id != organizer.id:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to review these registrations")
 
-        # 2. Slicing logic
+        # 2. Slicing logic for Approve
         safe_ids = request.registration_ids
         skipped_count = 0
         
-        if request.action == ReviewAction.APPROVE:
-            available_slots = activity.limit_volunteers - activity.approved_volunteers_count
-            if available_slots < 0:
-                available_slots = 0
-                
-            if len(safe_ids) > available_slots:
-                safe_ids = request.registration_ids[:available_slots]
-                skipped_count = len(request.registration_ids) - len(safe_ids)
+        available_slots = activity.limit_volunteers - activity.approved_volunteers_count
+        if available_slots < 0:
+            available_slots = 0
+            
+        if len(safe_ids) > available_slots:
+            safe_ids = request.registration_ids[:available_slots]
+            skipped_count = len(request.registration_ids) - len(safe_ids)
                 
         if not safe_ids:
+            from app.features.registrations.schemas import BulkReviewResponse
             return BulkReviewResponse(processed=0, skipped=skipped_count)
 
         # 3. Validation & Fetch PENDING registrations
@@ -170,6 +170,7 @@ class RegistrationService:
             Registration.status == RegistrationStatus.PENDING
         ).to_list()
         
+        from app.features.registrations.schemas import BulkReviewResponse
         if not pending_registrations:
             return BulkReviewResponse(processed=0, skipped=skipped_count + len(safe_ids))
 
@@ -177,19 +178,18 @@ class RegistrationService:
         processed_ids = [reg.id for reg in pending_registrations]
         
         now = datetime.now(timezone.utc)
-        new_status = RegistrationStatus.APPROVED.value if request.action == ReviewAction.APPROVE else RegistrationStatus.REJECTED.value
 
         # 4. Bulk Update Registrations
         await Registration.find(In(Registration.id, processed_ids)).update(
             {"$set": {
-                "status": new_status,
+                "status": RegistrationStatus.APPROVED.value,
                 "reviewed_at": now,
                 "updated_at": now
             }}
         )
 
-        # 5. Update Activity if approve
-        if request.action == ReviewAction.APPROVE and actual_processed > 0:
+        # 5. Update Activity
+        if actual_processed > 0:
             activity.approved_volunteers_count += actual_processed
             if activity.approved_volunteers_count >= activity.limit_volunteers:
                 activity.status = ActivityStatus.FULL.value
@@ -199,3 +199,145 @@ class RegistrationService:
             processed=actual_processed,
             skipped=skipped_count + (len(safe_ids) - actual_processed)
         )
+
+    async def bulk_reject_registrations(self, organizer: User, activity_id: str, request: "BulkRejectRequest") -> "BulkReviewResponse":
+        try:
+            act_id = PydanticObjectId(activity_id)
+        except Exception:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid activity ID")
+
+        # 1. Fetch Activity & Auth
+        activity = await Activity.get(act_id)
+        if not activity:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Activity not found")
+        
+        if activity.organizer_id != organizer.id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to review these registrations")
+
+        safe_ids = request.registration_ids
+        if not safe_ids:
+            from app.features.registrations.schemas import BulkReviewResponse
+            return BulkReviewResponse(processed=0, skipped=0)
+
+        # 3. Validation & Fetch PENDING registrations
+        try:
+            object_ids = [PydanticObjectId(rid) for rid in safe_ids]
+        except Exception:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid registration ID in list")
+        
+        pending_registrations = await Registration.find(
+            In(Registration.id, object_ids),
+            Registration.activity_id == act_id,
+            Registration.status == RegistrationStatus.PENDING
+        ).to_list()
+        
+        from app.features.registrations.schemas import BulkReviewResponse
+        if not pending_registrations:
+            return BulkReviewResponse(processed=0, skipped=len(safe_ids))
+
+        actual_processed = len(pending_registrations)
+        processed_ids = [reg.id for reg in pending_registrations]
+        
+        now = datetime.now(timezone.utc)
+
+        # 4. Bulk Update Registrations
+        update_doc = {
+            "status": RegistrationStatus.REJECTED.value,
+            "reviewed_at": now,
+            "updated_at": now
+        }
+        if request.rejection_reason:
+            update_doc["rejection_reason"] = request.rejection_reason
+
+        await Registration.find(In(Registration.id, processed_ids)).update(
+            {"$set": update_doc}
+        )
+
+        return BulkReviewResponse(
+            processed=actual_processed,
+            skipped=len(safe_ids) - actual_processed
+        )
+
+    async def approve_registration(self, organizer: User, registration_id: str) -> Registration:
+        try:
+            reg_id = PydanticObjectId(registration_id)
+        except Exception:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid registration ID")
+
+        registration = await Registration.get(reg_id)
+        if not registration:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Registration not found")
+
+        activity = await Activity.get(registration.activity_id)
+        if not activity:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Activity not found")
+
+        if activity.organizer_id != organizer.id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to review this registration")
+
+        if registration.status != RegistrationStatus.PENDING:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only pending registrations can be approved")
+
+        if activity.approved_volunteers_count >= activity.limit_volunteers:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Activity is full")
+
+        now = datetime.now(timezone.utc)
+        registration.status = RegistrationStatus.APPROVED
+        registration.reviewed_at = now
+        registration.updated_at = now
+        await registration.save()
+
+        activity.approved_volunteers_count += 1
+        if activity.approved_volunteers_count >= activity.limit_volunteers:
+            activity.status = ActivityStatus.FULL.value
+        await activity.save()
+
+        return registration
+
+    async def reject_registration(self, organizer: User, registration_id: str, request: "RejectRequest") -> Registration:
+        try:
+            reg_id = PydanticObjectId(registration_id)
+        except Exception:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid registration ID")
+
+        registration = await Registration.get(reg_id)
+        if not registration:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Registration not found")
+
+        activity = await Activity.get(registration.activity_id)
+        if not activity:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Activity not found")
+
+        if activity.organizer_id != organizer.id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to review this registration")
+
+        if registration.status != RegistrationStatus.PENDING:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only pending registrations can be rejected")
+
+        now = datetime.now(timezone.utc)
+        registration.status = RegistrationStatus.REJECTED
+        registration.reviewed_at = now
+        registration.updated_at = now
+        if request.rejection_reason:
+            registration.rejection_reason = request.rejection_reason
+            
+        await registration.save()
+
+        return registration
+
+    async def get_activity_registrations(self, organizer: User, activity_id: str, status: str | None, skip: int, limit: int) -> tuple[list[Registration], int]:
+        try:
+            act_id = PydanticObjectId(activity_id)
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid activity ID")
+
+        # 1. Fetch Activity & Auth
+        activity = await Activity.get(act_id)
+        if not activity:
+            raise HTTPException(status_code=404, detail="Activity not found")
+        
+        if activity.organizer_id != organizer.id:
+            raise HTTPException(status_code=403, detail="Not authorized to view these registrations")
+
+        # 2. Call repository
+        return await self.repository.list_activity_registrations(act_id, status, skip, limit)
