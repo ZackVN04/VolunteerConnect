@@ -103,10 +103,11 @@ export const Navbar: React.FC = () => {
                   alt="Avatar" 
                   className="w-full h-full object-cover" 
                   src={
-                    currentUser._id === 'user_vol_a_002' ? 'https://lh3.googleusercontent.com/aida-public/AB6AXuB_PQBoM34v-KHc_RgV_5yx56GMnqxDEhWKCFYBFHs2DD_v0AfXxYHUzf2X3lHHgAe2vyMGRQql2_ip1v1PHVYhvFyoXhPynpBV2nxiOGxa8e8ofteEH-zmu0GxXB6A8jodf8hDo5WAuXJJrmVLLOR1IjbvdDXwj0qbFpahbPlbl0ck9hpAKNzpXmdr75nvpBMMDMs4UZOVhWf1sVfevY5pMBzIvjY41MIz8mTplH5pZ7hrKQrRtevMrQ' :
-                    currentUser._id === 'user_org_b_003' ? 'https://lh3.googleusercontent.com/aida-public/AB6AXuAkQYvd65g9k6JOGizWiwW69fSLpWWr-F9ZrbB9rVITYy_HR6LpTrryKx45BWMirCv1Bl458Rn7xSD7iNoQiH2qr1i-zXYYpEOVAhyzlwAiSWYaeDSajjvTk79HCfIoD2bKu6PP-Ni7Rl8dNUcyusGXtwrW_leJf2pHSMyVYQ7GGycn96gK0LnhC85StwbzmSLfjRVsPGdPZvSyywYXC6R-9TA5TRIQ_rODyBNU7NlmuV4LUv8M9-3XUw' :
-                    currentUser._id === 'user_admin_001' ? 'https://lh3.googleusercontent.com/aida-public/AB6AXuCYcsfThBjqJ3O_WR02laZ868Vy0rbWRrqdcH5bE3iJVWcOgHMoh3CsowraUnMiJ6A8cGSGFjyuG_USGZmPk9q36M_dwSakgzQkp_8IfSXGp7yLav94zAH16CEYFw3LDkyEtm7yzOYC78AETUOiDy0IlPDic3zG1k8vpFwuKZ9138GaZWz-wC0CRMWAolLdDQkliuxw0LYkcJqLf-shkA2mNmKjWWYkkobzu4FtFN95KYT-bCJPwGNXzw' :
-                    'https://lh3.googleusercontent.com/aida-public/AB6AXuCqR7c6MmYIK026t2CIKgJdzN-HVXJHuqj92skuH6GsQRsHvMxbEHHfJw4SZzJn1z7ycOuw65ul7NnXNvhBxovjiMraR3LbRNHHR4d6HmA29IW3oVGYPNSaG5QPYI0VCqShoV70UAg15BkVDPICUKrC5a1D4OhhpawjfyMo1BFfKacEJXqW3UQYfZvAq2O0roU323LKHahR9UoY_5rWFImGEoXmFIcsACP6G1q73EUHh8hTMmhtEEtQ8A'
+                    currentUser.profile.avatar_url ||
+                    (currentUser._id === 'user_vol_a_002' ? 'https://lh3.googleusercontent.com/aida-public/AB6AXuB_PQBoM34v-KHc_RgV_5yx56GMnqxDEhWKCFYBFHs2DD_v0AfXxYHUzf2X3lHHgAe2vyMGRQql2_ip1v1PHVYhvFyoXhPynpBV2nxiOGxa8e8ofteEH-zmu0GxXB6A8jodf8hDo5WAuXJJrmVLLOR1IjbvdDXwj0qbFpahbPlbl0ck9hpAKNzpXmdr75nvpBMMDMs4UZOVhWf1sVfevY5pMMDMs4UZOVhWf1sVfevY5pMBzIvjY41MIz8mTplH5pZ7hrKQrRtevMrQ' :
+                     currentUser._id === 'user_org_b_003' ? 'https://lh3.googleusercontent.com/aida-public/AB6AXuAkQYvd65g9k6JOGizWiwW69fSLpWWr-F9ZrbB9rVITYy_HR6LpTrryKx45BWMirCv1Bl458Rn7xSD7iNoQiH2qr1i-zXYYpEOVAhyzlwAiSWYaeDSajjvTk79HCfIoD2bKu6PP-Ni7Rl8dNUcyusGXtwrW_leJf2pHSMyVYQ7GGycn96gK0LnhC85StwbzmSLfjRVsPGdPZvSyywYXC6R-9TA5TRIQ_rODyBNU7NlmuV4LUv8M9-3XUw' :
+                     currentUser._id === 'user_admin_001' ? 'https://lh3.googleusercontent.com/aida-public/AB6AXuCYcsfThBjqJ3O_WR02laZ868Vy0rbWRrqdcH5bE3iJVWcOgHMoh3CsowraUnMiJ6A8cGSGFjyuG_USGZmPk9q36M_dwSakgzQkp_8IfSXGp7yLav94zAH16CEYFw3LDkyEtm7yzOYC78AETUOiDy0IlPDic3zG1k8vpFwuKZ9138GaZWz-wC0CRMWAolLdDQkliuxw0LYkcJqLf-shkA2mNmKjWWYkkobzu4FtFN95KYT-bCJPwGNXzw' :
+                     'https://lh3.googleusercontent.com/aida-public/AB6AXuCqR7c6MmYIK026t2CIKgJdzN-HVXJHuqj92skuH6GsQRsHvMxbEHHfJw4SZzJn1z7ycOuw65ul7NnXNvhBxovjiMraR3LbRNHHR4d6HmA29IW3oVGYPNSaG5QPYI0VCqShoV70UAg15BkVDPICUKrC5a1D4OhhpawjfyMo1BFfKacEJXqW3UQYfZvAq2O0roU323LKHahR9UoY_5rWFImGEoXmFIcsACP6G1q73EUHh8hTMmhtEEtQ8A')
                   }
                 />
               </div>
