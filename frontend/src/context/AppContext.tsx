@@ -1015,14 +1015,25 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   // Edit/Update Profile Details
   const updateProfile = (updatedProfile: Partial<UserProfile>, email: string, province: string) => {
     if (USE_REAL_BACKEND) {
+      if (!currentUser) return;
       (async () => {
         try {
+          // Save the local-only fields to localStorage
+          const extraKey = `vc_profile_extra_${currentUser._id}`;
+          const currentExtraStr = localStorage.getItem(extraKey);
+          let extra: any = {};
+          if (currentExtraStr) {
+            try { extra = JSON.parse(currentExtraStr); } catch {}
+          }
+          if (updatedProfile.bio !== undefined) extra.bio = updatedProfile.bio;
+          if (updatedProfile.skills !== undefined) extra.skills = updatedProfile.skills;
+          if (province !== undefined) extra.area_of_interest = province;
+          localStorage.setItem(extraKey, JSON.stringify(extra));
+
+          // Only send full_name and avatar_url to backend
           await userService.updateProfile({
-            full_name: updatedProfile.full_name !== undefined ? updatedProfile.full_name : (currentUser?.profile.full_name ?? undefined),
-            avatar_url: updatedProfile.avatar_url !== undefined ? updatedProfile.avatar_url : (currentUser?.profile.avatar_url ?? undefined),
-            bio: updatedProfile.bio !== undefined ? updatedProfile.bio : (currentUser?.profile.bio ?? undefined),
-            skills: updatedProfile.skills !== undefined ? updatedProfile.skills : (currentUser?.profile.skills ?? undefined),
-            area_of_interest: province !== undefined ? province : (currentUser?.profile.area_of_interest ?? undefined)
+            full_name: updatedProfile.full_name !== undefined ? updatedProfile.full_name : (currentUser.profile.full_name ?? undefined),
+            avatar_url: updatedProfile.avatar_url !== undefined ? updatedProfile.avatar_url : (currentUser.profile.avatar_url ?? undefined)
           });
           const user = await authService.getCurrentUser();
           setCurrentUserInternal(user);

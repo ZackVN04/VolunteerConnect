@@ -26,8 +26,19 @@ export const mapBackendUserToFrontend = (beUser: any): User => {
     'rejected': 'Rejected'
   };
 
+  const userId = beUser.id || beUser._id;
+  let localExtra: any = {};
+  try {
+    const extraStr = localStorage.getItem(`vc_profile_extra_${userId}`);
+    if (extraStr) {
+      localExtra = JSON.parse(extraStr);
+    }
+  } catch (e) {
+    console.error(e);
+  }
+
   return {
-    _id: beUser.id || beUser._id,
+    _id: userId,
     phone: beUser.phone_number,
     is_phone_verified: beUser.status === 'active',
     otp_code: null,
@@ -40,10 +51,10 @@ export const mapBackendUserToFrontend = (beUser: any): User => {
     profile: {
       full_name: beUser.full_name || 'Người dùng',
       avatar_url: beUser.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=150',
-      bio: beUser.bio || 'Thành viên Volunteer Connect',
+      bio: localExtra.bio !== undefined ? localExtra.bio : (beUser.bio || 'Thành viên Volunteer Connect'),
       joined_activity_count: beUser.joined_activity_count || 0,
-      skills: beUser.skills || [],
-      area_of_interest: beUser.area_of_interest || null,
+      skills: localExtra.skills !== undefined ? localExtra.skills : (beUser.skills || []),
+      area_of_interest: localExtra.area_of_interest !== undefined ? localExtra.area_of_interest : (beUser.area_of_interest || 'Hồ Chí Minh'),
       organizer_request_status: statusMap[beUser.organizer_request_status] || 'None',
       organizer_request_feedback: beUser.organizer_request_feedback || null
     },
@@ -208,14 +219,11 @@ export const postService = {
 
 // User Profile Services
 export const userService = {
-  updateProfile: async (updatedProfile: Partial<UserProfile> & { area_of_interest?: string }): Promise<User> => {
-    // Backend: PUT /api/v1/users/me, body: { full_name, avatar_url, bio, skills, area_of_interest }
+  updateProfile: async (updatedProfile: Partial<UserProfile>): Promise<User> => {
+    // Backend: PUT /api/v1/users/me, body: { full_name, avatar_url }
     const res = await api.put('/users/me', { 
       full_name: updatedProfile.full_name,
-      avatar_url: updatedProfile.avatar_url,
-      bio: updatedProfile.bio,
-      skills: updatedProfile.skills,
-      area_of_interest: updatedProfile.area_of_interest
+      avatar_url: updatedProfile.avatar_url
     });
     return mapBackendUserToFrontend(res.data);
   }
