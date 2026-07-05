@@ -16,6 +16,8 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ onNavigateToLogin, o
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -187,15 +189,26 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ onNavigateToLogin, o
               <div className="relative">
                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-sm">lock</span>
                 <input 
-                  className="w-full pl-10 pr-4 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-sm text-on-surface placeholder-outline-variant/60 focus:outline-none focus:border-primary" 
+                  className="w-full pl-10 pr-10 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-sm text-on-surface placeholder-outline-variant/60 focus:outline-none focus:border-primary" 
                   id="password" 
                   name="password" 
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••" 
                   required
-                  type="password" 
+                  type={showPassword ? "text" : "password"}
                 />
+                {password && (
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-outline-variant hover:text-primary transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-base">
+                      {showPassword ? "visibility" : "visibility_off"}
+                    </span>
+                  </button>
+                )}
               </div>
             </div>
 
@@ -205,15 +218,26 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ onNavigateToLogin, o
               <div className="relative">
                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-sm">lock_reset</span>
                 <input 
-                  className="w-full pl-10 pr-4 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-sm text-on-surface placeholder-outline-variant/60 focus:outline-none focus:border-primary" 
+                  className="w-full pl-10 pr-10 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-sm text-on-surface placeholder-outline-variant/60 focus:outline-none focus:border-primary" 
                   id="confirmPassword" 
                   name="confirmPassword" 
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="••••••••" 
                   required
-                  type="password" 
+                  type={showConfirmPassword ? "text" : "password"}
                 />
+                {confirmPassword && (
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-outline-variant hover:text-primary transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-base">
+                      {showConfirmPassword ? "visibility" : "visibility_off"}
+                    </span>
+                  </button>
+                )}
               </div>
             </div>
 

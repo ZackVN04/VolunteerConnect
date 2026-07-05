@@ -6,17 +6,22 @@ const USE_REAL_BACKEND = true;
 
 interface LoginViewProps {
   onNavigateToRegister: () => void;
+  onNavigateToOTP?: (email: string) => void;
 }
 
-export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToRegister }) => {
+export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToRegister, onNavigateToOTP }) => {
   const { users, loginAs, setCurrentUser } = useApp();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [showVerifyLink, setShowVerifyLink] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) return;
+    setErrorMsg('');
+    setShowVerifyLink(false);
 
     if (USE_REAL_BACKEND) {
       try {
@@ -25,7 +30,25 @@ export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToRegister }) =>
         setCurrentUser(user);
         window.location.hash = '#/feed';
       } catch (err: any) {
-        setErrorMsg(err.response?.data?.detail || err.response?.data?.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.');
+        let msg = 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.';
+        const detail = err.response?.data?.detail;
+        if (typeof detail === 'string') {
+          msg = detail;
+        } else if (Array.isArray(detail)) {
+          msg = detail.map((d: any) => d.msg).join('\n');
+        } else if (err.response?.data?.message) {
+          msg = err.response.data.message;
+        }
+        setErrorMsg(msg);
+
+        // Detect 403 activation required
+        if (
+          err.response?.status === 403 || 
+          msg.toLowerCase().includes('xác thực') || 
+          msg.toLowerCase().includes('otp')
+        ) {
+          setShowVerifyLink(true);
+        }
       }
       return;
     }
@@ -76,6 +99,15 @@ export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToRegister }) =>
           {errorMsg && (
             <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg text-xs font-semibold leading-relaxed">
               {errorMsg}
+              {showVerifyLink && (
+                <button 
+                  type="button" 
+                  onClick={() => onNavigateToOTP && onNavigateToOTP(email.trim())}
+                  className="block mt-2 text-primary hover:text-tertiary font-bold underline cursor-pointer"
+                >
+                  Nhấp vào đây để nhập mã OTP xác thực.
+                </button>
+              )}
             </div>
           )}
 
@@ -116,15 +148,26 @@ export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToRegister }) =>
                   <span className="material-symbols-outlined text-outline text-sm">lock</span>
                 </div>
                 <input 
-                  className="w-full pl-10 pr-4 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg focus:outline-none focus:border-primary text-sm placeholder-on-surface-variant/50 text-on-surface" 
+                  className="w-full pl-10 pr-10 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg focus:outline-none focus:border-primary text-sm placeholder-on-surface-variant/50 text-on-surface" 
                   id="password" 
                   name="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••" 
                   required 
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                 />
+                {password && (
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-outline-variant hover:text-primary transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-base">
+                      {showPassword ? "visibility" : "visibility_off"}
+                    </span>
+                  </button>
+                )}
               </div>
             </div>
 

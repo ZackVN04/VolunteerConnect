@@ -78,7 +78,15 @@ const AppContent: React.FC = () => {
         />
       );
     }
-    return <LoginView onNavigateToRegister={() => setIsRegisterMode(true)} />;
+    return (
+      <LoginView 
+        onNavigateToRegister={() => setIsRegisterMode(true)} 
+        onNavigateToOTP={(email) => {
+          setOtpVerifyPhone('Liên hệ email');
+          setOtpVerifyEmail(email);
+        }}
+      />
+    );
   }
 
   // Parse Hash Route
