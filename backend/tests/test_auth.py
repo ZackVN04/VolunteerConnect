@@ -405,3 +405,21 @@ async def test_resend_otp_already_active(async_client, active_user):
     response = await async_client.post("/api/v1/auth/resend-otp", json=payload)
     assert response.status_code == 400
     assert "Tài khoản đã được xác thực" in response.json()["detail"]
+
+@pytest.mark.asyncio
+@patch("app.features.auth.router.send_otp_email", new_callable=AsyncMock)
+async def test_register_overwrite_pending_user(mock_send_email, async_client, pending_user):
+    """Happy Path: Registering with an existing but unverified (PENDING_OTP) email overwrites/deletes it (Expects 201)."""
+    payload = {
+        "email": pending_user.email,
+        "phone_number": "+84999999992",  # Different phone
+        "password": "brand_new_password_123",
+        "full_name": "New Owner Name"
+    }
+    response = await async_client.post("/api/v1/auth/register", json=payload)
+    assert response.status_code == 201
+    
+    # Verify the user has been updated with the new password and details
+    updated_user = await User.find_one(User.email == pending_user.email)
+    assert updated_user.full_name == "New Owner Name"
+    assert updated_user.phone_number == "+84999999992"
