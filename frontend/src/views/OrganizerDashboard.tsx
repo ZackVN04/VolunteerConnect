@@ -236,7 +236,7 @@ export const OrganizerDashboard: React.FC = () => {
             myActs.map(act => {
               const countPending = registrations.filter(r => r.activity_id === act._id && r.status === 'Pending').length;
               return (
-                <div key={act._id} className="bg-surface-container-lowest rounded-lg border border-surface-variant overflow-hidden hover:shadow-sm transition-all flex flex-col justify-between h-[435px]">
+                <div key={act._id} className="bg-surface-container-lowest rounded-lg border border-surface-variant overflow-hidden hover:shadow-sm transition-all flex flex-col justify-between h-[480px]">
                   <div>
                     <div className="h-[192px] w-full bg-surface-container relative shrink-0">
                       <img src={act.image_url || ''} alt="" className="w-full h-full object-cover" />

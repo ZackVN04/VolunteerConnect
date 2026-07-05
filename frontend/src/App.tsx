@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AppContextProvider, useApp } from './context/AppContext';
 import Navbar from './components/Navbar';
-import { DemoController } from './components/DemoController';
 import FeedView from './views/FeedView';
 import ActivityListView from './views/ActivityListView';
 import ActivityDetailView from './views/ActivityDetailView';
@@ -164,9 +163,6 @@ const AppContent: React.FC = () => {
           </nav>
         </div>
       </footer>
-
-      {/* Floating Demo Persona Controller & Live Inspector */}
-      <DemoController />
     </div>
   );
 };

@@ -241,7 +241,7 @@ export const ActivityListView: React.FC = () => {
             {sortedActivities.map(act => {
               const pctFull = Math.min(100, Math.round((act.approved_volunteers_count / act.limit_volunteers) * 100));
               return (
-                <article key={act._id} className="bg-surface-container-lowest rounded-lg border border-surface-variant overflow-hidden hover:shadow-md transition-all duration-300 flex flex-col group relative h-[435px]">
+                <article key={act._id} className="bg-surface-container-lowest rounded-lg border border-surface-variant overflow-hidden hover:shadow-md transition-all duration-300 flex flex-col group relative h-[480px]">
                   <div className="relative h-[192px] overflow-hidden bg-surface-container shrink-0">
                     <img 
                       alt={act.title} 

@@ -110,7 +110,7 @@ export const FeedView: React.FC = () => {
             .map(act => (
               <div 
                 key={act._id} 
-                className="bg-surface-container-lowest border border-surface-variant rounded-lg overflow-hidden flex flex-col h-[435px] transition-all duration-200 hover:shadow-md"
+                className="bg-surface-container-lowest border border-surface-variant rounded-lg overflow-hidden flex flex-col h-[480px] transition-all duration-200 hover:shadow-md"
               >
                 {/* Image & Category tag */}
                 <div className="relative h-[192px] w-full bg-surface-container-low shrink-0">

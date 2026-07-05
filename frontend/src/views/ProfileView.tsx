@@ -11,6 +11,8 @@ export const ProfileView: React.FC = () => {
   const [email, setEmail] = useState(isVirtualEmail ? '' : (currentUser?.email || ''));
   const [province, setProvince] = useState(currentUser?.profile.area_of_interest || '');
   const [skillsStr, setSkillsStr] = useState(currentUser?.profile.skills.join(', ') || '');
+  const [fullName, setFullName] = useState(currentUser?.profile.full_name || '');
+  const [avatarUrl, setAvatarUrl] = useState(currentUser?.profile.avatar_url || '');
 
   // Organizer request modal state
   const [showRequestModal, setShowRequestModal] = useState(false);
@@ -34,7 +36,7 @@ export const ProfileView: React.FC = () => {
       .map(s => s.trim())
       .filter(s => s.length > 0);
 
-    updateProfile({ bio, skills }, email, province);
+    updateProfile({ bio, skills, full_name: fullName, avatar_url: avatarUrl }, email, province);
     setIsEditing(false);
   };
 
@@ -43,6 +45,8 @@ export const ProfileView: React.FC = () => {
     setEmail(isVirtualEmail ? '' : (currentUser.email || ''));
     setProvince(currentUser.profile.area_of_interest || '');
     setSkillsStr(currentUser.profile.skills.join(', '));
+    setFullName(currentUser.profile.full_name || '');
+    setAvatarUrl(currentUser.profile.avatar_url || '');
     setIsEditing(false);
   };
 
@@ -80,25 +84,53 @@ export const ProfileView: React.FC = () => {
           )}
 
           <div className="relative mb-4">
-            <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-surface-bright shadow-sm bg-surface-container-high flex items-center justify-center">
+            <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-surface-bright shadow-sm bg-surface-container-high flex items-center justify-center relative group">
               <img 
                 className="w-full h-full object-cover" 
                 src={
-                  currentUser._id === 'user_vol_a_002' ? 'https://lh3.googleusercontent.com/aida-public/AB6AXuB_PQBoM34v-KHc_RgV_5yx56GMnqxDEhWKCFYBFHs2DD_v0AfXxYHUzf2X3lHHgAe2vyMGRQql2_ip1v1PHVYhvFyoXhPynpBV2nxiOGxa8e8ofteEH-zmu0GxXB6A8jodf8hDo5WAuXJJrmVLLOR1IjbvdDXwj0qbFpahbPlbl0ck9hpAKNzpXmdr75nvpBMMDMs4UZOVhWf1sVfevY5pMBzIvjY41MIz8mTplH5pZ7hrKQrRtevMrQ' :
-                  currentUser._id === 'user_org_b_003' ? 'https://lh3.googleusercontent.com/aida-public/AB6AXuAkQYvd65g9k6JOGizWiwW69fSLpWWr-F9ZrbB9rVITYy_HR6LpTrryKx45BWMirCv1Bl458Rn7xSD7iNoQiH2qr1i-zXYYpEOVAhyzlwAiSWYaeDSajjvTk79HCfIoD2bKu6PP-Ni7Rl8dNUcyusGXtwrW_leJf2pHSMyVYQ7GGycn96gK0LnhC85StwbzmSLfjRVsPGdPZvSyywYXC6R-9TA5TRIQ_rODyBNU7NlmuV4LUv8M9-3XUw' :
-                  currentUser._id === 'user_admin_001' ? 'https://lh3.googleusercontent.com/aida-public/AB6AXuCYcsfThBjqJ3O_WR02laZ868Vy0rbWRrqdcH5bE3iJVWcOgHMoh3CsowraUnMiJ6A8cGSGFjyuG_USGZmPk9q36M_dwSakgzQkp_8IfSXGp7yLav94zAH16CEYFw3LDkyEtm7yzOYC78AETUOiDy0IlPDic3zG1k8vpFwuKZ9138GaZWz-wC0CRMWAolLdDQkliuxw0LYkcJqLf-shkA2mNmKjWWYkkobzu4FtFN95KYT-bCJPwGNXzw' :
-                  'https://lh3.googleusercontent.com/aida-public/AB6AXuCqR7c6MmYIK026t2CIKgJdzN-HVXJHuqj92skuH6GsQRsHvMxbEHHfJw4SZzJn1z7ycOuw65ul7NnXNvhBxovjiMraR3LbRNHHR4d6HmA29IW3oVGYPNSaG5QPYI0VCqShoV70UAg15BkVDPICUKrC5a1D4OhhpawjfyMo1BFfKacEJXqW3UQYfZvAq2O0roU323LKHahR9UoY_5rWFImGEoXmFIcsACP6G1q73EUHh8hTMmhtEEtQ8A'
+                  currentUser.profile.avatar_url ||
+                  (currentUser._id === 'user_vol_a_002' ? 'https://lh3.googleusercontent.com/aida-public/AB6AXuB_PQBoM34v-KHc_RgV_5yx56GMnqxDEhWKCFYBFHs2DD_v0AfXxYHUzf2X3lHHgAe2vyMGRQql2_ip1v1PHVYhvFyoXhPynpBV2nxiOGxa8e8ofteEH-zmu0GxXB6A8jodf8hDo5WAuXJJrmVLLOR1IjbvdDXwj0qbFpahbPlbl0ck9hpAKNzpXmdr75nvpBMMDMs4UZOVhWf1sVfevY5pMBzIvjY41MIz8mTplH5pZ7hrKQrRtevMrQ' :
+                   currentUser._id === 'user_org_b_003' ? 'https://lh3.googleusercontent.com/aida-public/AB6AXuAkQYvd65g9k6JOGizWiwW69fSLpWWr-F9ZrbB9rVITYy_HR6LpTrryKx45BWMirCv1Bl458Rn7xSD7iNoQiH2qr1i-zXYYpEOVAhyzlwAiSWYaeDSajjvTk79HCfIoD2bKu6PP-Ni7Rl8dNUcyusGXtwrW_leJf2pHSMyVYQ7GGycn96gK0LnhC85StwbzmSLfjRVsPGdPZvSyywYXC6R-9TA5TRIQ_rODyBNU7NlmuV4LUv8M9-3XUw' :
+                   currentUser._id === 'user_admin_001' ? 'https://lh3.googleusercontent.com/aida-public/AB6AXuCYcsfThBjqJ3O_WR02laZ868Vy0rbWRrqdcH5bE3iJVWcOgHMoh3CsowraUnMiJ6A8cGSGFjyuG_USGZmPk9q36M_dwSakgzQkp_8IfSXGp7yLav94zAH16CEYFw3LDkyEtm7yzOYC78AETUOiDy0IlPDic3zG1k8vpFwuKZ9138GaZWz-wC0CRMWAolLdDQkliuxw0LYkcJqLf-shkA2mNmKjWWYkkobzu4FtFN95KYT-bCJPwGNXzw' :
+                   'https://lh3.googleusercontent.com/aida-public/AB6AXuCqR7c6MmYIK026t2CIKgJdzN-HVXJHuqj92skuH6GsQRsHvMxbEHHfJw4SZzJn1z7ycOuw65ul7NnXNvhBxovjiMraR3LbRNHHR4d6HmA29IW3oVGYPNSaG5QPYI0VCqShoV70UAg15BkVDPICUKrC5a1D4OhhpawjfyMo1BFfKacEJXqW3UQYfZvAq2O0roU323LKHahR9UoY_5rWFImGEoXmFIcsACP6G1q73EUHh8hTMmhtEEtQ8A')
                 }
                 alt="Profile Avatar"
               />
             </div>
           </div>
 
-          <h1 className="font-headline-md text-xl text-on-surface mb-1 font-bold">{currentUser.profile.full_name}</h1>
-          <p className="font-body-md text-sm text-on-surface-variant mb-4">
-            {currentUser.role === 'Admin' ? 'Quản trị viên toàn hệ thống' :
-             currentUser.role === 'Organizer' ? 'Nhà tổ chức hoạt động' : 'Tình nguyện viên tích cực'}
-          </p>
+          {isEditing ? (
+            <div className="w-full space-y-3 mb-4">
+              <div>
+                <label className="block text-left text-xs font-semibold text-on-surface-variant mb-1">Họ và tên</label>
+                <input 
+                  type="text"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  className="w-full p-2 bg-surface-container-low border border-outline-variant rounded-lg text-sm outline-none focus:border-primary text-on-surface"
+                  placeholder="Họ và tên..."
+                />
+              </div>
+              <div>
+                <label className="block text-left text-xs font-semibold text-on-surface-variant mb-1">Đường dẫn ảnh đại diện (Avatar URL)</label>
+                <input 
+                  type="text"
+                  value={avatarUrl}
+                  onChange={(e) => setAvatarUrl(e.target.value)}
+                  className="w-full p-2 bg-surface-container-low border border-outline-variant rounded-lg text-sm outline-none focus:border-primary text-on-surface"
+                  placeholder="Nhập link ảnh (ví dụ: https://...)"
+                />
+              </div>
+            </div>
+          ) : (
+            <>
+              <h1 className="font-headline-md text-xl text-on-surface mb-1 font-bold">{currentUser.profile.full_name}</h1>
+              <p className="font-body-md text-sm text-on-surface-variant mb-4">
+                {currentUser.role === 'Admin' ? 'Quản trị viên toàn hệ thống' :
+                 currentUser.role === 'Organizer' ? 'Nhà tổ chức hoạt động' : 'Tình nguyện viên tích cực'}
+              </p>
+            </>
+          )}
 
           {/* About Me Section */}
           <div className="w-full text-left mb-4">
