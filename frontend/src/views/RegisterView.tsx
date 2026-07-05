@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { authService, formatPhoneE164 } from '../services/apiService';
 
-const USE_REAL_BACKEND = import.meta.env.VITE_USE_REAL_BACKEND === 'true';
+const USE_REAL_BACKEND = true;
 
 interface RegisterViewProps {
   onNavigateToLogin: () => void;
