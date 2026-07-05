@@ -77,13 +77,14 @@ export const authService = {
     const user = await authService.getCurrentUser();
     return { token, user };
   },
-  register: async (email: string, phone: string, password_raw: string): Promise<{ message: string; user_id: string }> => {
+  register: async (fullname: string, email: string, phone: string, password_raw: string): Promise<{ message: string; user_id: string }> => {
     const formattedPhone = formatPhoneE164(phone);
-    // Backend: POST /api/v1/auth/register, body: { email, password, phone_number }
+    // Backend: POST /api/v1/auth/register, body: { email, password, phone_number, full_name }
     const res = await api.post('/auth/register', { 
       email, 
       phone_number: formattedPhone, 
-      password: password_raw 
+      password: password_raw,
+      full_name: fullname
     });
     return res.data;
   },

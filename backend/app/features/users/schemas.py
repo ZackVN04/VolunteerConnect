@@ -11,6 +11,7 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: str = Field(..., min_length=6)
     phone_number: str = Field(..., description="Số điện thoại định dạng chuẩn quốc tế E.164 (VD: +84912345678)")
+    full_name: str = Field(..., min_length=1, max_length=100, description="Họ và tên người dùng")
     
     @field_validator('phone_number')
     @classmethod

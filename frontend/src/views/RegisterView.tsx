@@ -37,7 +37,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ onNavigateToLogin, o
 
     if (USE_REAL_BACKEND) {
       try {
-        await authService.register(email.trim(), formattedPhone, password);
+        await authService.register(fullname.trim(), email.trim(), formattedPhone, password);
         alert('Đăng ký tài khoản thành công! Hệ thống đã gửi mã OTP xác thực tới địa chỉ email đăng ký.');
         onRegisterSuccess(formattedPhone, email.trim());
       } catch (err: any) {

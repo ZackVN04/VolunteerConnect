@@ -54,6 +54,7 @@ async def register(user_in: UserCreate):
     new_user = User(
         email=user_in.email,
         phone_number=user_in.phone_number,
+        full_name=user_in.full_name,
         hashed_password=hashed_pwd,
         status=UserStatus.PENDING_OTP,
         otp_code=otp_code,          # Lưu mã vào DB để xác thực sau

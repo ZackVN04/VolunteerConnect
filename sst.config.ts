@@ -40,7 +40,13 @@ export default $config({
               // LƯU Ý: HÃY ĐỔI ĐƯỜNG LINK NÀY THÀNH LINK MONGODB THẬT CỦA BẠN TRƯỚC KHI DEPLOY
               { name: "MONGODB_URL", value: "mongodb+srv://Admin:Admin123@volunteerconnect.m1vn2y8.mongodb.net/volunteer_connect?appName=VolunteerConnect" },
               { name: "DATABASE_NAME", value: "volunteer_connect" },
-              { name: "JWT_SECRET", value: "your_jwt_secret" }
+              { name: "JWT_SECRET", value: "your_jwt_secret" },
+              // Cấu hình SMTP Email OTP đọc từ môi trường khi deploy
+              { name: "SMTP_HOST", value: process.env.SMTP_HOST || "smtp.gmail.com" },
+              { name: "SMTP_PORT", value: process.env.SMTP_PORT || "587" },
+              { name: "SMTP_USERNAME", value: process.env.SMTP_USERNAME || "" },
+              { name: "SMTP_PASSWORD", value: process.env.SMTP_PASSWORD || "" },
+              { name: "SMTP_FROM_EMAIL", value: process.env.SMTP_FROM_EMAIL || "" }
             ],
           }],
         },

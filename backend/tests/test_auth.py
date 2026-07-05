@@ -84,7 +84,8 @@ async def test_register_success(mock_send_email, async_client):
     payload = {
         "email": TEST_EMAIL,
         "phone_number": TEST_PHONE,
-        "password": TEST_PASSWORD
+        "password": TEST_PASSWORD,
+        "full_name": "Test User"
     }
     response = await async_client.post("/api/v1/auth/register", json=payload)
     assert response.status_code == 201
@@ -102,7 +103,8 @@ async def test_register_duplicate_email(mock_send_email, async_client, active_us
     payload = {
         "email": TEST_EMAIL,
         "phone_number": "+84999999990",
-        "password": TEST_PASSWORD
+        "password": TEST_PASSWORD,
+        "full_name": "Test User"
     }
     response = await async_client.post("/api/v1/auth/register", json=payload)
     assert response.status_code == 400
@@ -116,7 +118,8 @@ async def test_register_duplicate_phone(mock_send_email, async_client, active_us
     payload = {
         "email": "test_QA_unique@example.com",
         "phone_number": TEST_PHONE,
-        "password": TEST_PASSWORD
+        "password": TEST_PASSWORD,
+        "full_name": "Test User"
     }
     response = await async_client.post("/api/v1/auth/register", json=payload)
     assert response.status_code == 400
@@ -128,7 +131,8 @@ async def test_register_invalid_phone_format(async_client):
     payload = {
         "email": "test_QA_invalid@example.com",
         "phone_number": "0123456",  # Missing + and country code
-        "password": TEST_PASSWORD
+        "password": TEST_PASSWORD,
+        "full_name": "Test User"
     }
     response = await async_client.post("/api/v1/auth/register", json=payload)
     assert response.status_code == 422  # Pydantic validation error
@@ -143,7 +147,8 @@ async def test_register_phone_normalization_success(mock_send_email, async_clien
     payload = {
         "email": "test_QA_normalize@example.com",
         "phone_number": "099-999-9999",  # Starts with 0, contains dashes
-        "password": TEST_PASSWORD
+        "password": TEST_PASSWORD,
+        "full_name": "Test User"
     }
     response = await async_client.post("/api/v1/auth/register", json=payload)
     assert response.status_code == 201
@@ -151,6 +156,7 @@ async def test_register_phone_normalization_success(mock_send_email, async_clien
     # Verify the database has the normalized phone number
     user = await User.find_one(User.email == "test_QA_normalize@example.com")
     assert user.phone_number == "+84999999999"
+    assert user.full_name == "Test User"
     
     # Teardown
     await user.delete()
