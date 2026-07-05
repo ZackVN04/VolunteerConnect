@@ -30,13 +30,22 @@ export const OTPVerifyView: React.FC<OTPVerifyViewProps> = ({
     setErrorMsg('');
     setSuccessMsg('');
     try {
-      await authService.verifyOtp(phoneNumber, otp);
+      await authService.verifyOtp(email || phoneNumber, otp);
       setSuccessMsg('Xác thực tài khoản thành công! Đang chuyển hướng...');
       setTimeout(() => {
         onVerifySuccess();
       }, 2000);
     } catch (err: any) {
-      setErrorMsg(err.response?.data?.detail || 'Mã OTP không hợp lệ hoặc đã hết hạn.');
+      let msg = 'Mã OTP không hợp lệ hoặc đã hết hạn.';
+      const detail = err.response?.data?.detail;
+      if (typeof detail === 'string') {
+        msg = detail;
+      } else if (Array.isArray(detail)) {
+        msg = detail.map((d: any) => d.msg).join('\n');
+      } else if (err.response?.data?.message) {
+        msg = err.response.data.message;
+      }
+      setErrorMsg(msg);
     } finally {
       setLoading(false);
     }

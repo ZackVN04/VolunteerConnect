@@ -76,11 +76,10 @@ export const authService = {
     });
     return res.data;
   },
-  verifyOtp: async (phone: string, otpCode: string): Promise<any> => {
-    const formattedPhone = formatPhoneE164(phone);
-    // Backend: POST /api/v1/auth/verify-otp, body: { phone_number, otp_code }
+  verifyOtp: async (email: string, otpCode: string): Promise<any> => {
+    // Backend: POST /api/v1/auth/verify-otp, body: { email, otp_code }
     const res = await api.post('/auth/verify-otp', { 
-      phone_number: formattedPhone, 
+      email, 
       otp_code: otpCode 
     });
     return res.data;

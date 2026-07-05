@@ -37,7 +37,16 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBackTo
         setSuccessMsg(res.message || 'Mã OTP đã được gửi về email của bạn.');
         setStep(2);
       } catch (err: any) {
-        setErrorMsg(err.response?.data?.detail || err.response?.data?.message || 'Không thể yêu cầu mã OTP. Vui lòng kiểm tra lại email.');
+        let msg = 'Không thể yêu cầu mã OTP. Vui lòng kiểm tra lại email.';
+        const detail = err.response?.data?.detail;
+        if (typeof detail === 'string') {
+          msg = detail;
+        } else if (Array.isArray(detail)) {
+          msg = detail.map((d: any) => d.msg).join('\n');
+        } else if (err.response?.data?.message) {
+          msg = err.response.data.message;
+        }
+        setErrorMsg(msg);
       } finally {
         setLoading(false);
       }
@@ -88,7 +97,16 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBackTo
           onBackToLogin();
         }, 2000);
       } catch (err: any) {
-        setErrorMsg(err.response?.data?.detail || err.response?.data?.message || 'Mã OTP không chính xác hoặc đã hết hạn.');
+        let msg = 'Mã OTP không chính xác hoặc đã hết hạn.';
+        const detail = err.response?.data?.detail;
+        if (typeof detail === 'string') {
+          msg = detail;
+        } else if (Array.isArray(detail)) {
+          msg = detail.map((d: any) => d.msg).join('\n');
+        } else if (err.response?.data?.message) {
+          msg = err.response.data.message;
+        }
+        setErrorMsg(msg);
       } finally {
         setLoading(false);
       }
