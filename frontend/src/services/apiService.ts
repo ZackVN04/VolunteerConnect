@@ -89,6 +89,20 @@ export const authService = {
     // Backend: GET /api/v1/users/me
     const res = await api.get('/users/me');
     return mapBackendUserToFrontend(res.data);
+  },
+  forgotPassword: async (email: string): Promise<any> => {
+    // Backend: POST /api/v1/auth/forgot-password, body: { email }
+    const res = await api.post('/auth/forgot-password', { email });
+    return res.data;
+  },
+  resetPassword: async (email: string, otpCode: string, newPasswordRaw: string): Promise<any> => {
+    // Backend: POST /api/v1/auth/reset-password, body: { email, otp_code, new_password }
+    const res = await api.post('/auth/reset-password', { 
+      email, 
+      otp_code: otpCode, 
+      new_password: newPasswordRaw 
+    });
+    return res.data;
   }
 };
 

@@ -12,6 +12,7 @@ import AdminDashboard from './views/AdminDashboard';
 import LoginView from './views/LoginView';
 import RegisterView from './views/RegisterView';
 import OTPVerifyView from './views/OTPVerifyView';
+import ForgotPasswordView from './views/ForgotPasswordView';
 import './App.css';
 
 const AppContent: React.FC = () => {
@@ -39,8 +40,17 @@ const AppContent: React.FC = () => {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
-  // If not logged in, show Login, Register, or OTP verification screens
+  // If not logged in, show Login, Register, Forgot Password, or OTP verification screens
   if (!currentUser) {
+    if (currentHash === '#/forgot-password') {
+      return (
+        <ForgotPasswordView 
+          onBackToLogin={() => {
+            window.location.hash = '#/feed';
+          }}
+        />
+      );
+    }
     if (otpVerifyPhone) {
       return (
         <OTPVerifyView 
