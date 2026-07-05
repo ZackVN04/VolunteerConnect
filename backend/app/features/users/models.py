@@ -18,6 +18,12 @@ class User(Document):
     status: UserStatus = Field(default=UserStatus.PENDING_OTP)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     
+    # Profile details
+    bio: Optional[str] = None
+    skills: list[str] = Field(default_factory=list)
+    area_of_interest: Optional[str] = None
+    joined_activity_count: int = 0
+
     # Các trường lưu trữ OTP tạm thời. Sau khi xác thực thành công sẽ gán thành None
     otp_code: Optional[str] = None
     otp_expiry: Optional[datetime] = None

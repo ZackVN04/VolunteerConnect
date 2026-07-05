@@ -1018,8 +1018,11 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       (async () => {
         try {
           await userService.updateProfile({
-            full_name: updatedProfile.full_name || currentUser?.profile.full_name,
-            avatar_url: updatedProfile.avatar_url || currentUser?.profile.avatar_url
+            full_name: updatedProfile.full_name !== undefined ? updatedProfile.full_name : (currentUser?.profile.full_name ?? undefined),
+            avatar_url: updatedProfile.avatar_url !== undefined ? updatedProfile.avatar_url : (currentUser?.profile.avatar_url ?? undefined),
+            bio: updatedProfile.bio !== undefined ? updatedProfile.bio : (currentUser?.profile.bio ?? undefined),
+            skills: updatedProfile.skills !== undefined ? updatedProfile.skills : (currentUser?.profile.skills ?? undefined),
+            area_of_interest: province !== undefined ? province : (currentUser?.profile.area_of_interest ?? undefined)
           });
           const user = await authService.getCurrentUser();
           setCurrentUserInternal(user);

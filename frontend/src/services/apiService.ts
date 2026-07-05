@@ -208,11 +208,14 @@ export const postService = {
 
 // User Profile Services
 export const userService = {
-  updateProfile: async (updatedProfile: Partial<UserProfile>): Promise<User> => {
-    // Backend: PUT /api/v1/users/me, body: { full_name, avatar_url }
+  updateProfile: async (updatedProfile: Partial<UserProfile> & { area_of_interest?: string }): Promise<User> => {
+    // Backend: PUT /api/v1/users/me, body: { full_name, avatar_url, bio, skills, area_of_interest }
     const res = await api.put('/users/me', { 
       full_name: updatedProfile.full_name,
-      avatar_url: updatedProfile.avatar_url
+      avatar_url: updatedProfile.avatar_url,
+      bio: updatedProfile.bio,
+      skills: updatedProfile.skills,
+      area_of_interest: updatedProfile.area_of_interest
     });
     return mapBackendUserToFrontend(res.data);
   }

@@ -31,6 +31,9 @@ class VerifyOTP(BaseModel):
 class UserUpdate(BaseModel):
     full_name: Optional[str] = Field(None, max_length=100)
     avatar_url: Optional[str] = None
+    bio: Optional[str] = None
+    skills: Optional[list[str]] = None
+    area_of_interest: Optional[str] = None
 
 class UserProfileResponse(UserBase):
     id: PydanticObjectId = Field(alias="_id")
@@ -40,6 +43,10 @@ class UserProfileResponse(UserBase):
     role: UserRole
     status: UserStatus
     created_at: datetime
+    bio: Optional[str] = None
+    skills: list[str] = []
+    area_of_interest: Optional[str] = None
+    joined_activity_count: int = 0
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
