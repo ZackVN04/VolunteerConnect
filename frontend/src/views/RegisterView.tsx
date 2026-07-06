@@ -157,7 +157,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ onNavigateToLogin, o
                   name="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="ví dụ: nguyenvana@gmail.com"
+                  placeholder=" Email"
                   required
                   type="email"
                 />

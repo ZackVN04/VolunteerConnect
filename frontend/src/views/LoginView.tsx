@@ -85,7 +85,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToRegister }) =>
             {/* Email Field */}
             <div className="space-y-1">
               <label className="block font-label-sm text-xs text-on-surface font-semibold" htmlFor="email">
-                Email đăng nhập
+                Email
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -99,7 +99,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToRegister }) =>
                   name="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Ví dụ: nguyenvana@gmail.com"
+                  placeholder="Email"
                   required
                   type="email"
                 />
