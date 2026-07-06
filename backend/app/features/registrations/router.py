@@ -18,7 +18,7 @@ from app.features.registrations.schemas import (
     VolunteerSnippet
 )
 from app.features.registrations.repositories import RegistrationRepository
-router = APIRouter(prefix="/activities", tags=["registrations"])
+router = APIRouter(prefix="/api/v1/activities", tags=["registrations"])
 
 @router.post(
     "/{activity_id}/registrations", 
@@ -131,7 +131,7 @@ async def get_activity_registrations(
         )
     )
 
-action_router = APIRouter(prefix="/registrations", tags=["registrations"])
+action_router = APIRouter(prefix="/api/v1/registrations", tags=["registrations"])
 
 @action_router.post(
     "/{registration_id}/cancel", 
@@ -208,7 +208,7 @@ async def reject_registration_endpoint(
     )
 
 
-user_router = APIRouter(prefix="/users/me", tags=["registrations"])
+user_router = APIRouter(prefix="/api/v1/users/me", tags=["registrations"])
 
 @user_router.get("/registrations", response_model=RegistrationListResponse)
 async def get_my_registrations(
