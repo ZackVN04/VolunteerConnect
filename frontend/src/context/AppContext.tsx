@@ -24,6 +24,8 @@ export interface UserProfile {
   avatar_url?: string;
   organizer_request_status?: 'None' | 'Pending' | 'Approved' | 'Rejected';
   organizer_request_feedback?: string | null;
+  age?: number;
+  gender?: string;
 }
 
 export interface User {
@@ -153,7 +155,8 @@ interface AppContextType {
   reviewActivity: (activityId: string, approve: boolean) => void;
   createPost: (content: string, images: string[], hashtags: string[]) => void;
   likePost: (postId: string) => void;
-  updateProfile: (updatedProfile: Partial<UserProfile>, email: string, province: string) => void;
+  updateProfile: (updatedProfile: Partial<UserProfile>, email: string, province: string, phone?: string) => void;
+  changeUserRole: (userId: string, role: 'Volunteer' | 'Organizer' | 'Admin') => void;
   resetDatabase: () => void;
 }
 
@@ -1013,7 +1016,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   // Edit/Update Profile Details
-  const updateProfile = (updatedProfile: Partial<UserProfile>, email: string, province: string) => {
+  const updateProfile = (updatedProfile: Partial<UserProfile>, email: string, province: string, phone?: string) => {
     if (USE_REAL_BACKEND) {
       if (!currentUser) return;
       (async () => {
@@ -1028,6 +1031,10 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           if (updatedProfile.bio !== undefined) extra.bio = updatedProfile.bio;
           if (updatedProfile.skills !== undefined) extra.skills = updatedProfile.skills;
           if (province !== undefined) extra.area_of_interest = province;
+          if (updatedProfile.age !== undefined) extra.age = updatedProfile.age;
+          if (updatedProfile.gender !== undefined) extra.gender = updatedProfile.gender;
+          if (email !== undefined) extra.email = email;
+          if (phone !== undefined) extra.phone = phone;
           localStorage.setItem(extraKey, JSON.stringify(extra));
 
           // Only send full_name and avatar_url to backend
@@ -1052,6 +1059,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     const updatedUser: User = {
       ...currentUser,
       email: email || currentUser.email,
+      phone: phone || currentUser.phone,
       profile: {
         ...currentUser.profile,
         ...updatedProfile,
@@ -1068,6 +1076,26 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     syncToLocalStorage(updatedUsers, activities, registrations, organizerRequests, posts, updatedUser);
   };
 
+
+  const changeUserRole = (userId: string, role: 'Volunteer' | 'Organizer' | 'Admin') => {
+    const userIndex = users.findIndex(u => u._id === userId);
+    if (userIndex === -1) return;
+    const updatedUser = {
+      ...users[userIndex],
+      role,
+      updated_at: new Date().toISOString()
+    };
+    const updatedUsers = [...users];
+    updatedUsers[userIndex] = updatedUser;
+    setUsers(updatedUsers);
+    
+    let newCurrentUser = currentUser;
+    if (currentUser && currentUser._id === userId) {
+      newCurrentUser = updatedUser;
+      setCurrentUserInternal(updatedUser);
+    }
+    syncToLocalStorage(updatedUsers, activities, registrations, organizerRequests, posts, newCurrentUser);
+  };
 
   const resetDatabase = () => {
     localStorage.removeItem(LOCAL_STORAGE_KEY);
@@ -1098,6 +1126,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         createPost,
         likePost,
         updateProfile,
+        changeUserRole,
         resetDatabase
       }}
     >

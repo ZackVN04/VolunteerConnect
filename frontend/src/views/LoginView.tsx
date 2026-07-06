@@ -46,9 +46,9 @@ export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToRegister }) =>
     <div className="flex w-full h-screen overflow-hidden text-left font-body-md bg-background">
       {/* Left Side: Illustration (Hidden on mobile/tablet) */}
       <div className="hidden lg:flex w-1/2 bg-surface-container-low h-full items-center justify-center relative overflow-hidden">
-        <div 
-          aria-hidden="true" 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-transform duration-500 scale-105" 
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-transform duration-500 scale-105"
           style={{ backgroundImage: `url("${ASSETS.authBackground}")` }}
         ></div>
         <div className="absolute inset-0 bg-gradient-to-t from-black/35 to-transparent"></div>
@@ -60,7 +60,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToRegister }) =>
 
       {/* Right Side: Login Form */}
       <div className="w-full lg:w-1/2 h-full flex flex-col items-center justify-center bg-surface px-margin-mobile md:px-lg relative overflow-y-auto">
-        
+
         {/* Logo / Brand Header */}
         <div className="absolute top-8 left-6 md:left-12 flex items-center gap-2">
           <span className="material-symbols-outlined text-primary text-[32px] filled">volunteer_activism</span>
@@ -85,7 +85,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToRegister }) =>
             {/* Email Field */}
             <div className="space-y-1">
               <label className="block font-label-sm text-xs text-on-surface font-semibold" htmlFor="email">
-                Email đăng nhập
+                Email
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -93,14 +93,14 @@ export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToRegister }) =>
                     mail
                   </span>
                 </div>
-                <input 
-                  className="w-full pl-10 pr-4 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg focus:outline-none focus:border-primary text-sm placeholder-on-surface-variant/50 text-on-surface" 
-                  id="email" 
+                <input
+                  className="w-full pl-10 pr-4 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg focus:outline-none focus:border-primary text-sm placeholder-on-surface-variant/50 text-on-surface"
+                  id="email"
                   name="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Ví dụ: nguyenvana@gmail.com" 
-                  required 
+                  placeholder="Email"
+                  required
                   type="email"
                 />
               </div>
@@ -116,22 +116,22 @@ export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToRegister }) =>
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <span className="material-symbols-outlined text-outline text-sm">lock</span>
                 </div>
-                <input 
-                  className="w-full pl-10 pr-4 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg focus:outline-none focus:border-primary text-sm placeholder-on-surface-variant/50 text-on-surface" 
-                  id="password" 
+                <input
+                  className="w-full pl-10 pr-4 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg focus:outline-none focus:border-primary text-sm placeholder-on-surface-variant/50 text-on-surface"
+                  id="password"
                   name="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••" 
-                  required 
+                  placeholder="••••••••"
+                  required
                   type="password"
                 />
               </div>
             </div>
 
             {/* Submit Button */}
-            <button 
-              className="w-full py-3 px-6 bg-primary text-on-primary rounded-full font-label-sm text-sm hover:bg-tertiary active:scale-[0.98] transition-all flex items-center justify-center gap-1 shadow-sm font-bold mt-4" 
+            <button
+              className="w-full py-3 px-6 bg-primary text-on-primary rounded-full font-label-sm text-sm hover:bg-tertiary active:scale-[0.98] transition-all flex items-center justify-center gap-1 shadow-sm font-bold mt-4"
               type="submit"
             >
               Đăng nhập
@@ -168,8 +168,8 @@ export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToRegister }) =>
 
           {/* Sign up Link */}
           <p className="text-center font-body-md text-xs text-on-surface-variant pt-2">
-            Chưa có tài khoản? 
-            <button 
+            Chưa có tài khoản?
+            <button
               onClick={onNavigateToRegister}
               className="font-label-sm text-xs text-primary hover:text-tertiary font-bold hover:underline ml-1"
             >
