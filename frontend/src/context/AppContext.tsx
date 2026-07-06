@@ -184,8 +184,8 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         setOrganizerRequests(db.organizerRequests || []);
         setPosts(db.posts || []);
         
-        // Auto login first user in the saved database
-        if (db.currentUser) {
+        // Auto login first user in the saved database if explicitly saved
+        if (db.currentUser !== undefined) {
           setCurrentUserInternal(db.currentUser);
         } else if (db.users && db.users.length > 0) {
           setCurrentUserInternal(db.users[0]); // default to admin or first user
