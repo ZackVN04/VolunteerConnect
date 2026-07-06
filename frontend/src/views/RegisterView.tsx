@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { authService, formatPhoneE164 } from '../services/apiService';
+import { ASSETS } from '../constants/assets';
 
 const USE_REAL_BACKEND = true;
 
@@ -105,7 +106,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ onNavigateToLogin, o
         <img 
           alt="Volunteer Connect Illustration" 
           className="w-full h-full object-cover z-0 transition-transform duration-500 scale-105" 
-          src="https://lh3.googleusercontent.com/aida-public/AB6AXuBnEQUP28LzxzBOwV3aI5ATee6zxKimNALIuGdcxn1IGeuXz0I-8pLcpXgqL-BT8nGX5h8Ykh3IwUkle1VDFkYZ4M9oY429ITgwQyf_iAOv3vkS5KNJF-G-jsudlsMC5hCuZTUItnzNXpQtno8LOyjSHs8HgLQqtNauvldRlaVoyywdr-Yd-_KiSmbSSldX7BYzT3dlL8rYfb8dBtscyLxVvYLd7_oCqFlQq5AaEPkH7oB0q16RRSv4cA"
+          src={ASSETS.authBackground}
         />
       </div>
 
