@@ -10,7 +10,7 @@ import {
   adminService
 } from '../services/apiService';
 
-const USE_REAL_BACKEND = true;
+const USE_REAL_BACKEND = import.meta.env.VITE_USE_REAL_BACKEND === 'true';
 
 
 // --- Interface Definitions ---
@@ -24,6 +24,8 @@ export interface UserProfile {
   avatar_url?: string;
   organizer_request_status?: 'None' | 'Pending' | 'Approved' | 'Rejected';
   organizer_request_feedback?: string | null;
+  age?: number;
+  gender?: string;
 }
 
 export interface User {
@@ -154,6 +156,7 @@ interface AppContextType {
   createPost: (content: string, images: string[], hashtags: string[]) => void;
   likePost: (postId: string) => void;
   updateProfile: (updatedProfile: Partial<UserProfile>, email: string, province: string, phone?: string) => void;
+  changeUserRole: (userId: string, role: 'Volunteer' | 'Organizer' | 'Admin') => void;
   resetDatabase: () => void;
 }
 
@@ -184,8 +187,8 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         // Auto login first user in the saved database
         if (db.currentUser) {
           setCurrentUserInternal(db.currentUser);
-        } else if (!USE_REAL_BACKEND && db.users && db.users.length > 0) {
-          setCurrentUserInternal(db.users[0]); // default to admin or first user in simulated mode
+        } else if (db.users && db.users.length > 0) {
+          setCurrentUserInternal(db.users[0]); // default to admin or first user
         }
         return;
       } catch (e) {
@@ -315,13 +318,9 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     
     // Default logged in user is Nguyễn Văn A (Volunteer) for easy demo
     const defaultUser = defaultUsers.find(u => u._id === 'user_vol_a_002') || defaultUsers[0];
-    if (!USE_REAL_BACKEND) {
-      setCurrentUserInternal(defaultUser);
-      syncToLocalStorage(defaultUsers, defaultActivities, defaultRegistrations, defaultRequests, defaultPosts, defaultUser);
-    } else {
-      setCurrentUserInternal(null);
-      syncToLocalStorage(defaultUsers, defaultActivities, defaultRegistrations, defaultRequests, defaultPosts, null);
-    }
+    setCurrentUserInternal(defaultUser);
+
+    syncToLocalStorage(defaultUsers, defaultActivities, defaultRegistrations, defaultRequests, defaultPosts, defaultUser);
   };
 
   // Wrapper for setCurrentUser to also persist it
@@ -1032,6 +1031,9 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           if (updatedProfile.bio !== undefined) extra.bio = updatedProfile.bio;
           if (updatedProfile.skills !== undefined) extra.skills = updatedProfile.skills;
           if (province !== undefined) extra.area_of_interest = province;
+          if (updatedProfile.age !== undefined) extra.age = updatedProfile.age;
+          if (updatedProfile.gender !== undefined) extra.gender = updatedProfile.gender;
+          if (email !== undefined) extra.email = email;
           if (phone !== undefined) extra.phone = phone;
           localStorage.setItem(extraKey, JSON.stringify(extra));
 
@@ -1075,6 +1077,26 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
 
+  const changeUserRole = (userId: string, role: 'Volunteer' | 'Organizer' | 'Admin') => {
+    const userIndex = users.findIndex(u => u._id === userId);
+    if (userIndex === -1) return;
+    const updatedUser = {
+      ...users[userIndex],
+      role,
+      updated_at: new Date().toISOString()
+    };
+    const updatedUsers = [...users];
+    updatedUsers[userIndex] = updatedUser;
+    setUsers(updatedUsers);
+    
+    let newCurrentUser = currentUser;
+    if (currentUser && currentUser._id === userId) {
+      newCurrentUser = updatedUser;
+      setCurrentUserInternal(updatedUser);
+    }
+    syncToLocalStorage(updatedUsers, activities, registrations, organizerRequests, posts, newCurrentUser);
+  };
+
   const resetDatabase = () => {
     localStorage.removeItem(LOCAL_STORAGE_KEY);
     resetToInitial();
@@ -1104,6 +1126,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         createPost,
         likePost,
         updateProfile,
+        changeUserRole,
         resetDatabase
       }}
     >

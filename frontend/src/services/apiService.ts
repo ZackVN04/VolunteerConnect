@@ -45,7 +45,7 @@ export const mapBackendUserToFrontend = (beUser: any): User => {
     otp_expires_at: null,
     otp_send_count: 0,
     otp_cooldown_until: null,
-    email: beUser.email,
+    email: localExtra.email !== undefined ? localExtra.email : beUser.email,
     password_hash: '',
     role: roleMap[beUser.role] || 'Volunteer',
     profile: {
@@ -56,7 +56,9 @@ export const mapBackendUserToFrontend = (beUser: any): User => {
       skills: localExtra.skills !== undefined ? localExtra.skills : (beUser.skills || []),
       area_of_interest: localExtra.area_of_interest !== undefined ? localExtra.area_of_interest : (beUser.area_of_interest || 'Hồ Chí Minh'),
       organizer_request_status: statusMap[beUser.organizer_request_status] || 'None',
-      organizer_request_feedback: beUser.organizer_request_feedback || null
+      organizer_request_feedback: beUser.organizer_request_feedback || null,
+      age: localExtra.age !== undefined ? localExtra.age : undefined,
+      gender: localExtra.gender !== undefined ? localExtra.gender : undefined
     },
     created_at: beUser.created_at,
     updated_at: beUser.updated_at || beUser.created_at
