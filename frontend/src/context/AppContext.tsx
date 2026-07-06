@@ -10,7 +10,7 @@ import {
   adminService
 } from '../services/apiService';
 
-const USE_REAL_BACKEND = import.meta.env.VITE_USE_REAL_BACKEND === 'true';
+const USE_REAL_BACKEND = true;
 
 
 // --- Interface Definitions ---
@@ -153,7 +153,7 @@ interface AppContextType {
   reviewActivity: (activityId: string, approve: boolean) => void;
   createPost: (content: string, images: string[], hashtags: string[]) => void;
   likePost: (postId: string) => void;
-  updateProfile: (updatedProfile: Partial<UserProfile>, email: string, province: string) => void;
+  updateProfile: (updatedProfile: Partial<UserProfile>, email: string, province: string, phone?: string) => void;
   resetDatabase: () => void;
 }
 
@@ -184,8 +184,8 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         // Auto login first user in the saved database
         if (db.currentUser) {
           setCurrentUserInternal(db.currentUser);
-        } else if (db.users && db.users.length > 0) {
-          setCurrentUserInternal(db.users[0]); // default to admin or first user
+        } else if (!USE_REAL_BACKEND && db.users && db.users.length > 0) {
+          setCurrentUserInternal(db.users[0]); // default to admin or first user in simulated mode
         }
         return;
       } catch (e) {
@@ -315,9 +315,13 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     
     // Default logged in user is Nguyễn Văn A (Volunteer) for easy demo
     const defaultUser = defaultUsers.find(u => u._id === 'user_vol_a_002') || defaultUsers[0];
-    setCurrentUserInternal(defaultUser);
-
-    syncToLocalStorage(defaultUsers, defaultActivities, defaultRegistrations, defaultRequests, defaultPosts, defaultUser);
+    if (!USE_REAL_BACKEND) {
+      setCurrentUserInternal(defaultUser);
+      syncToLocalStorage(defaultUsers, defaultActivities, defaultRegistrations, defaultRequests, defaultPosts, defaultUser);
+    } else {
+      setCurrentUserInternal(null);
+      syncToLocalStorage(defaultUsers, defaultActivities, defaultRegistrations, defaultRequests, defaultPosts, null);
+    }
   };
 
   // Wrapper for setCurrentUser to also persist it
@@ -1013,7 +1017,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   // Edit/Update Profile Details
-  const updateProfile = (updatedProfile: Partial<UserProfile>, email: string, province: string) => {
+  const updateProfile = (updatedProfile: Partial<UserProfile>, email: string, province: string, phone?: string) => {
     if (USE_REAL_BACKEND) {
       if (!currentUser) return;
       (async () => {
@@ -1028,6 +1032,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           if (updatedProfile.bio !== undefined) extra.bio = updatedProfile.bio;
           if (updatedProfile.skills !== undefined) extra.skills = updatedProfile.skills;
           if (province !== undefined) extra.area_of_interest = province;
+          if (phone !== undefined) extra.phone = phone;
           localStorage.setItem(extraKey, JSON.stringify(extra));
 
           // Only send full_name and avatar_url to backend
@@ -1052,6 +1057,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     const updatedUser: User = {
       ...currentUser,
       email: email || currentUser.email,
+      phone: phone || currentUser.phone,
       profile: {
         ...currentUser.profile,
         ...updatedProfile,

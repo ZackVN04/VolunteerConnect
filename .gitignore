@@ -15,3 +15,5 @@ env/
 .claude/
 AGENTS.md
 CLAUDE.md
+
+*.txt

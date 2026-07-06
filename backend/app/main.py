@@ -9,12 +9,14 @@ from app.core.config.settings import settings
 from app.features.users.models import User
 from app.features.organizer_requests.models import OrganizerRequest
 from app.features.activities.models import Activity
+from app.features.registrations.models import Registration
 from app.core.scheduler import start_scheduler, shutdown_scheduler
 
 from app.features.auth.router import router as auth_router
 from app.features.users.router import router as users_router
 from app.features.organizer_requests.router import router as organizer_requests_router
 from app.features.activities.router import router as activities_router, organizer_router
+from app.features.registrations.router import router as registrations_router, action_router as registrations_action_router, user_router as registrations_user_router
 
 # =============================================================================
 # 1. LIFESPAN (Startup and Shutdown events)
@@ -36,7 +38,8 @@ async def lifespan(app: FastAPI):
         document_models=[
             User,
             OrganizerRequest,
-            Activity
+            Activity,
+            Registration
         ]
     )
     
@@ -118,6 +121,9 @@ app.include_router(users_router)
 app.include_router(organizer_requests_router)
 app.include_router(activities_router)
 app.include_router(organizer_router)
+app.include_router(registrations_router)
+app.include_router(registrations_action_router)
+app.include_router(registrations_user_router)
 
 # =============================================================================
 # 6. ROOT ENDPOINT (Health Check)

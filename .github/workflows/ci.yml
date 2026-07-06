@@ -116,6 +116,12 @@ jobs:
           # Gắn mã Băm (SHA) của lần Commit này vào đường link Docker
           IMAGE_URL: "asia-southeast1-docker.pkg.dev/volunteer-connect-prod-999/volunteer-connect-repo/volunteer-connect-api:${{ github.sha }}"
           FRONTEND_IMAGE_URL: "asia-southeast1-docker.pkg.dev/volunteer-connect-prod-999/volunteer-connect-repo/volunteer-connect-frontend:${{ github.sha }}"
+          # Truyền tiếp các biến SMTP từ GitHub Secrets
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          SMTP_FROM_EMAIL: ${{ secrets.SMTP_FROM_EMAIL }}
         # Chạy unlock trước để bẻ khóa nếu có lỗi, sau đó deploy bình thường
         run: |
           npx sst unlock --stage dev || true

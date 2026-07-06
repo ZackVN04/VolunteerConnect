@@ -1,5 +1,8 @@
 {
   "dependencies": {
     "@pulumi/gcp": "^9.29.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.0"
   }
 }

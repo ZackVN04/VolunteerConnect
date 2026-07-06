@@ -50,10 +50,10 @@ const AppContent: React.FC = () => {
         />
       );
     }
-    if (otpVerifyPhone) {
+    if (otpVerifyPhone || otpVerifyEmail) {
       return (
         <OTPVerifyView 
-          phoneNumber={otpVerifyPhone}
+          phoneNumber={otpVerifyPhone || otpVerifyEmail || ""}
           email={otpVerifyEmail || undefined}
           onVerifySuccess={() => {
             setOtpVerifyPhone(null);
@@ -78,7 +78,14 @@ const AppContent: React.FC = () => {
         />
       );
     }
-    return <LoginView onNavigateToRegister={() => setIsRegisterMode(true)} />;
+    return (
+      <LoginView 
+        onNavigateToRegister={() => setIsRegisterMode(true)} 
+        onNavigateToOTP={(email) => {
+          setOtpVerifyEmail(email);
+        }}
+      />
+    );
   }
 
   // Parse Hash Route

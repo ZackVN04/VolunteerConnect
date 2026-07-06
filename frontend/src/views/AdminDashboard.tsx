@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { adminService } from '../services/apiService';
 
-const USE_REAL_BACKEND = import.meta.env.VITE_USE_REAL_BACKEND === 'true';
+const USE_REAL_BACKEND = true;
 
 export const AdminDashboard: React.FC = () => {
   const { 
