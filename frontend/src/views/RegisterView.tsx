@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { authService, formatPhoneE164 } from '../services/apiService';
+import { authService } from '../services/apiService';
+import { ASSETS } from '../constants/assets';
 
 const USE_REAL_BACKEND = true;
 
@@ -102,17 +103,17 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ onNavigateToLogin, o
       {/* Left Side: Illustration (Hidden on Mobile) */}
       <div className="hidden md:flex md:w-1/2 relative bg-secondary-container items-center justify-center overflow-hidden h-screen">
         <div className="absolute inset-0 bg-primary/5 z-10 mix-blend-multiply"></div>
-        <img 
-          alt="Volunteer Connect Illustration" 
-          className="w-full h-full object-cover z-0 transition-transform duration-500 scale-105" 
-          src="https://lh3.googleusercontent.com/aida-public/AB6AXuBnEQUP28LzxzBOwV3aI5ATee6zxKimNALIuGdcxn1IGeuXz0I-8pLcpXgqL-BT8nGX5h8Ykh3IwUkle1VDFkYZ4M9oY429ITgwQyf_iAOv3vkS5KNJF-G-jsudlsMC5hCuZTUItnzNXpQtno8LOyjSHs8HgLQqtNauvldRlaVoyywdr-Yd-_KiSmbSSldX7BYzT3dlL8rYfb8dBtscyLxVvYLd7_oCqFlQq5AaEPkH7oB0q16RRSv4cA"
+        <img
+          alt="Volunteer Connect Illustration"
+          className="w-full h-full object-cover z-0 transition-transform duration-500 scale-105"
+          src={ASSETS.authBackground}
         />
       </div>
 
       {/* Right Side: Registration Form */}
       <div className="w-full md:w-1/2 flex items-center justify-center p-margin-mobile md:p-lg bg-surface h-screen overflow-y-auto">
         <div className="w-full max-w-[440px] space-y-6">
-          
+
           {/* Brand Logo header */}
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-primary text-[32px] filled">volunteer_activism</span>
@@ -134,15 +135,15 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ onNavigateToLogin, o
               <label className="block font-label-sm text-xs text-on-surface font-semibold" htmlFor="fullname">Họ và tên *</label>
               <div className="relative">
                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-sm">person</span>
-                <input 
-                  className="w-full pl-10 pr-4 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-sm text-on-surface placeholder-outline-variant/60 focus:outline-none focus:border-primary" 
-                  id="fullname" 
-                  name="fullname" 
+                <input
+                  className="w-full pl-10 pr-4 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-sm text-on-surface placeholder-outline-variant/60 focus:outline-none focus:border-primary"
+                  id="fullname"
+                  name="fullname"
                   value={fullname}
                   onChange={(e) => setFullname(e.target.value)}
-                  placeholder="Nguyễn Văn A" 
+                  placeholder="Nguyễn Văn A"
                   required
-                  type="text" 
+                  type="text"
                 />
               </div>
             </div>
@@ -152,15 +153,15 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ onNavigateToLogin, o
               <label className="block font-label-sm text-xs text-on-surface font-semibold" htmlFor="email">Email đăng nhập *</label>
               <div className="relative">
                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-sm">mail</span>
-                <input 
-                  className="w-full pl-10 pr-4 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-sm text-on-surface placeholder-outline-variant/60 focus:outline-none focus:border-primary" 
-                  id="email" 
-                  name="email" 
+                <input
+                  className="w-full pl-10 pr-4 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-sm text-on-surface placeholder-outline-variant/60 focus:outline-none focus:border-primary"
+                  id="email"
+                  name="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="ví dụ: nguyenvana@gmail.com" 
+                  placeholder="ví dụ: nguyenvana@gmail.com"
                   required
-                  type="email" 
+                  type="email"
                 />
               </div>
             </div>
@@ -170,15 +171,15 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ onNavigateToLogin, o
               <label className="block font-label-sm text-xs text-on-surface font-semibold" htmlFor="phone">Số điện thoại *</label>
               <div className="relative">
                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-sm">phone</span>
-                <input 
-                  className="w-full pl-10 pr-4 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-sm text-on-surface placeholder-outline-variant/60 focus:outline-none focus:border-primary" 
-                  id="phone" 
-                  name="phone" 
+                <input
+                  className="w-full pl-10 pr-4 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-sm text-on-surface placeholder-outline-variant/60 focus:outline-none focus:border-primary"
+                  id="phone"
+                  name="phone"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  placeholder="ví dụ: 0912345678" 
+                  placeholder="ví dụ: 0912345678"
                   required
-                  type="tel" 
+                  type="tel"
                 />
               </div>
             </div>
@@ -188,13 +189,13 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ onNavigateToLogin, o
               <label className="block font-label-sm text-xs text-on-surface font-semibold" htmlFor="password">Mật khẩu *</label>
               <div className="relative">
                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-sm">lock</span>
-                <input 
-                  className="w-full pl-10 pr-10 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-sm text-on-surface placeholder-outline-variant/60 focus:outline-none focus:border-primary" 
-                  id="password" 
-                  name="password" 
+                <input
+                  className="w-full pl-10 pr-10 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-sm text-on-surface placeholder-outline-variant/60 focus:outline-none focus:border-primary"
+                  id="password"
+                  name="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••" 
+                  placeholder="••••••••"
                   required
                   type={showPassword ? "text" : "password"}
                 />
@@ -217,13 +218,13 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ onNavigateToLogin, o
               <label className="block font-label-sm text-xs text-on-surface font-semibold" htmlFor="confirmPassword">Nhập lại mật khẩu *</label>
               <div className="relative">
                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-sm">lock_reset</span>
-                <input 
-                  className="w-full pl-10 pr-10 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-sm text-on-surface placeholder-outline-variant/60 focus:outline-none focus:border-primary" 
-                  id="confirmPassword" 
-                  name="confirmPassword" 
+                <input
+                  className="w-full pl-10 pr-10 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-sm text-on-surface placeholder-outline-variant/60 focus:outline-none focus:border-primary"
+                  id="confirmPassword"
+                  name="confirmPassword"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="••••••••" 
+                  placeholder="••••••••"
                   required
                   type={showConfirmPassword ? "text" : "password"}
                 />
@@ -242,8 +243,8 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ onNavigateToLogin, o
             </div>
 
             {/* Submit Button */}
-            <button 
-              className="w-full mt-4 bg-primary hover:bg-tertiary text-on-primary font-label-sm text-sm font-bold rounded-full py-3 px-6 transition-all active:scale-95 flex justify-center items-center gap-1.5 shadow-sm" 
+            <button
+              className="w-full mt-4 bg-primary hover:bg-tertiary text-on-primary font-label-sm text-sm font-bold rounded-full py-3 px-6 transition-all active:scale-95 flex justify-center items-center gap-1.5 shadow-sm"
               type="submit"
             >
               Đăng ký tài khoản
@@ -253,8 +254,8 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ onNavigateToLogin, o
 
           {/* Login Link */}
           <div className="text-center font-body-md text-xs text-on-surface-variant pt-2">
-            Đã có tài khoản? 
-            <button 
+            Đã có tài khoản?
+            <button
               onClick={onNavigateToLogin}
               className="text-primary font-bold hover:text-tertiary hover:underline transition-colors ml-1"
             >
