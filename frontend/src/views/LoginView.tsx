@@ -3,26 +3,21 @@ import { useApp } from '../context/AppContext';
 import { authService } from '../services/apiService';
 import { ASSETS } from '../constants/assets';
 
-const USE_REAL_BACKEND = true;
+const USE_REAL_BACKEND = import.meta.env.VITE_USE_REAL_BACKEND === 'true';
 
 interface LoginViewProps {
   onNavigateToRegister: () => void;
-  onNavigateToOTP?: (email: string) => void;
 }
 
-export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToRegister, onNavigateToOTP }) => {
+export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToRegister }) => {
   const { users, loginAs, setCurrentUser } = useApp();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
-  const [showVerifyLink, setShowVerifyLink] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) return;
-    setErrorMsg('');
-    setShowVerifyLink(false);
 
     if (USE_REAL_BACKEND) {
       try {
@@ -31,25 +26,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToRegister, onNa
         setCurrentUser(user);
         window.location.hash = '#/feed';
       } catch (err: any) {
-        let msg = 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.';
-        const detail = err.response?.data?.detail;
-        if (typeof detail === 'string') {
-          msg = detail;
-        } else if (Array.isArray(detail)) {
-          msg = detail.map((d: any) => d.msg).join('\n');
-        } else if (err.response?.data?.message) {
-          msg = err.response.data.message;
-        }
-        setErrorMsg(msg);
-
-        // Detect 403 activation required
-        if (
-          err.response?.status === 403 || 
-          msg.toLowerCase().includes('xác thực') || 
-          msg.toLowerCase().includes('otp')
-        ) {
-          setShowVerifyLink(true);
-        }
+        setErrorMsg(err.response?.data?.detail || err.response?.data?.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.');
       }
       return;
     }
@@ -69,9 +46,9 @@ export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToRegister, onNa
     <div className="flex w-full h-screen overflow-hidden text-left font-body-md bg-background">
       {/* Left Side: Illustration (Hidden on mobile/tablet) */}
       <div className="hidden lg:flex w-1/2 bg-surface-container-low h-full items-center justify-center relative overflow-hidden">
-        <div 
-          aria-hidden="true" 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-transform duration-500 scale-105" 
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-transform duration-500 scale-105"
           style={{ backgroundImage: `url("${ASSETS.authBackground}")` }}
         ></div>
         <div className="absolute inset-0 bg-gradient-to-t from-black/35 to-transparent"></div>
@@ -83,7 +60,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToRegister, onNa
 
       {/* Right Side: Login Form */}
       <div className="w-full lg:w-1/2 h-full flex flex-col items-center justify-center bg-surface px-margin-mobile md:px-lg relative overflow-y-auto">
-        
+
         {/* Logo / Brand Header */}
         <div className="absolute top-8 left-6 md:left-12 flex items-center gap-2">
           <span className="material-symbols-outlined text-primary text-[32px] filled">volunteer_activism</span>
@@ -100,15 +77,6 @@ export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToRegister, onNa
           {errorMsg && (
             <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg text-xs font-semibold leading-relaxed">
               {errorMsg}
-              {showVerifyLink && (
-                <button 
-                  type="button" 
-                  onClick={() => onNavigateToOTP && onNavigateToOTP(email.trim())}
-                  className="block mt-2 text-primary hover:text-tertiary font-bold underline cursor-pointer"
-                >
-                  Nhấp vào đây để nhập mã OTP xác thực.
-                </button>
-              )}
             </div>
           )}
 
@@ -125,14 +93,14 @@ export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToRegister, onNa
                     mail
                   </span>
                 </div>
-                <input 
-                  className="w-full pl-10 pr-4 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg focus:outline-none focus:border-primary text-sm placeholder-on-surface-variant/50 text-on-surface" 
-                  id="email" 
+                <input
+                  className="w-full pl-10 pr-4 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg focus:outline-none focus:border-primary text-sm placeholder-on-surface-variant/50 text-on-surface"
+                  id="email"
                   name="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Ví dụ: nguyenvana@gmail.com" 
-                  required 
+                  placeholder="Ví dụ: nguyenvana@gmail.com"
+                  required
                   type="email"
                 />
               </div>
@@ -148,33 +116,22 @@ export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToRegister, onNa
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <span className="material-symbols-outlined text-outline text-sm">lock</span>
                 </div>
-                <input 
-                  className="w-full pl-10 pr-10 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg focus:outline-none focus:border-primary text-sm placeholder-on-surface-variant/50 text-on-surface" 
-                  id="password" 
+                <input
+                  className="w-full pl-10 pr-4 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg focus:outline-none focus:border-primary text-sm placeholder-on-surface-variant/50 text-on-surface"
+                  id="password"
                   name="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••" 
-                  required 
-                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  required
+                  type="password"
                 />
-                {password && (
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-outline-variant hover:text-primary transition-colors"
-                  >
-                    <span className="material-symbols-outlined text-base">
-                      {showPassword ? "visibility" : "visibility_off"}
-                    </span>
-                  </button>
-                )}
               </div>
             </div>
 
             {/* Submit Button */}
-            <button 
-              className="w-full py-3 px-6 bg-primary text-on-primary rounded-full font-label-sm text-sm hover:bg-tertiary active:scale-[0.98] transition-all flex items-center justify-center gap-1 shadow-sm font-bold mt-4" 
+            <button
+              className="w-full py-3 px-6 bg-primary text-on-primary rounded-full font-label-sm text-sm hover:bg-tertiary active:scale-[0.98] transition-all flex items-center justify-center gap-1 shadow-sm font-bold mt-4"
               type="submit"
             >
               Đăng nhập
@@ -211,8 +168,8 @@ export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToRegister, onNa
 
           {/* Sign up Link */}
           <p className="text-center font-body-md text-xs text-on-surface-variant pt-2">
-            Chưa có tài khoản? 
-            <button 
+            Chưa có tài khoản?
+            <button
               onClick={onNavigateToRegister}
               className="font-label-sm text-xs text-primary hover:text-tertiary font-bold hover:underline ml-1"
             >

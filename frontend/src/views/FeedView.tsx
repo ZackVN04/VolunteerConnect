@@ -12,7 +12,7 @@ export const FeedView: React.FC = () => {
   const totalVolunteers = users.filter(u => u.role === 'Volunteer').length;
   const totalProjectsCompleted = activities.filter(a => a.status === 'Completed').length;
   // Hours is hardcoded or estimated for UI
-  const totalHours = 1200000; 
+  const totalHours = 1200000;
 
   const handleCreatePost = (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,16 +45,16 @@ export const FeedView: React.FC = () => {
             Nền tảng trực quan giúp kết nối các tình nguyện viên năng động với các hoạt động cộng đồng ý nghĩa. Cùng nhau dọn rác, hiến máu, gây quỹ, hỗ trợ trẻ em khó khăn và tạo ra sức mạnh thay đổi xã hội tốt đẹp hơn.
           </p>
           <div className="flex flex-wrap gap-4 mt-2">
-            <a 
-              href="#/activities" 
+            <a
+              href="#/activities"
               className="bg-primary text-on-primary px-8 py-4 rounded-lg hover:bg-tertiary transition-all duration-200 active:scale-95 font-label-sm text-sm flex items-center gap-2 shadow-sm"
             >
               Khám Phá Hoạt Động
               <span className="material-symbols-outlined text-sm">arrow_forward</span>
             </a>
             {currentUser && currentUser.role === 'Volunteer' && (
-              <a 
-                href="#/profile" 
+              <a
+                href="#/profile"
                 className="border border-primary text-primary px-8 py-4 rounded-lg hover:bg-primary-container/20 transition-all duration-200 active:scale-95 font-label-sm text-sm"
               >
                 Gửi Đơn Xin Quyền Tổ Chức
@@ -94,8 +94,8 @@ export const FeedView: React.FC = () => {
               Khám phá các hoạt động tình nguyện nổi bật và đăng ký tham gia ngay hôm nay.
             </p>
           </div>
-          <a 
-            href="#/activities" 
+          <a
+            href="#/activities"
             className="text-primary hover:text-primary/80 font-semibold text-sm flex items-center gap-1 transition-colors group"
           >
             Xem tất cả hoạt động
@@ -108,15 +108,15 @@ export const FeedView: React.FC = () => {
             .filter(act => act.status === 'Open' || act.status === 'Full')
             .slice(0, 3)
             .map(act => (
-              <div 
-                key={act._id} 
+              <div
+                key={act._id}
                 className="bg-surface-container-lowest border border-surface-variant rounded-lg overflow-hidden flex flex-col h-[480px] transition-all duration-200 hover:shadow-md"
               >
                 {/* Image & Category tag */}
                 <div className="relative h-[192px] w-full bg-surface-container-low shrink-0">
-                  <img 
-                    src={act.image_url || 'https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=600'} 
-                    alt={act.title} 
+                  <img
+                    src={act.image_url || 'https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=600'}
+                    alt={act.title}
                     className="w-full h-full object-cover"
                   />
                   <span className="absolute top-4 left-4 bg-secondary-fixed text-primary font-bold text-xs px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">
@@ -131,9 +131,8 @@ export const FeedView: React.FC = () => {
                     <h3 className="font-headline-md text-on-surface text-base md:text-lg font-semibold line-clamp-2 leading-tight">
                       {act.title}
                     </h3>
-                    <span className={`shrink-0 flex items-center gap-1 px-2 py-0.5 rounded font-bold text-xs ${
-                      act.status === 'Open' ? 'bg-[#E6F4EA] text-[#137333]' : 'bg-red-50 text-red-600'
-                    }`}>
+                    <span className={`shrink-0 flex items-center gap-1 px-2 py-0.5 rounded font-bold text-xs ${act.status === 'Open' ? 'bg-[#E6F4EA] text-[#137333]' : 'bg-red-50 text-red-600'
+                      }`}>
                       <span className={`w-1.5 h-1.5 rounded-full ${act.status === 'Open' ? 'bg-[#137333]' : 'bg-red-600'}`}></span>
                       {act.status === 'Open' ? 'Đang tuyển' : 'Đã đầy'}
                     </span>
@@ -157,7 +156,7 @@ export const FeedView: React.FC = () => {
 
                   {/* Button */}
                   <div className="border-t border-surface-variant pt-4 mt-auto">
-                    <a 
+                    <a
                       href={`#/activity/${act._id}`}
                       className="w-full bg-primary hover:bg-primary/95 text-white font-bold h-[52px] rounded-lg transition-all duration-200 active:scale-95 flex justify-center items-center gap-2 shadow-sm text-sm"
                     >
@@ -179,8 +178,8 @@ export const FeedView: React.FC = () => {
               <h2 className="font-headline-md text-headline-md text-on-surface font-bold">Bảng Tin Cộng Đồng</h2>
               <p className="font-body-md text-body-md text-on-surface-variant text-sm mt-1">Chia sẻ hình ảnh, trải nghiệm và khoảnh khắc tình nguyện đẹp từ cộng đồng.</p>
             </div>
-            <button 
-              onClick={() => setShowCreateModal(true)} 
+            <button
+              onClick={() => setShowCreateModal(true)}
               className="bg-primary text-on-primary hover:bg-tertiary px-4 py-2 rounded-lg font-label-sm text-xs transition-all flex items-center gap-1 shadow"
             >
               <span className="material-symbols-outlined text-sm">edit_note</span>
@@ -203,16 +202,15 @@ export const FeedView: React.FC = () => {
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="font-bold text-on-surface text-base">{post.denormalized_author.name}</span>
-                          <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase ${
-                            post.denormalized_author.role === 'Admin' ? 'bg-red-100 text-red-700' :
-                            post.denormalized_author.role === 'Organizer' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'
-                          }`}>
+                          <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase ${post.denormalized_author.role === 'Admin' ? 'bg-red-100 text-red-700' :
+                              post.denormalized_author.role === 'Organizer' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'
+                            }`}>
                             {post.denormalized_author.role}
                           </span>
                         </div>
                         <span className="text-xs text-on-surface-variant">
-                          {new Date(post.created_at).toLocaleDateString('vi-VN', { 
-                            hour: '2-digit', 
+                          {new Date(post.created_at).toLocaleDateString('vi-VN', {
+                            hour: '2-digit',
                             minute: '2-digit',
                             day: 'numeric',
                             month: 'numeric',
@@ -231,9 +229,9 @@ export const FeedView: React.FC = () => {
                   {/* Post Image Attachments */}
                   {post.images && post.images.length > 0 && (
                     <div className="rounded-xl overflow-hidden mb-4 border border-outline-variant bg-surface-container-low max-h-[350px]">
-                      <img 
-                        src={post.images[0]} 
-                        alt="Đính kèm bài đăng" 
+                      <img
+                        src={post.images[0]}
+                        alt="Đính kèm bài đăng"
                         className="w-full h-full object-cover max-h-[350px]"
                       />
                     </div>
@@ -252,7 +250,7 @@ export const FeedView: React.FC = () => {
 
                   {/* Post Footer / Actions */}
                   <div className="flex items-center gap-6 pt-3 border-t border-surface-variant text-sm text-on-surface-variant">
-                    <button 
+                    <button
                       onClick={() => likePost(post._id)}
                       className={`flex items-center gap-1.5 hover:text-primary transition-colors ${isLiked ? 'text-primary font-bold' : ''}`}
                     >
@@ -283,19 +281,19 @@ export const FeedView: React.FC = () => {
               <div className="flex justify-between items-center mb-2 text-sm">
                 <span className="font-bold text-on-surface">Volunteer Level</span>
                 <span className="font-bold text-primary">
-                  {currentUser.profile.joined_activity_count >= 5 ? 'Gold 🥇' : 
-                   currentUser.profile.joined_activity_count >= 1 ? 'Silver 🥈' : 'Bronze 🥉'}
+                  {currentUser.profile.joined_activity_count >= 5 ? 'Gold 🥇' :
+                    currentUser.profile.joined_activity_count >= 1 ? 'Silver 🥈' : 'Bronze 🥉'}
                 </span>
               </div>
               <div className="progress-bar-track my-3">
-                <div 
-                  className="progress-bar-fill" 
+                <div
+                  className="progress-bar-fill"
                   style={{ width: `${Math.min(100, (currentUser.profile.joined_activity_count / 5) * 100)}%` }}
                 ></div>
               </div>
               <p className="text-xs text-on-surface-variant text-right">
-                {currentUser.profile.joined_activity_count >= 5 
-                  ? 'Chúc mừng! Bạn đã đạt Cấp độ cao nhất' 
+                {currentUser.profile.joined_activity_count >= 5
+                  ? 'Chúc mừng! Bạn đã đạt Cấp độ cao nhất'
                   : `Hoàn thành thêm ${5 - currentUser.profile.joined_activity_count} hoạt động nữa để lên hạng Vàng`
                 }
               </p>
@@ -325,7 +323,7 @@ export const FeedView: React.FC = () => {
             {/* Modal Header */}
             <div className="flex justify-between items-center px-md py-sm border-b border-surface-variant">
               <h3 className="font-headline-md text-lg text-on-surface font-bold">Tạo bài viết mới</h3>
-              <button 
+              <button
                 onClick={() => setShowCreateModal(false)}
                 className="p-1 hover:bg-surface-variant rounded-full text-on-surface-variant"
               >
@@ -338,7 +336,7 @@ export const FeedView: React.FC = () => {
               <div className="p-md space-y-4">
                 <div>
                   <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Nội dung chia sẻ</label>
-                  <textarea 
+                  <textarea
                     value={postContent}
                     onChange={(e) => setPostContent(e.target.value)}
                     required
@@ -349,7 +347,7 @@ export const FeedView: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Hashtags (cách nhau bằng dấu phẩy)</label>
-                  <input 
+                  <input
                     type="text"
                     value={hashtagsStr}
                     onChange={(e) => setHashtagsStr(e.target.value)}
@@ -359,12 +357,12 @@ export const FeedView: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Ảnh minh họa (Không bắt buộc)</label>
-                  
+
                   {imageUrl ? (
                     <div className="relative rounded-lg overflow-hidden border border-outline-variant max-h-[200px] flex items-center justify-center bg-black/5">
-                      <img 
-                        src={imageUrl} 
-                        alt="Xem trước ảnh" 
+                      <img
+                        src={imageUrl}
+                        alt="Xem trước ảnh"
                         className="max-h-[200px] object-contain"
                       />
                       <button
@@ -381,7 +379,7 @@ export const FeedView: React.FC = () => {
                       <span className="material-symbols-outlined text-3xl text-outline mb-2">image</span>
                       <span className="text-xs font-semibold text-on-surface">Tải ảnh từ thiết bị lên</span>
                       <span className="text-[10px] text-on-surface-variant mt-1">Định dạng JPG, PNG (tối đa 2MB)</span>
-                      <input 
+                      <input
                         type="file"
                         accept="image/*"
                         onChange={(e) => {
@@ -407,14 +405,14 @@ export const FeedView: React.FC = () => {
                 </div>
               </div>
               <div className="px-md py-sm border-t border-surface-variant flex justify-end gap-2 bg-surface-bright">
-                <button 
+                <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
                   className="px-4 py-2 border border-outline-variant text-on-surface-variant rounded-lg hover:bg-surface-variant font-medium text-xs transition-colors"
                 >
                   Hủy
                 </button>
-                <button 
+                <button
                   type="submit"
                   className="px-6 py-2 bg-primary text-on-primary hover:bg-tertiary rounded-lg font-medium text-xs shadow transition-colors"
                 >
