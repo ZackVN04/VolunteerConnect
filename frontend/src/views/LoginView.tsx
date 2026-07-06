@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { authService } from '../services/apiService';
+import { ASSETS } from '../constants/assets';
 
 const USE_REAL_BACKEND = import.meta.env.VITE_USE_REAL_BACKEND === 'true';
 
@@ -48,7 +49,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToRegister }) =>
         <div 
           aria-hidden="true" 
           className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-transform duration-500 scale-105" 
-          style={{ backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuBnEQUP28LzxzBOwV3aI5ATee6zxKimNALIuGdcxn1IGeuXz0I-8pLcpXgqL-BT8nGX5h8Ykh3IwUkle1VDFkYZ4M9oY429ITgwQyf_iAOv3vkS5KNJF-G-jsudlsMC5hCuZTUItnzNXpQtno8LOyjSHs8HgLQqtNauvldRlaVoyywdr-Yd-_KiSmbSSldX7BYzT3dlL8rYfb8dBtscyLxVvYLd7_oCqFlQq5AaEPkH7oB0q16RRSv4cA")' }}
+          style={{ backgroundImage: `url("${ASSETS.authBackground}")` }}
         ></div>
         <div className="absolute inset-0 bg-gradient-to-t from-black/35 to-transparent"></div>
         <div className="absolute bottom-12 left-12 right-12 text-white z-10 space-y-2">

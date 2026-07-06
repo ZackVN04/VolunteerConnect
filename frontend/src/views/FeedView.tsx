@@ -358,14 +358,52 @@ export const FeedView: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Link ảnh minh họa (Không bắt buộc)</label>
-                  <input 
-                    type="url"
-                    value={imageUrl}
-                    onChange={(e) => setImageUrl(e.target.value)}
-                    placeholder="ví dụ: https://images.unsplash.com/..."
-                    className="w-full p-2.5 bg-surface-container-low border border-outline-variant rounded-lg focus:border-primary focus:ring-1 focus:ring-primary outline-none text-sm"
-                  />
+                  <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2">Ảnh minh họa (Không bắt buộc)</label>
+                  
+                  {imageUrl ? (
+                    <div className="relative rounded-lg overflow-hidden border border-outline-variant max-h-[200px] flex items-center justify-center bg-black/5">
+                      <img 
+                        src={imageUrl} 
+                        alt="Xem trước ảnh" 
+                        className="max-h-[200px] object-contain"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setImageUrl('')}
+                        className="absolute top-2 right-2 p-1.5 bg-black/60 text-white hover:bg-black/80 rounded-full transition-colors flex items-center justify-center"
+                        title="Xóa ảnh"
+                      >
+                        <span className="material-symbols-outlined text-sm">close</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center border-2 border-dashed border-outline-variant rounded-lg p-6 bg-surface-container-lowest cursor-pointer hover:border-primary transition-colors text-center">
+                      <span className="material-symbols-outlined text-3xl text-outline mb-2">image</span>
+                      <span className="text-xs font-semibold text-on-surface">Tải ảnh từ thiết bị lên</span>
+                      <span className="text-[10px] text-on-surface-variant mt-1">Định dạng JPG, PNG (tối đa 2MB)</span>
+                      <input 
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            if (file.size > 2 * 1024 * 1024) {
+                              alert("Dung lượng ảnh phải nhỏ hơn 2MB.");
+                              return;
+                            }
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              if (typeof reader.result === 'string') {
+                                setImageUrl(reader.result);
+                              }
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                        className="hidden"
+                      />
+                    </label>
+                  )}
                 </div>
               </div>
               <div className="px-md py-sm border-t border-surface-variant flex justify-end gap-2 bg-surface-bright">
