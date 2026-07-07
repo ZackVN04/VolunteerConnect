@@ -29,7 +29,7 @@ const AppContent: React.FC = () => {
       setCurrentHash(hash);
       window.scrollTo(0, 0); // scroll to top on navigate
     };
-    
+
     // Set default route if none exists
     if (!window.location.hash) {
       window.location.hash = '#/feed';
@@ -43,7 +43,7 @@ const AppContent: React.FC = () => {
   if (!currentUser) {
     if (currentHash === '#/forgot-password') {
       return (
-        <ForgotPasswordView 
+        <ForgotPasswordView
           onBackToLogin={() => {
             window.location.hash = '#/feed';
           }}
@@ -52,7 +52,7 @@ const AppContent: React.FC = () => {
     }
     if (otpVerifyPhone || otpVerifyEmail) {
       return (
-        <OTPVerifyView 
+        <OTPVerifyView
           phoneNumber={otpVerifyPhone || otpVerifyEmail || ""}
           email={otpVerifyEmail || undefined}
           onVerifySuccess={() => {
@@ -69,8 +69,8 @@ const AppContent: React.FC = () => {
     }
     if (isRegisterMode) {
       return (
-        <RegisterView 
-          onNavigateToLogin={() => setIsRegisterMode(false)} 
+        <RegisterView
+          onNavigateToLogin={() => setIsRegisterMode(false)}
           onRegisterSuccess={(registeredPhone: string, email: string) => {
             setOtpVerifyPhone(registeredPhone);
             setOtpVerifyEmail(email);
@@ -79,8 +79,8 @@ const AppContent: React.FC = () => {
       );
     }
     return (
-      <LoginView 
-        onNavigateToRegister={() => setIsRegisterMode(true)} 
+      <LoginView
+        onNavigateToRegister={() => setIsRegisterMode(true)}
         onNavigateToOTP={(email) => {
           setOtpVerifyEmail(email);
         }}
@@ -95,11 +95,11 @@ const AppContent: React.FC = () => {
     if (cleanHash === '#/feed') {
       return <FeedView />;
     }
-    
+
     if (cleanHash === '#/activities') {
       return <ActivityListView />;
     }
-    
+
     // Hash details path matcher: #/activity/act_001
     if (cleanHash.startsWith('#/activity/')) {
       const parts = cleanHash.split('/');
@@ -161,7 +161,7 @@ const AppContent: React.FC = () => {
               © 2026 Volunteer Connect. Nền tảng kết nối tình nguyện cộng đồng.
             </span>
           </div>
-          
+
           <nav className="flex flex-wrap gap-4 text-xs font-semibold">
             <a className="text-on-surface-variant hover:text-primary transition-colors" href="#/feed">Bảng Tin</a>
             <a className="text-on-surface-variant hover:text-primary transition-colors" href="#/activities">Khám Phá</a>
