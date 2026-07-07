@@ -4,17 +4,12 @@ import { useApp } from '../context/AppContext';
 export const AdminDashboard: React.FC = () => {
   const { 
     currentUser, users, activities, registrations, organizerRequests,
-    reviewOrganizerRequest, reviewActivity, changeUserRole, loginAs, setCurrentUser
+    reviewOrganizerRequest, reviewActivity, changeUserRole, loginAs, setCurrentUser,
+    showNotification, showPrompt
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'overview' | 'organizers' | 'activities' | 'users' | 'stats'>('overview');
-  const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
-
-  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
-    setNotification({ message, type });
-    setTimeout(() => setNotification(null), 3000);
-  };
 
   if (!currentUser) return null;
 
@@ -24,34 +19,42 @@ export const AdminDashboard: React.FC = () => {
 
   const handleApproveOrganizer = (reqId: string) => {
     reviewOrganizerRequest(reqId, true);
-    showToast('Đã duyệt nâng cấp tài khoản này lên Ban tổ chức.');
+    showNotification('Đã duyệt nâng cấp tài khoản này lên Ban tổ chức.', 'success');
   };
 
   const handleRejectOrganizer = (reqId: string) => {
-    const feedback = prompt('Nhập lý do từ chối nâng cấp:');
-    if (feedback === null) return;
-    if (!feedback.trim()) {
-      showToast('Vui lòng nhập lý do từ chối.', 'error');
-      return;
-    }
-    reviewOrganizerRequest(reqId, false, feedback);
-    showToast('Đã từ chối yêu cầu nâng cấp.');
+    showPrompt(
+      'Nhập lý do từ chối nâng cấp:',
+      (feedback) => {
+        if (!feedback.trim()) {
+          showNotification('Vui lòng nhập lý do từ chối.', 'error');
+          return;
+        }
+        reviewOrganizerRequest(reqId, false, feedback);
+        showNotification('Đã từ chối yêu cầu nâng cấp.', 'success');
+      },
+      'Từ chối nâng cấp'
+    );
   };
 
   const handleApproveActivity = (actId: string) => {
     reviewActivity(actId, true);
-    showToast('Đã duyệt hoạt động này.');
+    showNotification('Đã duyệt hoạt động này.', 'success');
   };
 
   const handleRejectActivity = (actId: string) => {
-    const feedback = prompt('Nhập lý do từ chối hoạt động:');
-    if (feedback === null) return;
-    if (!feedback.trim()) {
-      showToast('Vui lòng nhập lý do từ chối.', 'error');
-      return;
-    }
-    reviewActivity(actId, false);
-    showToast('Đã từ chối duyệt hoạt động.');
+    showPrompt(
+      'Nhập lý do từ chối hoạt động:',
+      (feedback) => {
+        if (!feedback.trim()) {
+          showNotification('Vui lòng nhập lý do từ chối.', 'error');
+          return;
+        }
+        reviewActivity(actId, false);
+        showNotification('Đã từ chối duyệt hoạt động.', 'success');
+      },
+      'Từ chối hoạt động'
+    );
   };
 
   const getStatusBadge = (status: string) => {
@@ -161,18 +164,6 @@ export const AdminDashboard: React.FC = () => {
         </div>
       </header>
 
-      {notification && (
-        <div className={`fixed top-24 right-8 z-50 p-4 rounded-xl shadow-lg border text-sm font-semibold flex items-center gap-2 animate-fadeIn ${
-          notification.type === 'success' 
-            ? 'bg-[#e8f5e9] text-[#006d37] border-[#006d37]/20 shadow-[#006d37]/5' 
-            : 'bg-red-50 text-red-700 border-red-200 shadow-red-200/5'
-        }`}>
-          <span className="material-symbols-outlined text-lg">
-            {notification.type === 'success' ? 'check_circle' : 'error'}
-          </span>
-          {notification.message}
-        </div>
-      )}
       {/* Container */}
       <div className="max-w-[1440px] mx-auto px-4 md:px-8 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8 text-left">
         
@@ -784,7 +775,7 @@ export const AdminDashboard: React.FC = () => {
                               onChange={(e) => {
                                 const newRole = e.target.value as 'Volunteer' | 'Organizer' | 'Admin';
                                 changeUserRole(u._id, newRole);
-                                alert(`Đã chuyển vai trò của ${u.profile.full_name} sang ${newRole}`);
+                                showNotification(`Đã chuyển vai trò của ${u.profile.full_name} sang ${newRole}`, 'success');
                               }}
                               className="border border-surface-variant rounded-lg px-2 py-1 text-xs bg-white cursor-pointer"
                             >
@@ -797,7 +788,7 @@ export const AdminDashboard: React.FC = () => {
                             <button
                               onClick={() => {
                                 loginAs(u._id);
-                                alert(`Đã đổi phiên giả lập đăng nhập sang: ${u.profile.full_name}`);
+                                showNotification(`Đã đổi phiên giả lập đăng nhập sang: ${u.profile.full_name}`, 'success');
                               }}
                               className="text-[#006d37] hover:underline font-bold text-xs border border-[#006d37]/30 px-3 py-1.5 rounded-lg hover:bg-[#e8f5e9]"
                             >

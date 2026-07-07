@@ -158,6 +158,16 @@ interface AppContextType {
   updateProfile: (updatedProfile: Partial<UserProfile>, email: string, province: string, phone?: string) => void;
   changeUserRole: (userId: string, role: 'Volunteer' | 'Organizer' | 'Admin') => void;
   resetDatabase: () => void;
+
+  // Dialog / Toast System
+  notification: { message: string; type: 'success' | 'error' | 'info' } | null;
+  showNotification: (message: string, type?: 'success' | 'error' | 'info') => void;
+  confirmDialog: { message: string; title?: string; onConfirm: () => void } | null;
+  showConfirm: (message: string, onConfirm: () => void, title?: string) => void;
+  closeConfirm: () => void;
+  promptDialog: { message: string; title?: string; placeholder?: string; onConfirm: (val: string) => void } | null;
+  showPrompt: (message: string, onConfirm: (val: string) => void, title?: string, placeholder?: string) => void;
+  closePrompt: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -172,6 +182,32 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [organizerRequests, setOrganizerRequests] = useState<OrganizerRequest[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
+
+  // Dialog / Toast states
+  const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{ message: string; title?: string; onConfirm: () => void } | null>(null);
+  const [promptDialog, setPromptDialog] = useState<{ message: string; title?: string; placeholder?: string; onConfirm: (val: string) => void } | null>(null);
+
+  const showNotification = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
+    setNotification({ message, type });
+    setTimeout(() => setNotification(null), 3000);
+  };
+
+  const showConfirm = (message: string, onConfirm: () => void, title?: string) => {
+    setConfirmDialog({ message, title, onConfirm });
+  };
+
+  const closeConfirm = () => {
+    setConfirmDialog(null);
+  };
+
+  const showPrompt = (message: string, onConfirm: (val: string) => void, title?: string, placeholder?: string) => {
+    setPromptDialog({ message, title, placeholder, onConfirm });
+  };
+
+  const closePrompt = () => {
+    setPromptDialog(null);
+  };
 
   const loadLocalStorageData = () => {
     const savedDb = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -1131,7 +1167,15 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         likePost,
         updateProfile,
         changeUserRole,
-        resetDatabase
+        resetDatabase,
+        notification,
+        showNotification,
+        confirmDialog,
+        showConfirm,
+        closeConfirm,
+        promptDialog,
+        showPrompt,
+        closePrompt
       }}
     >
       {children}

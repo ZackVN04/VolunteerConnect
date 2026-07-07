@@ -2,7 +2,7 @@ import React from 'react';
 import { useApp } from '../context/AppContext';
 
 export const MyRegistrationsView: React.FC = () => {
-  const { currentUser, registrations, activities, cancelOrRejectRegistration } = useApp();
+  const { currentUser, registrations, activities, cancelOrRejectRegistration, showConfirm, showNotification } = useApp();
 
   if (!currentUser) return null;
 
@@ -15,9 +15,14 @@ export const MyRegistrationsView: React.FC = () => {
   const completedCount = userRegs.filter(r => r.status === 'Completed').length;
 
   const handleCancel = (regId: string) => {
-    if (confirm('Bạn có chắc chắn muốn hủy đơn đăng ký tham gia hoạt động này?')) {
-      cancelOrRejectRegistration(regId);
-    }
+    showConfirm(
+      'Bạn có chắc chắn muốn hủy đơn đăng ký tham gia hoạt động này?',
+      () => {
+        cancelOrRejectRegistration(regId);
+        showNotification('Đã hủy đơn đăng ký thành công!', 'success');
+      },
+      'Hủy đăng ký tham gia'
+    );
   };
 
   const getStatusBadge = (status: string) => {

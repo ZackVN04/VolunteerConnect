@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 
 export const ProfileView: React.FC = () => {
-  const { currentUser, organizerRequests, submitOrganizerRequest, updateProfile } = useApp();
+  const { currentUser, organizerRequests, submitOrganizerRequest, updateProfile, showNotification } = useApp();
   
   // View mode state: 'details' (default), 'edit', 'upgrade'
   const [viewMode, setViewMode] = useState<'details' | 'edit' | 'upgrade'>('details');
@@ -80,7 +80,7 @@ export const ProfileView: React.FC = () => {
       areaOfInterest || '',
       phone
     );
-    alert('Cập nhật thông tin hồ sơ thành công!');
+    showNotification('Cập nhật thông tin hồ sơ thành công!', 'success');
     setViewMode('details');
     window.location.hash = '#/profile';
   };
@@ -100,19 +100,19 @@ export const ProfileView: React.FC = () => {
   const handleSendRequest = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!requestOrgDesc.trim() || !requestOrgName.trim() || !requestContact.trim()) {
-      alert('Vui lòng nhập đầy đủ thông tin yêu cầu.');
+      showNotification('Vui lòng nhập đầy đủ thông tin yêu cầu.', 'error');
       return;
     }
 
     const res = submitOrganizerRequest(requestOrgDesc, requestOrgName, requestContact);
     const result = res instanceof Promise ? await res : res;
     if (result.success) {
-      alert('Gửi yêu cầu nâng cấp tài khoản thành công!');
+      showNotification('Gửi yêu cầu nâng cấp tài khoản thành công!', 'success');
       setRequestOrgDesc('');
       setRequestOrgName('');
       setViewMode('details');
     } else {
-      alert(result.error || 'Có lỗi xảy ra khi gửi yêu cầu');
+      showNotification(result.error || 'Có lỗi xảy ra khi gửi yêu cầu', 'error');
     }
   };
 
@@ -121,7 +121,7 @@ export const ProfileView: React.FC = () => {
     if (!file) return;
 
     if (file.size > 2 * 1024 * 1024) {
-      alert('File ảnh quá lớn! Vui lòng chọn ảnh có dung lượng dưới 2MB.');
+      showNotification('File ảnh quá lớn! Vui lòng chọn ảnh có dung lượng dưới 2MB.', 'error');
       return;
     }
 
@@ -140,7 +140,7 @@ export const ProfileView: React.FC = () => {
         currentUser.profile.area_of_interest || '',
         phone
       );
-      alert('Đã cập nhật ảnh đại diện mới!');
+      showNotification('Đã cập nhật ảnh đại diện mới!', 'success');
     };
     reader.readAsDataURL(file);
   };

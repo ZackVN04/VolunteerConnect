@@ -9,7 +9,7 @@ interface ForgotPasswordViewProps {
 }
 
 export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBackToLogin }) => {
-  const { users } = useApp();
+  const { users, showNotification } = useApp();
   const [email, setEmail] = useState('');
   const [step, setStep] = useState<1 | 2>(1);
   const [otpCode, setOtpCode] = useState('');
@@ -64,7 +64,7 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBackTo
     // Generate random 6 digit OTP code
     const mockOtp = Math.floor(100000 + Math.random() * 900000).toString();
     setSimulatedOtp(mockOtp);
-    alert(`[MÔ PHỎNG EMAIL] Hệ thống đã gửi mã OTP khôi phục mật khẩu: ${mockOtp}`);
+    showNotification(`[MÔ PHỎNG EMAIL] Mã OTP khôi phục mật khẩu: ${mockOtp}`, 'info');
     setSuccessMsg('Mã OTP khôi phục mật khẩu đã được gửi tới email giả lập của bạn.');
     setStep(2);
     setLoading(false);
