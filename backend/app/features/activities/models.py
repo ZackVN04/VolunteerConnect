@@ -16,7 +16,7 @@ class DenormalizedOrganizer(BaseModel):
 class Activity(Document):
     organizer_id: PydanticObjectId
     title: str = Field(..., min_length=5, max_length=150)
-    description: str = Field(..., min_length=20)
+    description: str = Field(..., min_length=20, max_length=500)
     categories: List[str]
     location: Location
     start_date: datetime

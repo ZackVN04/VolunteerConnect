@@ -11,7 +11,7 @@ class LocationSchema(BaseModel):
 
 class ActivityCreate(BaseModel):
     title: str = Field(..., min_length=5, max_length=150)
-    description: str = Field(..., min_length=20)
+    description: str = Field(..., min_length=20, max_length=500)
     categories: List[ActivityCategory]
     location: LocationSchema
     start_date: datetime
@@ -28,7 +28,7 @@ class ActivityCreate(BaseModel):
 
 class ActivityUpdate(BaseModel):
     title: Optional[str] = Field(None, min_length=5, max_length=150)
-    description: Optional[str] = Field(None, min_length=20)
+    description: Optional[str] = Field(None, min_length=20, max_length=500)
     categories: Optional[List[ActivityCategory]] = None
     location: Optional[LocationSchema] = None
     start_date: Optional[datetime] = None
