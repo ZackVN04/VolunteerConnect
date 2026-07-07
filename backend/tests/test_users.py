@@ -96,19 +96,29 @@ async def test_update_profile_all_fields(async_client, active_user, auth_headers
 
 @pytest.mark.asyncio
 async def test_media_upload_endpoint(async_client, auth_headers):
-    """Happy Path: Test local development fallback file upload."""
+    """Happy Path: Test local development fallback file upload with custom folders."""
     file_content = b"fake image bytes"
     file_name = "test_image.png"
     
-    # Send multipart/form-data upload request
+    # 1. Test default upload (should go to general)
     files = {"file": (file_name, io.BytesIO(file_content), "image/png")}
     response = await async_client.post("/api/v1/media/upload", files=files, headers=auth_headers)
-    
     assert response.status_code == 201
     data = response.json()
     assert "url" in data
-    # Check if the url contains static fallback path
     assert "static/uploads" in data["url"] or "storage.googleapis.com" in data["url"]
+
+    # 2. Test uploading to custom folder "posts"
+    files2 = {"file": (file_name, io.BytesIO(file_content), "image/png")}
+    response2 = await async_client.post("/api/v1/media/upload?folder=posts", files=files2, headers=auth_headers)
+    assert response2.status_code == 201
+    assert "url" in response2.json()
+
+    # 3. Test folder traversal attack (should safely fall back to "general")
+    files3 = {"file": (file_name, io.BytesIO(file_content), "image/png")}
+    response3 = await async_client.post("/api/v1/media/upload?folder=../../hack", files=files3, headers=auth_headers)
+    assert response3.status_code == 201
+    assert "url" in response3.json()
 
 @pytest.mark.asyncio
 async def test_media_upload_invalid_type(async_client, auth_headers):

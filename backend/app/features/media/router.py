@@ -1,5 +1,6 @@
 import uuid
 import os
+import re
 from fastapi import APIRouter, UploadFile, File, HTTPException, status, Depends
 from google.cloud import storage
 from app.core.config.settings import settings
@@ -11,6 +12,7 @@ router = APIRouter(prefix="/api/v1/media", tags=["Media"])
 @router.post("/upload", status_code=status.HTTP_201_CREATED)
 async def upload_file(
     file: UploadFile = File(...),
+    folder: str = "general",
     current_user: User = Depends(get_current_user)
 ):
     # 1. Kiểm tra định dạng file (Chỉ cho phép file ảnh)
@@ -33,8 +35,12 @@ async def upload_file(
     await file.seek(0)
 
     # 3. Tạo tên file ngẫu nhiên để chống trùng lặp
+    # Chuẩn hóa tên folder để tránh các cuộc tấn công directory traversal (ví dụ: ../)
+    if not folder or not re.match(r"^[a-zA-Z0-9_-]+$", folder):
+        folder = "general"
+
     file_ext = os.path.splitext(file.filename)[1]
-    unique_filename = f"avatars/{uuid.uuid4()}{file_ext}"
+    unique_filename = f"{folder}/{uuid.uuid4()}{file_ext}"
 
     # 4. Tải lên Google Cloud Storage (GCS)
     try:
