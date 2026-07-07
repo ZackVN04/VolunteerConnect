@@ -55,6 +55,10 @@ class ActivityResponseData(BaseModel):
     end_date: datetime
     limit_volunteers: int
     approved_volunteers_count: int
+    active_volunteers_count: int
+    current_slots: int
+    max_volunteers: int
+    is_full: bool
     requirements: Optional[str]
     image_url: Optional[str]
     status: str
@@ -82,6 +86,10 @@ class ActivityResponseData(BaseModel):
             end_date=activity.end_date,
             limit_volunteers=activity.limit_volunteers,
             approved_volunteers_count=activity.approved_volunteers_count,
+            active_volunteers_count=getattr(activity, "active_volunteers_count", 0),
+            current_slots=getattr(activity, "active_volunteers_count", 0),
+            max_volunteers=activity.limit_volunteers,
+            is_full=(activity.status == "FULL"),
             requirements=activity.requirements,
             image_url=activity.image_url,
             status=activity.status,

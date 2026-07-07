@@ -23,6 +23,7 @@ class Activity(Document):
     end_date: datetime
     limit_volunteers: int = Field(..., gt=0)
     approved_volunteers_count: int = Field(default=0, ge=0)
+    active_volunteers_count: int = Field(default=0, ge=0)
     requirements: Optional[str] = Field(default=None, max_length=1000)
     image_url: Optional[str] = None
     status: str = Field(default=ActivityStatus.DRAFT)
