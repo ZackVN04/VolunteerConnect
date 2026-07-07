@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 
 export const FeedView: React.FC = () => {
   const { activities, users } = useApp();
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 2;
 
   // Compute stats dynamically
   const totalCampaigns = activities.length;
@@ -10,10 +12,15 @@ export const FeedView: React.FC = () => {
   const totalOrganizers = users.filter(u => u.role === 'Organizer').length;
   const totalCompleted = activities.filter(a => a.status === 'Completed').length;
 
-  // Filter activities to show those that are 'Open' or 'Full' on home page
-  const featuredActivities = activities.filter(
+  // Filter activities to show those that are 'Open' or 'Full' on home page with pagination
+  const featuredList = activities.filter(
     act => act.status === 'Open' || act.status === 'Full'
-  ).slice(0, 2);
+  );
+  const totalPages = Math.ceil(featuredList.length / itemsPerPage);
+  const featuredActivities = featuredList.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   return (
     <div className="w-full bg-[#f8f9fa] min-h-screen pb-16">
@@ -92,63 +99,114 @@ export const FeedView: React.FC = () => {
           </div>
 
           {/* Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {featuredActivities.map(act => (
-              <div 
-                key={act._id} 
-                className="bg-white border border-surface-variant/40 rounded-3xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col h-[520px]"
-              >
-                {/* Image Section */}
-                <div className="relative h-[280px] w-full shrink-0">
-                  <img 
-                    src={act.image_url || 'https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=600'} 
-                    alt={act.title} 
-                    className="w-full h-full object-cover"
-                  />
-                  {/* Floating Category Badge */}
-                  <span className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm text-[#006d37] font-bold text-xs px-3 py-1 rounded-full uppercase border border-[#006d37]/20 shadow-sm">
-                    {act.categories[0] || 'Tình nguyện'}
-                  </span>
-                </div>
+          {featuredActivities.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center space-y-3 bg-white border border-slate-100 rounded-3xl">
+              <span className="material-symbols-outlined text-5xl text-slate-300">volunteer_activism</span>
+              <p className="text-slate-500 font-semibold text-sm">Hiện chưa có hoạt động nổi bật nào đang mở đăng ký.</p>
+              <a href="#/activities" className="text-[#006d37] hover:underline font-bold text-sm">Xem tất cả hoạt động →</a>
+            </div>
+          ) : (
+            <div className="space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {featuredActivities.map(act => (
+                  <div 
+                    key={act._id} 
+                    className="bg-white border border-surface-variant/40 rounded-3xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col h-[520px]"
+                  >
+                    {/* Image Section */}
+                    <div className="relative h-[280px] w-full shrink-0">
+                      <img 
+                        src={act.image_url || 'https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=600'} 
+                        alt={act.title} 
+                        className="w-full h-full object-cover"
+                        onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=600'; }}
+                      />
+                      {/* Floating Category Badge */}
+                      <span className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm text-[#006d37] font-bold text-xs px-3 py-1 rounded-full uppercase border border-[#006d37]/20 shadow-sm">
+                        {act.categories[0] || 'Tình nguyện'}
+                      </span>
+                    </div>
 
-                {/* Info Content */}
-                <div className="p-6 flex flex-col justify-between flex-grow">
-                  <div className="space-y-4">
-                    <h3 className="text-xl font-bold text-on-surface line-clamp-1 leading-tight">
-                      {act.title}
-                    </h3>
-                    
-                    <div className="space-y-2 text-sm text-on-surface-variant">
-                      <div className="flex items-center gap-2">
-                        <span className="material-symbols-outlined text-[#006d37] text-lg font-bold">calendar_month</span>
-                        <span>{new Date(act.start_date).toLocaleDateString('vi-VN')}</span>
+                    {/* Info Content */}
+                    <div className="p-6 flex flex-col justify-between flex-grow">
+                      <div className="space-y-4">
+                        <h3 className="text-xl font-bold text-on-surface line-clamp-1 leading-tight">
+                          {act.title}
+                        </h3>
+                        
+                        <div className="space-y-2 text-sm text-on-surface-variant">
+                          <div className="flex items-center gap-2">
+                            <span className="material-symbols-outlined text-[#006d37] text-lg font-bold">calendar_month</span>
+                            <span>{new Date(act.start_date).toLocaleDateString('vi-VN')}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="material-symbols-outlined text-[#006d37] text-lg font-bold">location_on</span>
+                            <span className="line-clamp-1">
+                              {act.location?.address_detail || `${act.location?.district || ''}, ${act.location?.province || ''}`}
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="material-symbols-outlined text-[#006d37] text-lg font-bold">location_on</span>
-                        <span className="line-clamp-1">
-                          {act.location.address_detail || `${act.location.district}, ${act.location.province}`}
+
+                      {/* Footer of card */}
+                      <div className="border-t border-surface-variant/40 pt-4 flex items-center justify-between mt-auto">
+                        <span className="bg-[#e8f5e9] text-[#006d37] font-bold text-xs px-3 py-1 rounded-full uppercase">
+                          {act.status === 'Open' ? 'Đang mở đăng ký' : 'Đã đầy'}
                         </span>
+                        <a 
+                          href={`#/activity/${act._id}`}
+                          className="bg-[#006d37] hover:bg-emerald-800 text-white font-bold px-5 py-2.5 rounded-full transition-all text-sm shadow-sm"
+                        >
+                          Xem chi tiết
+                        </a>
                       </div>
                     </div>
                   </div>
-
-                  {/* Footer of card */}
-                  <div className="border-t border-surface-variant/40 pt-4 flex items-center justify-between mt-auto">
-                    <span className="bg-[#e8f5e9] text-[#006d37] font-bold text-xs px-3 py-1 rounded-full uppercase">
-                      {act.status === 'Open' ? 'Đang mở đăng ký' : 'Đã đầy'}
-                    </span>
-                    <a 
-                      href={`#/activity/${act._id}`}
-                      className="bg-[#006d37] hover:bg-emerald-800 text-white font-bold px-5 py-2.5 rounded-full transition-all text-sm shadow-sm"
-                    >
-                      Xem chi tiết
-                    </a>
-                  </div>
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
+
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-2 pt-2">
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                    className="p-2 border border-slate-200 rounded-xl hover:bg-slate-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center cursor-pointer bg-white"
+                  >
+                    <span className="material-symbols-outlined text-base">chevron_left</span>
+                  </button>
+
+                  {Array.from({ length: totalPages }).map((_, i) => {
+                    const pageNum = i + 1;
+                    const isActive = pageNum === currentPage;
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={`w-9 h-9 rounded-xl font-bold text-xs border transition-all cursor-pointer ${
+                          isActive 
+                            ? 'bg-[#006d37] border-[#006d37] text-white shadow-sm' 
+                            : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                    disabled={currentPage === totalPages}
+                    className="p-2 border border-slate-200 rounded-xl hover:bg-slate-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center cursor-pointer bg-white"
+                  >
+                    <span className="material-symbols-outlined text-base">chevron_right</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </section>
+
 
       </div>
     </div>

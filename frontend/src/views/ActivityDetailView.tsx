@@ -5,12 +5,29 @@ interface ActivityDetailViewProps {
   activityId: string;
 }
 
+// Helper: avatar fallback with initials
+const ContactAvatar: React.FC<{ name: string; src?: string | null }> = ({ name, src }) => {
+  if (src) {
+    return <img alt="Contact avatar" className="w-full h-full object-cover" src={src} />;
+  }
+  const initials = name.split(' ').map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
+  const colors = ['#006d37', '#0d6efd', '#6f42c1', '#fd7e14', '#20c997'];
+  const bg = colors[name.charCodeAt(0) % colors.length];
+  return (
+    <div style={{ background: bg, width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <span style={{ color: '#fff', fontWeight: 700, fontSize: 16, fontFamily: 'inherit' }}>{initials}</span>
+    </div>
+  );
+};
+
 export const ActivityDetailView: React.FC<ActivityDetailViewProps> = ({ activityId }) => {
-  const { currentUser, activities, registrations, registerForActivity, cancelOrRejectRegistration } = useApp();
+  const { currentUser, users, activities, registrations, registerForActivity, cancelOrRejectRegistration, showNotification, showConfirm } = useApp();
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
 
   const activity = activities.find(a => a._id === activityId);
+  const organizerUser = users.find(u => u._id === activity?.organizer_id);
+
 
   // Check if current user is registered for this activity
   const userRegistration = registrations.find(
@@ -43,17 +60,22 @@ export const ActivityDetailView: React.FC<ActivityDetailViewProps> = ({ activity
     const res = registerForActivity(activity._id);
     const result = res instanceof Promise ? await res : res;
     if (result.success) {
-      setShowSuccessToast(true);
-      setToastMessage('Yêu cầu tham gia của bạn đã được gửi. Vui lòng chờ Ban tổ chức duyệt.');
+      showNotification('Yêu cầu tham gia của bạn đã được gửi. Vui lòng chờ Ban tổ chức duyệt.', 'success');
     } else {
-      alert(result.error || 'Có lỗi xảy ra khi đăng ký');
+      showNotification(result.error || 'Có lỗi xảy ra khi đăng ký', 'error');
     }
   };
 
   const handleCancelRegistration = () => {
-    if (userRegistration && confirm('Bạn chắc chắn muốn hủy đăng ký tham gia hoạt động này?')) {
-      cancelOrRejectRegistration(userRegistration._id);
-      setShowSuccessToast(false);
+    if (userRegistration) {
+      showConfirm(
+        'Bạn chắc chắn muốn hủy đăng ký tham gia hoạt động này?',
+        () => {
+          cancelOrRejectRegistration(userRegistration._id);
+          showNotification('Đã hủy đăng ký thành công!', 'success');
+        },
+        'Hủy đăng ký tham gia'
+      );
     }
   };
 
@@ -135,6 +157,7 @@ export const ActivityDetailView: React.FC<ActivityDetailViewProps> = ({ activity
                 src={activity.image_url || 'https://images.unsplash.com/photo-1544027993-37dbfe43562a?q=80&w=600'} 
                 alt={activity.title} 
                 className="w-full h-full object-cover"
+                onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1544027993-37dbfe43562a?q=80&w=600'; }}
               />
             </div>
 
@@ -165,23 +188,26 @@ export const ActivityDetailView: React.FC<ActivityDetailViewProps> = ({ activity
               <h2 className="text-lg font-bold text-on-surface border-b border-surface-variant/40 pb-2">
                 Người liên hệ & Tổ chức
               </h2>
-              <div className="flex items-center gap-4 bg-white border border-surface-variant/40 rounded-2xl p-4 shadow-sm w-fit min-w-[320px]">
+              <a 
+                href={`#/profile?userId=${activity.organizer_id}`}
+                className="flex items-center gap-4 bg-white border border-surface-variant/40 rounded-2xl p-4 shadow-sm w-fit min-w-[320px] hover:bg-slate-50 transition-colors"
+              >
                 <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-primary-container bg-surface-container-high shrink-0">
-                  <img 
-                    src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150&q=80" 
-                    alt="Contact avatar" 
-                    className="w-full h-full object-cover"
+                  <ContactAvatar 
+                    name={activity.denormalized_organizer?.name || 'Ban tổ chức'} 
+                    src={organizerUser?.profile?.avatar_url} 
                   />
                 </div>
                 <div className="flex flex-col text-left">
-                  <span className="font-bold text-sm text-on-surface">
-                    {activity.denormalized_organizer.name}
+                  <span className="font-bold text-sm text-on-surface hover:text-[#006d37] transition-colors flex items-center gap-1">
+                    {activity.denormalized_organizer?.name || 'Ban tổ chức'}
+                    <span className="material-symbols-outlined text-[14px]">open_in_new</span>
                   </span>
                   <span className="text-xs text-on-surface-variant">
                     Đại diện Ban tổ chức hoạt động
                   </span>
                 </div>
-              </div>
+              </a>
             </div>
 
           </div>
@@ -247,7 +273,16 @@ export const ActivityDetailView: React.FC<ActivityDetailViewProps> = ({ activity
 
               {/* CTA Action Button */}
               <div className="pt-2 border-t border-surface-variant/40">
-                {currentUser?.role !== 'Volunteer' ? (
+                {!currentUser ? (
+                  <button 
+                    onClick={() => {
+                      window.location.hash = '#/login';
+                    }}
+                    className="w-full bg-[#006d37] hover:bg-emerald-800 text-white py-3.5 rounded-xl text-sm font-bold shadow transition-all active:scale-95"
+                  >
+                    Đăng nhập để tham gia
+                  </button>
+                ) : currentUser?.role !== 'Volunteer' ? (
                   <button 
                     disabled 
                     className="w-full bg-slate-100 text-slate-400 py-3.5 rounded-xl text-sm font-bold cursor-not-allowed"

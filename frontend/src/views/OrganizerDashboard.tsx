@@ -2,12 +2,72 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import type { Activity } from '../context/AppContext';
 
+const LOCATION_DATA: Record<string, string[]> = {
+  "Hồ Chí Minh": [
+    "Quận 1", "Quận 3", "Quận 4", "Quận 5", "Quận 6", "Quận 7", "Quận 8", "Quận 10", "Quận 11", "Quận 12",
+    "Quận Bình Thạnh", "Quận Bình Tân", "Quận Gò Vấp", "Quận Phú Nhuận", "Quận Tân Bình", "Quận Tân Phú",
+    "Thành phố Thủ Đức", "Huyện Bình Chánh", "Huyện Cần Giờ", "Huyện Củ Chi", "Huyện Hóc Môn", "Huyện Nhà Bè"
+  ],
+  "Hà Nội": [
+    "Quận Ba Đình", "Quận Hoàn Kiếm", "Quận Tây Hồ", "Quận Long Biên", "Quận Cầu Giấy", "Quận Đống Đa", 
+    "Quận Hai Bà Trưng", "Quận Hoàng Mai", "Quận Thanh Xuân", "Huyện Sóc Sơn", "Huyện Đông Anh", "Huyện Gia Lâm"
+  ],
+  "Đà Nẵng": [
+    "Quận Hải Châu", "Quận Thanh Khê", "Quận Sơn Trà", "Quận Ngũ Hành Sơn", "Quận Liên Chiểu", "Quận Cẩm Lệ", "Huyện Hòa Vang"
+  ],
+  "Cần Thơ": [
+    "Quận Ninh Kiều", "Quận Bình Thủy", "Quận Cái Răng", "Quận Ô Môn", "Quận Thốt Nốt", "Huyện Phong Điền", "Huyện Cờ Đỏ"
+  ],
+  "Hải Phòng": [
+    "Quận Hồng Bàng", "Quận Lê Chân", "Quận Ngô Quyền", "Quận Kiến An", "Quận Hải An", "Quận Đồ Sơn", "Quận Dương Kinh"
+  ]
+};
+
+// Helper: inline avatar fallback with initials
+const OrgAvatar: React.FC<{ name: string; src?: string | null }> = ({ name, src }) => {
+  if (src) {
+    return <img alt="Avatar" className="w-full h-full object-cover" src={src} />;
+  }
+  const initials = name.split(' ').map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
+  const colors = ['#006d37', '#0d6efd', '#6f42c1', '#fd7e14', '#20c997'];
+  const bg = colors[name.charCodeAt(0) % colors.length];
+  return (
+    <div style={{ background: bg, width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <span style={{ color: '#fff', fontWeight: 700, fontSize: 14, fontFamily: 'inherit' }}>{initials}</span>
+    </div>
+  );
+};
+
 export const OrganizerDashboard: React.FC = () => {
   const { 
     currentUser, activities, registrations, 
     createActivity, editActivity, 
-    approveRegistration, cancelOrRejectRegistration, updateParticipation 
+    approveRegistration, cancelOrRejectRegistration, updateParticipation,
+    showNotification, showPrompt
   } = useApp();
+
+  const translateActivityStatus = (status: string) => {
+    switch (status) {
+      case 'Draft':
+        return 'Bản nháp';
+      case 'Pending Review':
+        return 'Chờ duyệt';
+      case 'Open':
+        return 'Đang mở';
+      case 'Full':
+        return 'Đã đầy';
+      case 'Ongoing':
+        return 'Đang diễn ra';
+      case 'Completed':
+        return 'Đã kết thúc';
+      case 'Rejected':
+        return 'Bị từ chối';
+      case 'Cancelled':
+        return 'Đã hủy';
+      default:
+        return status;
+    }
+  };
 
   const [activeTab, setActiveTab] = useState<'overview' | 'my-campaigns' | 'create-campaign' | 'approve' | 'attendance'>('overview');
   const [selectedActivityId, setSelectedActivityId] = useState<string>('');
@@ -19,14 +79,28 @@ export const OrganizerDashboard: React.FC = () => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('Môi trường');
-  const [province, setProvince] = useState('TP. Hồ Chí Minh');
-  const [district, setDistrict] = useState('');
+  const [province, setProvince] = useState('Hồ Chí Minh');
+  const [district, setDistrict] = useState('Quận 1');
   const [addressDetail, setAddressDetail] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [limitVolunteers, setLimitVolunteers] = useState(10);
+  const [limitVolunteers, setLimitVolunteers] = useState<number | string>(10);
   const [requirements, setRequirements] = useState('');
   const [imageUrl, setImageUrl] = useState('');
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      showNotification('Dung lượng hình ảnh phải nhỏ hơn 5MB!', 'error');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImageUrl(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
 
   // Auto-fill selected activity if hash specifies create=true
   useEffect(() => {
@@ -72,8 +146,8 @@ export const OrganizerDashboard: React.FC = () => {
     setTitle('');
     setDescription('');
     setCategory('Môi trường');
-    setProvince('TP. Hồ Chí Minh');
-    setDistrict('');
+    setProvince('Hồ Chí Minh');
+    setDistrict('Quận 1');
     setAddressDetail('');
     setStartDate('');
     setEndDate('');
@@ -90,9 +164,9 @@ export const OrganizerDashboard: React.FC = () => {
     setTitle(act.title);
     setDescription(act.description);
     setCategory(act.categories[0] || 'Môi trường');
-    setProvince(act.location.province);
-    setDistrict(act.location.district);
-    setAddressDetail(act.location.address_detail);
+    setProvince(act.location?.province || 'Hồ Chí Minh');
+    setDistrict(act.location?.district || 'Quận 1');
+    setAddressDetail(act.location?.address_detail || '');
     
     // Convert dates to standard format YYYY-MM-DD or YYYY-MM-DDTHH:MM
     const sDate = act.start_date.substring(0, 16);
@@ -107,10 +181,16 @@ export const OrganizerDashboard: React.FC = () => {
     setActiveTab('create-campaign');
   };
 
-  const handleSubmitActivity = (e: React.FormEvent) => {
+  const handleSubmitActivity = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !description.trim() || !district.trim() || !addressDetail.trim() || !startDate || !endDate) {
-      alert('Vui lòng điền đầy đủ các thông tin bắt buộc');
+      showNotification('Vui lòng điền đầy đủ các thông tin bắt buộc', 'error');
+      return;
+    }
+
+    const limitNum = Number(limitVolunteers);
+    if (isNaN(limitNum) || limitNum < 1) {
+      showNotification('Số lượng tình nguyện viên tối thiểu là 1', 'error');
       return;
     }
 
@@ -125,44 +205,59 @@ export const OrganizerDashboard: React.FC = () => {
       },
       start_date: startDate.includes('T') ? `${startDate}:00.000Z` : `${startDate}T08:00:00.000Z`,
       end_date: endDate.includes('T') ? `${endDate}:00.000Z` : `${endDate}T17:00:00.000Z`,
-      limit_volunteers: Number(limitVolunteers),
+      limit_volunteers: limitNum,
       requirements: requirements.trim() || null,
       image_url: imageUrl.trim() || 'https://images.unsplash.com/photo-1544027993-37dbfe43562a?q=80&w=600',
       status: 'Pending Review' // All newly created/edited activities go to Pending Review
     };
 
     if (editMode && editingActivityId) {
-      editActivity(editingActivityId, activityData);
-      alert('Đã cập nhật chiến dịch và gửi yêu cầu duyệt lại!');
+      const res = await editActivity(editingActivityId, activityData);
+      if (res.success) {
+        showNotification('Đã cập nhật chiến dịch và gửi yêu cầu duyệt lại!', 'success');
+        resetForm();
+        setActiveTab('my-campaigns');
+        window.location.hash = '#/organizer/dashboard';
+      } else {
+        showNotification(res.error || 'Có lỗi xảy ra khi cập nhật chiến dịch.', 'error');
+      }
     } else {
-      createActivity(activityData, true); // true = submit for review
-      alert('Tạo chiến dịch mới thành công! Đang chờ Admin duyệt.');
+      const res = await createActivity(activityData, true); // true = submit for review
+      if (res.success) {
+        showNotification('Tạo chiến dịch mới thành công! Đang chờ Admin duyệt.', 'success');
+        resetForm();
+        setActiveTab('my-campaigns');
+        window.location.hash = '#/organizer/dashboard';
+      } else {
+        showNotification(res.error || 'Có lỗi xảy ra khi tạo chiến dịch.', 'error');
+      }
     }
-
-    resetForm();
-    setActiveTab('my-campaigns');
-    window.location.hash = '#/organizer/dashboard';
   };
 
   const handleApprove = (regId: string) => {
     approveRegistration(regId);
-    alert('Đã duyệt tình nguyện viên này tham gia.');
+    showNotification('Đã duyệt tình nguyện viên này tham gia.', 'success');
   };
 
   const handleReject = (regId: string) => {
-    const reason = prompt('Nhập lý do từ chối:');
-    if (reason === null) return; // cancelled prompt
-    if (!reason.trim()) {
-      alert('Vui lòng nhập lý do từ chối.');
-      return;
-    }
-    cancelOrRejectRegistration(regId, reason);
-    alert('Đã từ chối đơn đăng ký.');
+    showPrompt(
+      'Nhập lý do từ chối đăng ký:',
+      (reason) => {
+        if (!reason.trim()) {
+          showNotification('Vui lòng nhập lý do từ chối.', 'error');
+          return;
+        }
+        cancelOrRejectRegistration(regId, reason);
+        showNotification('Đã từ chối đơn đăng ký.', 'success');
+      },
+      'Từ chối đăng ký',
+      'Lý do từ chối...'
+    );
   };
 
   const handleCheckIn = (regId: string, status: 'Completed' | 'Absent') => {
     updateParticipation(regId, status);
-    alert(`Đã điểm danh: ${status === 'Completed' ? 'Có mặt' : 'Vắng mặt'}`);
+    showNotification(`Đã điểm danh: ${status === 'Completed' ? 'Có mặt' : 'Vắng mặt'}`, 'success');
   };
 
   return (
@@ -173,10 +268,9 @@ export const OrganizerDashboard: React.FC = () => {
         {/* Organizer Header/Profile banner */}
         <section className="bg-[#e8f5e9]/50 border border-surface-variant/40 rounded-3xl p-6 md:p-8 flex items-center gap-6 shadow-sm">
           <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-[#006d37] bg-white shrink-0">
-            <img 
-              src={currentUser.profile.avatar_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150&q=80"} 
-              alt="Organizer Avatar" 
-              className="w-full h-full object-cover"
+            <OrgAvatar 
+              name={currentUser.profile.full_name} 
+              src={currentUser.profile.avatar_url}
             />
           </div>
           <div className="flex flex-col">
@@ -296,7 +390,7 @@ export const OrganizerDashboard: React.FC = () => {
                         act.status === 'Open' ? 'bg-[#e8f5e9] text-[#006d37]' :
                         act.status === 'Pending Review' ? 'bg-[#fef7e0] text-[#b06000]' : 'bg-slate-100 text-slate-600'
                       }`}>
-                        {act.status}
+                        {translateActivityStatus(act.status)}
                       </span>
                     </div>
                   ))}
@@ -340,7 +434,7 @@ export const OrganizerDashboard: React.FC = () => {
                           {new Date(act.start_date).toLocaleDateString('vi-VN')}
                         </td>
                         <td className="px-6 py-5 text-on-surface-variant">
-                          {act.location.district}, {act.location.province}
+                          {act.location?.district || ''}, {act.location?.province || ''}
                         </td>
                         <td className="px-6 py-5">
                           <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
@@ -348,7 +442,7 @@ export const OrganizerDashboard: React.FC = () => {
                             act.status === 'Pending Review' ? 'bg-[#fef7e0] text-[#b06000]' :
                             act.status === 'Completed' ? 'bg-[#e1effe] text-[#1e429f]' : 'bg-red-50 text-red-600'
                           }`}>
-                            {act.status}
+                            {translateActivityStatus(act.status)}
                           </span>
                         </td>
                         <td className="px-6 py-5">
@@ -410,7 +504,10 @@ export const OrganizerDashboard: React.FC = () => {
                   <input 
                     type="number"
                     value={limitVolunteers}
-                    onChange={(e) => setLimitVolunteers(Number(e.target.value) || 1)}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setLimitVolunteers(val === '' ? '' : Number(val));
+                    }}
                     required
                     min={1}
                     className="w-full px-4 py-2.5 border border-surface-variant rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm"
@@ -446,25 +543,34 @@ export const OrganizerDashboard: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="flex flex-col gap-2">
                   <label className="text-xs font-bold text-on-surface uppercase tracking-wider">Tỉnh / Thành phố *</label>
-                  <input 
-                    type="text"
+                  <select
                     value={province}
-                    onChange={(e) => setProvince(e.target.value)}
+                    onChange={(e) => {
+                      const prov = e.target.value;
+                      setProvince(prov);
+                      const districts = LOCATION_DATA[prov] || [];
+                      setDistrict(districts[0] || '');
+                    }}
                     required
-                    placeholder="Ví dụ: TP. Hồ Chí Minh"
-                    className="w-full px-4 py-2.5 border border-surface-variant rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm"
-                  />
+                    className="w-full px-4 py-2.5 border border-surface-variant rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm bg-white cursor-pointer"
+                  >
+                    {Object.keys(LOCATION_DATA).map(p => (
+                      <option key={p} value={p}>{p}</option>
+                    ))}
+                  </select>
                 </div>
                 <div className="flex flex-col gap-2">
                   <label className="text-xs font-bold text-on-surface uppercase tracking-wider">Quận / Huyện *</label>
-                  <input 
-                    type="text"
+                  <select
                     value={district}
                     onChange={(e) => setDistrict(e.target.value)}
                     required
-                    placeholder="Ví dụ: Huyện Cần Giờ"
-                    className="w-full px-4 py-2.5 border border-surface-variant rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm"
-                  />
+                    className="w-full px-4 py-2.5 border border-surface-variant rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm bg-white cursor-pointer"
+                  >
+                    {(LOCATION_DATA[province] || []).map(d => (
+                      <option key={d} value={d}>{d}</option>
+                    ))}
+                  </select>
                 </div>
                 <div className="flex flex-col gap-2">
                   <label className="text-xs font-bold text-on-surface uppercase tracking-wider">Địa chỉ chi tiết *</label>
@@ -504,16 +610,49 @@ export const OrganizerDashboard: React.FC = () => {
                 />
               </div>
 
-              {/* Link hình ảnh minh họa */}
-              <div className="flex flex-col gap-2">
-                <label className="text-xs font-bold text-on-surface uppercase tracking-wider">Hình ảnh minh họa (URL)</label>
-                <input 
-                  type="text"
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  placeholder="https://images.unsplash.com/photo-..."
-                  className="w-full px-4 py-2.5 border border-surface-variant rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm"
-                />
+              {/* Hình ảnh minh họa */}
+              <div className="flex flex-col gap-3">
+                <label className="text-xs font-bold text-on-surface uppercase tracking-wider">Hình ảnh minh họa chiến dịch</label>
+                <div className="flex flex-col sm:flex-row items-center gap-4">
+                  {imageUrl ? (
+                    <div className="relative w-40 h-28 rounded-xl overflow-hidden border border-surface-variant shrink-0 bg-slate-50 shadow-sm">
+                      <img 
+                        src={imageUrl} 
+                        alt="Campaign illustration preview" 
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setImageUrl('')}
+                        className="absolute top-1 right-1 bg-red-600 hover:bg-red-700 text-white rounded-full p-1 cursor-pointer shadow flex items-center justify-center transition-colors"
+                        title="Xóa hình ảnh"
+                      >
+                        <span className="material-symbols-outlined text-[14px] font-bold">close</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="w-40 h-28 rounded-xl border-2 border-dashed border-surface-variant flex flex-col items-center justify-center text-on-surface-variant shrink-0 bg-slate-50 text-[10px] font-semibold">
+                      <span className="material-symbols-outlined text-xl mb-1 text-slate-400">image</span>
+                      Chưa chọn ảnh
+                    </div>
+                  )}
+
+                  <div className="flex-grow w-full">
+                    <label className="inline-flex items-center gap-1.5 px-4 py-2 border border-slate-300 hover:bg-slate-50 text-on-surface rounded-xl text-xs font-bold cursor-pointer transition-all shadow-sm">
+                      <span className="material-symbols-outlined text-[16px]">upload</span>
+                      Tải ảnh từ thiết bị
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        onChange={handleImageUpload} 
+                        className="hidden" 
+                      />
+                    </label>
+                    <p className="text-[10px] text-on-surface-variant mt-1.5 font-semibold">
+                      Hỗ trợ định dạng JPG, PNG dưới 5MB.
+                    </p>
+                  </div>
+                </div>
               </div>
 
               {/* Submit Buttons */}

@@ -3,21 +3,28 @@ import { useApp } from '../context/AppContext';
 import { authService } from '../services/apiService';
 import { ASSETS } from '../constants/assets';
 
-const USE_REAL_BACKEND = import.meta.env.VITE_USE_REAL_BACKEND === 'true';
+const USE_REAL_BACKEND = true;
 
 interface LoginViewProps {
   onNavigateToRegister: () => void;
+  onNavigateToOTP?: (email: string) => void;
 }
 
-export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToRegister }) => {
+export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToRegister, onNavigateToOTP }) => {
   const { users, loginAs, setCurrentUser } = useApp();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [showVerifyLink, setShowVerifyLink] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim()) return;
+    if (!email.trim() || loading) return;
+    setErrorMsg('');
+    setShowVerifyLink(false);
+    setLoading(true);
 
     if (USE_REAL_BACKEND) {
       try {
@@ -26,10 +33,34 @@ export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToRegister }) =>
         setCurrentUser(user);
         window.location.hash = '#/feed';
       } catch (err: any) {
-        setErrorMsg(err.response?.data?.detail || err.response?.data?.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.');
+        let msg = 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.';
+        const detail = err.response?.data?.detail;
+        if (typeof detail === 'string') {
+          msg = detail;
+        } else if (Array.isArray(detail)) {
+          msg = detail.map((d: any) => d.msg).join('\n');
+        } else if (err.response?.data?.message) {
+          msg = err.response.data.message;
+        }
+        setErrorMsg(msg);
+
+        // Detect 403 activation required
+        if (
+          err.response?.status === 403 || 
+          msg.toLowerCase().includes('xác thực') || 
+          msg.toLowerCase().includes('otp')
+        ) {
+          setShowVerifyLink(true);
+        }
+      } finally {
+        setLoading(false);
       }
       return;
     }
+
+    // Simulated login delay
+    await new Promise((resolve) => setTimeout(resolve, 800));
+    setLoading(false);
 
     // Search user
     const matchedUser = users.find(u => u.email === email.trim());
@@ -37,7 +68,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToRegister }) =>
       loginAs(matchedUser._id);
       window.location.hash = '#/feed';
     } else {
-      setErrorMsg('Tài khoản không tồn tại. Vui lòng thử lại hoặc chọn một tài khoản Demo có sẵn bên dưới.');
+      setErrorMsg('Tài khoản không tồn tại. Vui lòng thử lại.');
     }
   };
 
@@ -67,6 +98,15 @@ export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToRegister }) =>
           <span className="font-headline-md text-lg text-primary font-bold tracking-tight">Volunteer Connect</span>
         </div>
 
+        {/* Back to Homepage Button */}
+        <a 
+          href="#/feed"
+          className="absolute top-8 right-6 md:right-12 flex items-center gap-1 text-on-surface-variant hover:text-primary font-bold text-xs transition-colors py-1.5 px-3 rounded-xl border border-outline-variant/60 hover:bg-slate-50 cursor-pointer shadow-sm"
+        >
+          <span className="material-symbols-outlined text-sm font-bold">arrow_back</span>
+          <span>Quay lại trang chủ</span>
+        </a>
+
         <div className="w-full max-w-md space-y-6 mt-16 md:mt-0 py-6">
           {/* Header text */}
           <div className="text-center space-y-2">
@@ -77,6 +117,15 @@ export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToRegister }) =>
           {errorMsg && (
             <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg text-xs font-semibold leading-relaxed">
               {errorMsg}
+              {showVerifyLink && (
+                <button 
+                  type="button" 
+                  onClick={() => onNavigateToOTP && onNavigateToOTP(email.trim())}
+                  className="block mt-2 text-primary hover:text-tertiary font-bold underline cursor-pointer"
+                >
+                  Nhấp vào đây để nhập mã OTP xác thực.
+                </button>
+              )}
             </div>
           )}
 
@@ -117,54 +166,39 @@ export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToRegister }) =>
                   <span className="material-symbols-outlined text-outline text-sm">lock</span>
                 </div>
                 <input
-                  className="w-full pl-10 pr-4 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg focus:outline-none focus:border-primary text-sm placeholder-on-surface-variant/50 text-on-surface"
+                  className="w-full pl-10 pr-10 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg focus:outline-none focus:border-primary text-sm placeholder-on-surface-variant/50 text-on-surface"
                   id="password"
                   name="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   required
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                 />
+                {password && (
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-outline-variant hover:text-primary transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-base">
+                      {showPassword ? "visibility" : "visibility_off"}
+                    </span>
+                  </button>
+                )}
               </div>
             </div>
 
             {/* Submit Button */}
             <button
-              className="w-full py-3 px-6 bg-primary text-on-primary rounded-full font-label-sm text-sm hover:bg-tertiary active:scale-[0.98] transition-all flex items-center justify-center gap-1 shadow-sm font-bold mt-4"
+              className="w-full py-3 px-6 bg-primary text-on-primary rounded-full font-label-sm text-sm hover:bg-tertiary active:scale-[0.98] transition-all flex items-center justify-center gap-1 shadow-sm font-bold mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
               type="submit"
+              disabled={loading}
             >
-              Đăng nhập
+              {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
               <span className="material-symbols-outlined text-[20px]">login</span>
             </button>
           </form>
-
-          {/* Divider and Demo Login Quick Switcher (Hidden in Real Backend mode) */}
-          {!USE_REAL_BACKEND && (
-            <>
-              <div className="relative flex items-center py-2">
-                <div className="flex-grow border-t border-outline-variant"></div>
-                <span className="flex-shrink-0 mx-4 font-body-md text-xs text-on-surface-variant font-semibold">hoặc đăng nhập nhanh bằng các tài khoản Demo</span>
-                <div className="flex-grow border-t border-outline-variant"></div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                {users.slice(0, 4).map(u => (
-                  <button
-                    key={u._id}
-                    onClick={() => {
-                      loginAs(u._id);
-                      window.location.hash = '#/feed';
-                    }}
-                    className="p-2 border border-outline-variant hover:bg-primary-container/10 hover:border-primary/50 rounded-lg text-left transition-colors flex flex-col justify-between text-xs bg-surface-container-low"
-                  >
-                    <span className="font-bold text-on-surface truncate w-full text-[11px]">{u.profile.full_name}</span>
-                    <span className="text-[9px] text-primary font-bold uppercase mt-0.5">{u.role}</span>
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
 
           {/* Sign up Link */}
           <p className="text-center font-body-md text-xs text-on-surface-variant pt-2">

@@ -159,6 +159,7 @@ export const ActivityListView: React.FC = () => {
                     src={act.image_url || 'https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=600'} 
                     alt={act.title} 
                     className="w-full h-full object-cover"
+                    onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=600'; }}
                   />
                   {/* Floating Category Badge */}
                   <span className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm text-[#006d37] font-bold text-xs px-3 py-1 rounded-full uppercase border border-[#006d37]/20 shadow-sm">
@@ -181,7 +182,7 @@ export const ActivityListView: React.FC = () => {
                       <div className="flex items-center gap-2">
                         <span className="material-symbols-outlined text-[#006d37] text-lg font-bold">location_on</span>
                         <span className="line-clamp-1">
-                          {act.location.address_detail}, {act.location.district}, {act.location.province}
+                          {act.location?.address_detail || 'Chưa cập nhật'}, {act.location?.district || ''}, {act.location?.province || ''}
                         </span>
                       </div>
                     </div>

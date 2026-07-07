@@ -13,6 +13,11 @@ export const formatPhoneE164 = (phone: string): string => {
   return cleaned;
 };
 
+const fixImageUrl = (url: string | null | undefined): string | null => {
+  if (!url) return null;
+  return url.replace('http://localhost:3000/', 'http://localhost:8000/');
+};
+
 // Helper mapper to translate backend models to frontend types
 export const mapBackendUserToFrontend = (beUser: any): User => {
   const roleMap: Record<string, 'Volunteer' | 'Organizer' | 'Admin'> = {
@@ -27,43 +32,36 @@ export const mapBackendUserToFrontend = (beUser: any): User => {
   };
 
   const userId = beUser.id || beUser._id;
-  let localExtra: any = {};
-  try {
-    const extraStr = localStorage.getItem(`vc_profile_extra_${userId}`);
-    if (extraStr) {
-      localExtra = JSON.parse(extraStr);
-    }
-  } catch (e) {
-    console.error(e);
-  }
+  // Dữ liệu profile được đọc trực tiếp từ API backend, không còn lưu cache localStorage
 
   return {
     _id: userId,
-    phone: localExtra.phone !== undefined ? localExtra.phone : beUser.phone_number,
+    phone: beUser.phone_number || '',
     is_phone_verified: beUser.status === 'active',
     otp_code: null,
     otp_expires_at: null,
     otp_send_count: 0,
     otp_cooldown_until: null,
-    email: localExtra.email !== undefined ? localExtra.email : beUser.email,
+    email: beUser.email,
     password_hash: '',
     role: roleMap[beUser.role] || 'Volunteer',
     profile: {
       full_name: beUser.full_name || 'Người dùng',
-      avatar_url: beUser.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=150',
-      bio: localExtra.bio !== undefined ? localExtra.bio : (beUser.bio || 'Thành viên Volunteer Connect'),
+      avatar_url: fixImageUrl(beUser.avatar_url),
+      bio: beUser.bio || null,
       joined_activity_count: beUser.joined_activity_count || 0,
-      skills: localExtra.skills !== undefined ? localExtra.skills : (beUser.skills || []),
-      area_of_interest: localExtra.area_of_interest !== undefined ? localExtra.area_of_interest : (beUser.area_of_interest || 'Hồ Chí Minh'),
+      skills: beUser.skills || [],
+      area_of_interest: beUser.area_of_interest || null,
       organizer_request_status: statusMap[beUser.organizer_request_status] || 'None',
       organizer_request_feedback: beUser.organizer_request_feedback || null,
-      age: localExtra.age !== undefined ? localExtra.age : undefined,
-      gender: localExtra.gender !== undefined ? localExtra.gender : undefined
+      age: beUser.age ?? undefined,
+      gender: beUser.gender || undefined
     },
     created_at: beUser.created_at,
     updated_at: beUser.updated_at || beUser.created_at
   };
 };
+
 
 // Auth Services
 export const authService = {
@@ -79,13 +77,14 @@ export const authService = {
     const user = await authService.getCurrentUser();
     return { token, user };
   },
-  register: async (email: string, phone: string, password_raw: string): Promise<{ message: string; user_id: string }> => {
+  register: async (fullname: string, email: string, phone: string, password_raw: string): Promise<{ message: string; user_id: string }> => {
     const formattedPhone = formatPhoneE164(phone);
-    // Backend: POST /api/v1/auth/register, body: { email, password, phone_number }
+    // Backend: POST /api/v1/auth/register, body: { email, password, phone_number, full_name }
     const res = await api.post('/auth/register', { 
       email, 
       phone_number: formattedPhone, 
-      password: password_raw 
+      password: password_raw,
+      full_name: fullname
     });
     return res.data;
   },
@@ -115,73 +114,122 @@ export const authService = {
       new_password: newPasswordRaw 
     });
     return res.data;
+  },
+  resendOtp: async (email: string): Promise<any> => {
+    // Backend: POST /api/v1/auth/resend-otp, body: { email }
+    const res = await api.post('/auth/resend-otp', { email });
+    return res.data;
+  },
+  refreshToken: async (token: string): Promise<any> => {
+    // Backend: POST /api/v1/auth/refresh-token, body: { refresh_token }
+    const res = await api.post('/auth/refresh-token', { refresh_token: token });
+    return res.data;
+  },
+  logout: async (): Promise<void> => {
+    localStorage.removeItem('token');
   }
+};
+
+
+const STATUS_MAP: Record<string, Activity['status']> = {
+  'draft': 'Draft',
+  'pending_review': 'Pending Review',
+  'open': 'Open',
+  'full': 'Full',
+  'ongoing': 'Ongoing',
+  'completed': 'Completed',
+  'rejected': 'Rejected',
+  'cancelled': 'Cancelled'
+};
+
+const mapActivity = (act: any): Activity => {
+  if (!act) return act;
+  const rawStatus = (act.status || '').toLowerCase().replace(/ /g, '_');
+  return {
+    ...act,
+    _id: act._id || act.id,
+    image_url: fixImageUrl(act.image_url),
+    status: STATUS_MAP[rawStatus] || act.status
+  };
+};
+
+const mapRegistration = (reg: any): Registration => {
+  if (!reg) return reg;
+  return {
+    ...reg,
+    _id: reg._id || reg.id
+  };
 };
 
 // Activity Services
 export const activityService = {
   getAll: async (): Promise<Activity[]> => {
-    const res = await api.get('/activities');
-    return res.data;
+    const res = await api.get('/activities?limit=100');
+    const acts = res.data?.data?.activities || [];
+    return acts.map(mapActivity);
   },
   getById: async (id: string): Promise<Activity> => {
     const res = await api.get(`/activities/${id}`);
-    return res.data;
+    return mapActivity(res.data?.data);
   },
   create: async (activityData: Partial<Activity>, submitForReview: boolean): Promise<Activity> => {
     const res = await api.post('/activities', activityData);
-    if (submitForReview && res.data._id) {
-      const submitRes = await api.post(`/activities/${res.data._id}/submit`);
-      return submitRes.data;
+    const created = mapActivity(res.data?.data);
+    if (submitForReview && created?._id) {
+      const submitRes = await api.post(`/activities/${created._id}/submit`);
+      return mapActivity(submitRes.data?.data);
     }
-    return res.data;
+    return created;
   },
   edit: async (id: string, activityData: Partial<Activity>): Promise<Activity> => {
     const res = await api.patch(`/activities/${id}`, activityData);
-    return res.data;
+    return mapActivity(res.data?.data);
   },
   submit: async (id: string): Promise<Activity> => {
     const res = await api.post(`/activities/${id}/submit`);
-    return res.data;
+    return mapActivity(res.data?.data);
   },
   cancel: async (id: string): Promise<void> => {
     await api.post(`/activities/${id}/cancel`);
   },
   getOrganizerActivities: async (): Promise<Activity[]> => {
-    const res = await api.get('/organizer/activities');
-    return res.data;
+    const res = await api.get('/organizer/activities?limit=100');
+    const acts = res.data?.data?.activities || [];
+    return acts.map(mapActivity);
   }
 };
 
 // Registration & Attendance Services
 export const registrationService = {
   getVolunteerRegistrations: async (): Promise<Registration[]> => {
-    const res = await api.get('/users/me/registrations');
-    return res.data;
+    const res = await api.get('/users/me/registrations?limit=100');
+    const regs = res.data?.data?.registrations || [];
+    return regs.map(mapRegistration);
   },
   getActivityRegistrations: async (activityId: string): Promise<Registration[]> => {
-    const res = await api.get(`/activities/${activityId}/registrations`);
-    return res.data;
+    const res = await api.get(`/activities/${activityId}/registrations?limit=100`);
+    const regs = res.data?.data?.registrations || [];
+    return regs.map(mapRegistration);
   },
   register: async (activityId: string): Promise<Registration> => {
     const res = await api.post(`/activities/${activityId}/registrations`);
-    return res.data;
+    return mapRegistration(res.data?.data);
   },
   cancel: async (registrationId: string): Promise<Registration> => {
     const res = await api.post(`/registrations/${registrationId}/cancel`);
-    return res.data;
+    return mapRegistration(res.data?.data);
   },
   approve: async (registrationId: string): Promise<Registration> => {
     const res = await api.post(`/registrations/${registrationId}/approve`);
-    return res.data;
+    return mapRegistration(res.data?.data);
   },
   reject: async (registrationId: string, reason?: string): Promise<Registration> => {
     const res = await api.post(`/registrations/${registrationId}/reject`, { reason });
-    return res.data;
+    return mapRegistration(res.data?.data);
   },
   updateParticipation: async (registrationId: string, status: 'Completed' | 'Absent'): Promise<Registration> => {
     const res = await api.post(`/registrations/${registrationId}/check-in`, { status });
-    return res.data;
+    return mapRegistration(res.data?.data);
   }
 };
 
@@ -216,17 +264,39 @@ export const postService = {
   like: async (postId: string): Promise<Post> => {
     const res = await api.post(`/posts/${postId}/like`);
     return res.data;
+  },
+  delete: async (postId: string): Promise<void> => {
+    // Backend: DELETE /api/v1/posts/{id}
+    await api.delete(`/posts/${postId}`);
+  },
+  share: async (postId: string): Promise<Post> => {
+    // Backend: POST /api/v1/posts/{id}/share
+    const res = await api.post(`/posts/${postId}/share`);
+    return res.data;
   }
 };
 
 // User Profile Services
 export const userService = {
-  updateProfile: async (updatedProfile: Partial<UserProfile>): Promise<User> => {
-    // Backend: PUT /api/v1/users/me, body: { full_name, avatar_url }
+  updateProfile: async (
+    updatedProfile: Partial<UserProfile> & { phone?: string; age?: number; gender?: string }
+  ): Promise<User> => {
+    // Backend: PUT /api/v1/users/me, body: { full_name, avatar_url, bio, skills, area_of_interest, phone_number, age, gender }
     const res = await api.put('/users/me', { 
       full_name: updatedProfile.full_name,
-      avatar_url: updatedProfile.avatar_url
+      avatar_url: updatedProfile.avatar_url,
+      bio: updatedProfile.bio,
+      skills: updatedProfile.skills,
+      area_of_interest: updatedProfile.area_of_interest,
+      phone_number: updatedProfile.phone,
+      age: updatedProfile.age,
+      gender: updatedProfile.gender
     });
+    return mapBackendUserToFrontend(res.data);
+  },
+  getById: async (userId: string): Promise<User> => {
+    // Backend: GET /api/v1/users/{id}
+    const res = await api.get(`/users/${userId}`);
     return mapBackendUserToFrontend(res.data);
   }
 };
@@ -251,6 +321,20 @@ export const adminService = {
   },
   getStatistics: async (): Promise<any> => {
     const res = await api.get('/admin/statistics');
+    return res.data;
+  }
+};
+
+// Media/File Upload Services
+export const mediaService = {
+  upload: async (file: File): Promise<{ url: string }> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await api.post('/media/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
     return res.data;
   }
 };

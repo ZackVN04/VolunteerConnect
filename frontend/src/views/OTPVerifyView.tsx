@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { authService } from '../services/apiService';
 
+const USE_REAL_BACKEND = true;
+
 interface OTPVerifyViewProps {
   phoneNumber: string;
   email?: string;
@@ -30,18 +32,28 @@ export const OTPVerifyView: React.FC<OTPVerifyViewProps> = ({
     setErrorMsg('');
     setSuccessMsg('');
     try {
-      await authService.verifyOtp(email || phoneNumber, otp);
+      if (USE_REAL_BACKEND) {
+        await authService.verifyOtp(email || phoneNumber, otp);
+      } else {
+        // Simulated mock OTP check
+        await new Promise((resolve) => setTimeout(resolve, 800));
+        if (otp !== '123456') {
+          throw new Error('Mã OTP giả lập không chính xác. Vui lòng sử dụng mã 123456.');
+        }
+      }
       setSuccessMsg('Xác thực tài khoản thành công! Đang chuyển hướng...');
       setTimeout(() => {
         onVerifySuccess();
       }, 2000);
     } catch (err: any) {
-      let msg = 'Mã OTP không hợp lệ hoặc đã hết hạn.';
-      const detail = err.response?.data?.detail;
-      if (typeof detail === 'string') {
-        msg = detail;
-      } else if (Array.isArray(detail)) {
-        msg = detail.map((d: any) => d.msg).join('\n');
+      let msg = err.message || 'Mã OTP không hợp lệ hoặc đã hết hạn.';
+      if (err.response?.data?.detail) {
+        const detail = err.response.data.detail;
+        if (typeof detail === 'string') {
+          msg = detail;
+        } else if (Array.isArray(detail)) {
+          msg = detail.map((d: any) => d.msg).join('\n');
+        }
       } else if (err.response?.data?.message) {
         msg = err.response.data.message;
       }
