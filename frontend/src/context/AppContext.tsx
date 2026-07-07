@@ -10,7 +10,7 @@ import {
   adminService
 } from '../services/apiService';
 
-const USE_REAL_BACKEND = import.meta.env.VITE_USE_REAL_BACKEND === 'true';
+const USE_REAL_BACKEND = true;
 
 
 // --- Interface Definitions ---
