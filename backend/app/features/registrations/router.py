@@ -19,11 +19,6 @@ from app.features.registrations.schemas import (
     BulkReviewResponse,
     VolunteerSnippet
 )
-<<<<<<< HEAD
-from app.features.registrations.repositories import RegistrationRepository
-router = APIRouter(prefix="/api/v1/activities", tags=["registrations"])
-=======
->>>>>>> a8fdad5d5800674e6d860ad24830d7cde972f55e
 
 # ============================================================
 # router — prefix: /api/v1/activities
@@ -117,10 +112,6 @@ async def get_activity_registrations(
         )
     )
 
-<<<<<<< HEAD
-action_router = APIRouter(prefix="/api/v1/registrations", tags=["registrations"])
-=======
->>>>>>> a8fdad5d5800674e6d860ad24830d7cde972f55e
 
 # ============================================================
 # action_router — prefix: /api/v1/registrations
@@ -185,8 +176,6 @@ async def reject_registration_endpoint(
     )
 
 
-<<<<<<< HEAD
-=======
 @action_router.get("/{registration_id}", response_model=RegistrationDetailResponse, status_code=status.HTTP_200_OK)
 async def get_registration_detail(
     registration_id: str,
@@ -229,7 +218,6 @@ async def get_registration_detail(
 # ============================================================
 # user_router — prefix: /api/v1/users/me
 # ============================================================
->>>>>>> a8fdad5d5800674e6d860ad24830d7cde972f55e
 user_router = APIRouter(prefix="/api/v1/users/me", tags=["registrations"])
 
 @user_router.get("/registrations", response_model=RegistrationListResponse)
