@@ -3,14 +3,15 @@ from pydantic import EmailStr, Field
 from datetime import datetime, timezone
 from app.shared.enums import UserRole, UserStatus
 from typing import Optional, Annotated
+from pymongo import IndexModel
 
 class User(Document):
     # Đánh index unique cho email và số điện thoại để không bị trùng lặp trong hệ thống
     email: Annotated[EmailStr, Indexed(unique=True)]
     hashed_password: str
     
-    # Phone number nay bắt buộc phải nhập khi đăng ký
-    phone_number: Annotated[str, Indexed(unique=True)]
+    # Số điện thoại không bắt buộc khi đăng ký, sẽ được cập nhật sau trong hồ sơ
+    phone_number: Optional[str] = None
     full_name: Optional[str] = None
     avatar_url: Optional[str] = None
     bio: Optional[str] = None
@@ -30,3 +31,10 @@ class User(Document):
 
     class Settings:
         name = "users"
+        indexes = [
+            IndexModel(
+                [("phone_number", 1)],
+                unique=True,
+                sparse=True
+            )
+        ]

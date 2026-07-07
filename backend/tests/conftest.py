@@ -22,6 +22,12 @@ async def initialize_db():
             db = client["volunteer_connect"]
     except Exception:
         db = client["volunteer_connect"]
+
+    # Failsafe: Xóa chỉ mục phone_number cũ không có sparse để tránh lỗi xung đột trong DB test
+    try:
+        await db.users.drop_index("phone_number_1")
+    except Exception:
+        pass
         
     await init_beanie(
         database=db,

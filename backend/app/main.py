@@ -31,6 +31,15 @@ import os
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("🚀 Starting up server... Connecting to MongoDB...")
+    
+    # DIAGNOSTIC CHECK: Kiểm tra kết nối mạng công khai từ container Cloud Run
+    import httpx
+    try:
+        r = httpx.get("https://httpbin.org/ip", timeout=3.0)
+        print(f"🌍 [DIAGNOSTIC] Internet Egress: OK. Public IP: {r.json().get('origin')}")
+    except Exception as e:
+        print(f"❌ [DIAGNOSTIC] Internet Egress: FAILED! No internet access from container. Error: {e}")
+
     # Bỏ qua lỗi tương thích phiên bản giữa Beanie và Motor (MotorDatabase object is not callable)
     AsyncIOMotorClient.append_metadata = lambda self, *args, **kwargs: None
     
@@ -39,6 +48,13 @@ async def lifespan(app: FastAPI):
         db = client.get_default_database()
     except Exception:
         db = client["volunteer_connect"]
+
+    # Failsafe: Xóa chỉ mục phone_number cũ không có sparse để Beanie cấu hình lại chỉ mục Sparse mới
+    try:
+        await db.users.drop_index("phone_number_1")
+        print("🧹 Dropped old index phone_number_1 successfully.")
+    except Exception as e:
+        print(f"ℹ️ Skipped dropping phone_number_1 index: {e}")
         
     await init_beanie(
         database=db,
