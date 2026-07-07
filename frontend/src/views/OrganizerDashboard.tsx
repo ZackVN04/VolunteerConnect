@@ -5,19 +5,18 @@ import type { Activity } from '../context/AppContext';
 export const OrganizerDashboard: React.FC = () => {
   const { 
     currentUser, activities, registrations, 
-    createActivity, editActivity, cancelActivity,
-    approveRegistration, cancelOrRejectRegistration, updateParticipation 
+    createActivity, editActivity, 
+    approveRegistration, cancelOrRejectRegistration, updateParticipation,
+    showNotification, showPrompt
   } = useApp();
 
-  const [activeTab, setActiveTab] = useState<'my-activities' | 'registrations' | 'attendance'>('my-activities');
-  const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
-  
-  // Create Modal State
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [editMode, setEditMode] = useState(false);
-  const [editingActivityId, setEditingActivityId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'overview' | 'my-campaigns' | 'create-campaign' | 'approve' | 'attendance'>('overview');
+  const [selectedActivityId, setSelectedActivityId] = useState<string>('');
 
   // Form Fields State
+  const [editMode, setEditMode] = useState(false);
+  const [editingActivityId, setEditingActivityId] = useState<string | null>(null);
+  
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('Môi trường');
@@ -25,23 +24,18 @@ export const OrganizerDashboard: React.FC = () => {
   const [district, setDistrict] = useState('');
   const [addressDetail, setAddressDetail] = useState('');
   const [startDate, setStartDate] = useState('');
-  const [startTime, setStartTime] = useState('08:00');
   const [endDate, setEndDate] = useState('');
-  const [endTime, setEndTime] = useState('17:00');
   const [limitVolunteers, setLimitVolunteers] = useState(10);
   const [requirements, setRequirements] = useState('');
   const [imageUrl, setImageUrl] = useState('');
 
-  // Rejection Dialog State
-  const [rejectingRegId, setRejectingRegId] = useState<string | null>(null);
-  const [rejectReason, setRejectReason] = useState('');
-
-  // Listen to create=true parameter in URL
+  // Auto-fill selected activity if hash specifies create=true
   useEffect(() => {
     const handleHashChange = () => {
       if (window.location.hash.includes('create=true')) {
-        setShowCreateModal(true);
+        setActiveTab('create-campaign');
         setEditMode(false);
+        resetForm();
       }
     };
     handleHashChange();
@@ -51,17 +45,31 @@ export const OrganizerDashboard: React.FC = () => {
 
   if (!currentUser) return null;
 
-  // Filter activities created by this organizer
-  const myActs = activities.filter(a => a.organizer_id === currentUser._id);
+  // Filter campaigns created by this organizer
+  const myCampaigns = activities.filter(a => a.organizer_id === currentUser._id);
 
-  // Filter registrations for selected activity
-  const actRegs = registrations.filter(r => r.activity_id === selectedActivity?._id);
+  // Default selected activity ID for sub-selectors
+  useEffect(() => {
+    if (myCampaigns.length > 0 && !selectedActivityId) {
+      setSelectedActivityId(myCampaigns[0]._id);
+    }
+  }, [myCampaigns, selectedActivityId]);
 
-  // Filter approved attendees for attendance tab
-  const approvedAttendees = actRegs.filter(r => r.status === 'Approved');
+  // Compute stats dynamically
+  const totalCampaigns = myCampaigns.length;
+  const totalCompleted = myCampaigns.filter(a => a.status === 'Completed').length;
+  
+  // Volunteers approved across all organizer's campaigns
+  const myCampaignIds = myCampaigns.map(c => c._id);
+  const organizerRegs = registrations.filter(r => myCampaignIds.includes(r.activity_id));
+  const totalRecruited = organizerRegs.filter(r => r.status === 'Approved' || r.status === 'Completed').length;
+  const pendingApprovalCount = organizerRegs.filter(r => r.status === 'Pending').length;
 
-  const handleOpenCreateModal = () => {
-    setEditMode(false);
+  // Filter registrations for selected activity (Tab: Duyệt tình nguyện viên)
+  const selectedRegs = registrations.filter(r => r.activity_id === selectedActivityId);
+
+  // Reset form helper
+  const resetForm = () => {
     setTitle('');
     setDescription('');
     setCategory('Môi trường');
@@ -69,16 +77,15 @@ export const OrganizerDashboard: React.FC = () => {
     setDistrict('');
     setAddressDetail('');
     setStartDate('');
-    setStartTime('08:00');
     setEndDate('');
-    setEndTime('17:00');
     setLimitVolunteers(10);
     setRequirements('');
     setImageUrl('');
-    setShowCreateModal(true);
+    setEditMode(false);
+    setEditingActivityId(null);
   };
 
-  const handleOpenEditModal = (act: Activity) => {
+  const handleEditCampaignClick = (act: Activity) => {
     setEditMode(true);
     setEditingActivityId(act._id);
     setTitle(act.title);
@@ -88,25 +95,23 @@ export const OrganizerDashboard: React.FC = () => {
     setDistrict(act.location.district);
     setAddressDetail(act.location.address_detail);
     
-    // Split ISO Dates
-    const sDate = act.start_date.split('T')[0];
-    const sTime = act.start_date.split('T')[1]?.substring(0, 5) || '08:00';
-    const eDate = act.end_date.split('T')[0];
-    const eTime = act.end_date.split('T')[1]?.substring(0, 5) || '17:00';
-
+    // Convert dates to standard format YYYY-MM-DD or YYYY-MM-DDTHH:MM
+    const sDate = act.start_date.substring(0, 16);
+    const eDate = act.end_date.substring(0, 16);
     setStartDate(sDate);
-    setStartTime(sTime);
     setEndDate(eDate);
-    setEndTime(eTime);
+
     setLimitVolunteers(act.limit_volunteers);
     setRequirements(act.requirements || '');
     setImageUrl(act.image_url || '');
-    setShowCreateModal(true);
+
+    setActiveTab('create-campaign');
   };
 
-  const handleSubmitActivity = (submitForReview: boolean) => {
-    if (!title.trim() || !description.trim() || !district.trim() || !addressDetail.trim() || !startDate) {
-      alert('Vui lòng điền đầy đủ các thông tin bắt buộc');
+  const handleSubmitActivity = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title.trim() || !description.trim() || !district.trim() || !addressDetail.trim() || !startDate || !endDate) {
+      showNotification('Vui lòng điền đầy đủ các thông tin bắt buộc', 'error');
       return;
     }
 
@@ -119,607 +124,610 @@ export const OrganizerDashboard: React.FC = () => {
         district,
         address_detail: addressDetail
       },
-      start_date: `${startDate}T${startTime}:00.000Z`,
-      end_date: `${endDate || startDate}T${endTime}:00.000Z`,
+      start_date: startDate.includes('T') ? `${startDate}:00.000Z` : `${startDate}T08:00:00.000Z`,
+      end_date: endDate.includes('T') ? `${endDate}:00.000Z` : `${endDate}T17:00:00.000Z`,
       limit_volunteers: Number(limitVolunteers),
-      requirements: requirements || null,
-      image_url: imageUrl.trim() || 'https://images.unsplash.com/photo-1544027993-37dbfe43562a?q=80&w=600'
+      requirements: requirements.trim() || null,
+      image_url: imageUrl.trim() || 'https://images.unsplash.com/photo-1544027993-37dbfe43562a?q=80&w=600',
+      status: 'Pending Review' // All newly created/edited activities go to Pending Review
     };
 
     if (editMode && editingActivityId) {
       editActivity(editingActivityId, activityData);
-      // If submitting, change status
-      if (submitForReview) {
-        editActivity(editingActivityId, { status: 'Pending Review' });
-      }
+      showNotification('Đã cập nhật chiến dịch và gửi yêu cầu duyệt lại!', 'success');
     } else {
-      createActivity(activityData, submitForReview);
+      createActivity(activityData, true); // true = submit for review
+      showNotification('Tạo chiến dịch mới thành công! Đang chờ Admin duyệt.', 'success');
     }
 
-    setShowCreateModal(false);
+    resetForm();
+    setActiveTab('my-campaigns');
     window.location.hash = '#/organizer/dashboard';
   };
 
-  const handleOpenRegistrations = (act: Activity) => {
-    setSelectedActivity(act);
-    setActiveTab('registrations');
+  const handleApprove = (regId: string) => {
+    approveRegistration(regId);
+    showNotification('Đã duyệt tình nguyện viên này tham gia.', 'success');
   };
 
-  const handleOpenAttendance = (act: Activity) => {
-    setSelectedActivity(act);
-    setActiveTab('attendance');
+  const handleReject = (regId: string) => {
+    showPrompt(
+      'Nhập lý do từ chối đăng ký:',
+      (reason) => {
+        if (!reason.trim()) {
+          showNotification('Vui lòng nhập lý do từ chối.', 'error');
+          return;
+        }
+        cancelOrRejectRegistration(regId, reason);
+        showNotification('Đã từ chối đơn đăng ký.', 'success');
+      },
+      'Từ chối đăng ký',
+      'Lý do từ chối...'
+    );
   };
 
-  const handleConfirmReject = (regId: string) => {
-    if (!rejectReason.trim()) {
-      alert('Vui lòng nhập lý do từ chối');
-      return;
-    }
-    cancelOrRejectRegistration(regId, rejectReason);
-    setRejectingRegId(null);
-    setRejectReason('');
+  const handleCheckIn = (regId: string, status: 'Completed' | 'Absent') => {
+    updateParticipation(regId, status);
+    showNotification(`Đã điểm danh: ${status === 'Completed' ? 'Có mặt' : 'Vắng mặt'}`, 'success');
   };
 
   return (
-    <div className="flex-grow w-full max-w-[1280px] mx-auto px-4 md:px-8 py-8 text-left space-y-6">
-      {/* Dashboard Top Banner */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-surface-variant pb-4">
-        <div>
-          <h1 className="font-display-lg-mobile md:font-display-lg text-primary font-bold">Ban Tổ Chức Console</h1>
-          <p className="text-sm text-on-surface-variant mt-1">Quản lý chiến dịch tình nguyện của bạn, phê duyệt đơn đăng ký và điểm danh thành viên.</p>
-        </div>
-        <button 
-          onClick={handleOpenCreateModal}
-          className="bg-primary text-on-primary hover:bg-tertiary px-6 py-3 rounded-lg font-label-sm text-xs transition-all duration-200 active:scale-95 shadow-sm flex items-center gap-1.5 font-bold"
-        >
-          <span className="material-symbols-outlined text-sm font-bold">add</span>
-          Tạo hoạt động mới
-        </button>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex gap-4">
-        <button
-          onClick={() => {
-            setActiveTab('my-activities');
-            setSelectedActivity(null);
-          }}
-          className={`py-2 px-4 rounded-lg font-semibold text-xs transition-all ${
-            activeTab === 'my-activities'
-              ? 'bg-primary text-on-primary shadow-sm'
-              : 'bg-surface-container hover:bg-surface-container-high text-on-surface'
-          }`}
-        >
-          Hoạt động của tôi ({myActs.length})
-        </button>
-        {selectedActivity && (
-          <>
-            <button
-              onClick={() => setActiveTab('registrations')}
-              className={`py-2 px-4 rounded-lg font-semibold text-xs transition-all ${
-                activeTab === 'registrations'
-                  ? 'bg-primary text-on-primary shadow-sm'
-                  : 'bg-surface-container hover:bg-surface-container-high text-on-surface'
-              }`}
-            >
-              Duyệt Đăng Ký ({actRegs.length})
-            </button>
-            <button
-              onClick={() => setActiveTab('attendance')}
-              className={`py-2 px-4 rounded-lg font-semibold text-xs transition-all ${
-                activeTab === 'attendance'
-                  ? 'bg-primary text-on-primary shadow-sm'
-                  : 'bg-surface-container hover:bg-surface-container-high text-on-surface'
-              }`}
-            >
-              Điểm Danh ({approvedAttendees.length})
-            </button>
-          </>
-        )}
-      </div>
-
-      {/* --- Tab 1: My Activities --- */}
-      {activeTab === 'my-activities' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-md">
-          {myActs.length === 0 ? (
-            <div className="bg-surface-container-lowest col-span-full rounded-xl p-12 border border-surface-variant text-center space-y-3">
-              <span className="material-symbols-outlined text-outline text-5xl">campaign</span>
-              <p className="text-sm text-on-surface-variant italic">Bạn chưa tạo hoạt động nào.</p>
-              <button 
-                onClick={handleOpenCreateModal} 
-                className="bg-primary text-on-primary hover:bg-tertiary px-5 py-2 rounded-lg font-medium text-xs shadow"
-              >
-                Tạo hoạt động đầu tiên
-              </button>
-            </div>
-          ) : (
-            myActs.map(act => {
-              const countPending = registrations.filter(r => r.activity_id === act._id && r.status === 'Pending').length;
-              return (
-                <div key={act._id} className="bg-surface-container-lowest rounded-lg border border-surface-variant overflow-hidden hover:shadow-sm transition-all flex flex-col justify-between h-[480px]">
-                  <div>
-                    <div className="h-[192px] w-full bg-surface-container relative shrink-0">
-                      <img src={act.image_url || ''} alt="" className="w-full h-full object-cover" />
-                      <div className={`absolute top-4 left-4 px-3 py-1 rounded-full text-xs font-bold uppercase shadow-sm ${
-                        act.status === 'Open' ? 'bg-[#E6F4EA] text-[#137333]' :
-                        act.status === 'Draft' ? 'bg-slate-200 text-slate-800' :
-                        act.status === 'Pending Review' ? 'bg-amber-100 text-amber-800' :
-                        act.status === 'Rejected' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {act.status === 'Open' ? 'Đang Tuyển' : act.status}
-                      </div>
-                    </div>
-                    
-                    <div className="p-6 space-y-2">
-                      <h4 className="font-headline-md text-on-surface text-base md:text-lg font-bold line-clamp-2 leading-tight mb-2">{act.title}</h4>
-                      <div className="space-y-1.5 text-sm text-on-surface-variant">
-                        <p className="font-medium flex items-center gap-1.5">
-                          <span className="material-symbols-outlined text-base">location_on</span>
-                          <span>Khu vực: {act.location.district}, {act.location.province}</span>
-                        </p>
-                        <p className="flex items-center gap-1.5">
-                          <span className="material-symbols-outlined text-base">group</span>
-                          <span>Đăng ký: <strong>{act.approved_volunteers_count}</strong> / {act.limit_volunteers} (Chờ duyệt: {countPending})</span>
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="pt-4 px-6 pb-8 border-t border-surface-variant flex flex-wrap gap-2 mt-auto">
-                    {/* Management and approval actions */}
-                    {(act.status === 'Draft' || act.status === 'Rejected') && (
-                      <button 
-                        onClick={() => handleOpenEditModal(act)}
-                        className="flex-grow bg-primary text-on-primary hover:bg-tertiary h-[40px] rounded-lg font-bold text-xs transition-colors"
-                      >
-                        Sửa Nháp
-                      </button>
-                    )}
-                    
-                    {act.status !== 'Draft' && act.status !== 'Pending Review' && act.status !== 'Rejected' && (
-                      <>
-                        <button
-                          onClick={() => handleOpenRegistrations(act)}
-                          className="flex-grow bg-primary text-on-primary hover:bg-tertiary h-[40px] rounded-lg font-bold text-xs transition-colors relative"
-                        >
-                          Duyệt Đơn
-                          {countPending > 0 && (
-                            <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold">
-                              {countPending}
-                            </span>
-                          )}
-                        </button>
-                        <button
-                          onClick={() => handleOpenAttendance(act)}
-                          className="flex-grow bg-secondary-container text-on-secondary-container hover:bg-secondary-fixed h-[40px] rounded-lg font-bold text-xs transition-colors"
-                        >
-                          Điểm danh
-                        </button>
-                        {(act.status === 'Open' || act.status === 'Full') && (
-                          <button
-                            onClick={() => {
-                              if (confirm('Bạn có chắc muốn Hủy hoạt động này? Mọi đơn đăng ký liên quan sẽ chuyển sang trạng thái Hủy.')) {
-                                cancelActivity(act._id);
-                              }
-                            }}
-                            className="text-red-600 hover:bg-red-50 border border-red-200 px-3 h-[40px] rounded-lg text-xs flex items-center justify-center shrink-0"
-                            title="Hủy hoạt động"
-                          >
-                            <span className="material-symbols-outlined text-sm">delete</span>
-                          </button>
-                        )}
-                      </>
-                    )}
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
-      )}
-
-      {/* --- Tab 2: Approve registrations --- */}
-      {activeTab === 'registrations' && selectedActivity && (
-        <div className="space-y-4">
-          <div className="flex justify-between items-center bg-surface-container-lowest p-4 rounded-xl border border-surface-variant">
-            <div>
-              <span className="text-xs text-on-surface-variant font-bold uppercase">Đang duyệt cho hoạt động:</span>
-              <h3 className="font-bold text-on-surface text-base">{selectedActivity.title}</h3>
-            </div>
-            <button 
-              onClick={() => {
-                setActiveTab('my-activities');
-                setSelectedActivity(null);
-              }}
-              className="text-xs font-bold text-primary hover:underline"
-            >
-              Quay lại danh sách
-            </button>
+    <div className="w-full bg-[#f8f9fa] min-h-screen pb-16">
+      {/* Container */}
+      <div className="max-w-[1280px] mx-auto px-4 md:px-8 py-8 space-y-8 text-left">
+        
+        {/* Organizer Header/Profile banner */}
+        <section className="bg-[#e8f5e9]/50 border border-surface-variant/40 rounded-3xl p-6 md:p-8 flex items-center gap-6 shadow-sm">
+          <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-[#006d37] bg-white shrink-0">
+            <img 
+              src={currentUser.profile.avatar_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150&q=80"} 
+              alt="Organizer Avatar" 
+              className="w-full h-full object-cover"
+            />
           </div>
-
-          <div className="space-y-3">
-            {actRegs.length === 0 ? (
-              <p className="text-sm text-on-surface-variant italic text-center p-8 bg-surface-container-lowest rounded-xl border border-surface-variant">
-                Chưa có tình nguyện viên nào đăng ký hoạt động này.
-              </p>
-            ) : (
-              actRegs.map(reg => {
-                const isPending = reg.status === 'Pending';
-                const isRejecting = rejectingRegId === reg._id;
-
-                return (
-                  <div key={reg._id} className="bg-surface-container-lowest p-5 rounded-xl border border-surface-variant shadow-sm space-y-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      {/* Volunteer Details */}
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center font-bold">
-                          {reg.denormalized_volunteer.name.substring(0, 2).toUpperCase()}
-                        </div>
-                        <div>
-                          <h4 className="font-bold text-on-surface text-base">{reg.denormalized_volunteer.name}</h4>
-                          <p className="text-xs text-on-surface-variant">SĐT: {reg.denormalized_volunteer.phone} • Email: {reg.denormalized_volunteer.email}</p>
-                          <p className="text-[10px] text-outline mt-0.5">Ngày đăng ký: {new Date(reg.created_at).toLocaleDateString('vi-VN')}</p>
-                        </div>
-                      </div>
-
-                      {/* Registration State */}
-                      <div className="flex gap-2">
-                        {isPending && !isRejecting && (
-                          <>
-                            <button
-                              onClick={() => setRejectingRegId(reg._id)}
-                              className="border border-red-600 text-red-600 hover:bg-red-50 py-1.5 px-4 rounded-full font-bold text-xs transition-colors"
-                            >
-                              Từ chối
-                            </button>
-                            <button
-                              onClick={() => approveRegistration(reg._id)}
-                              className="bg-primary text-on-primary hover:bg-tertiary py-1.5 px-4 rounded-full font-bold text-xs shadow transition-colors"
-                            >
-                              Duyệt nhận
-                            </button>
-                          </>
-                        )}
-                        {!isPending && (
-                          <span className={`px-3 py-1 rounded text-xs font-bold uppercase ${
-                            reg.status === 'Approved' ? 'bg-emerald-100 text-emerald-800' :
-                            reg.status === 'Rejected' ? 'bg-red-100 text-red-800' :
-                            reg.status === 'Completed' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
-                          }`}>
-                            {reg.status}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Rejection input sub-panel (Implementing 12-Quản lý dăng ký.html detail) */}
-                    {isRejecting && (
-                      <div className="bg-surface-container-low p-4 rounded-xl border border-red-200">
-                        <label className="block text-xs font-bold text-red-800 mb-2 flex items-center gap-1">
-                          <span className="material-symbols-outlined text-sm">info</span>
-                          Lý do từ chối đăng ký (Bắt buộc)
-                        </label>
-                        <textarea
-                          value={rejectReason}
-                          onChange={(e) => setRejectReason(e.target.value)}
-                          placeholder="Nhập lý do từ chối để gửi thông báo cho tình nguyện viên..."
-                          rows={2}
-                          className="w-full bg-surface-container-lowest border border-outline-variant rounded-lg p-2.5 text-xs outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600"
-                        ></textarea>
-                        <div className="flex justify-end gap-2 mt-3 text-xs">
-                          <button
-                            onClick={() => {
-                              setRejectingRegId(null);
-                              setRejectReason('');
-                            }}
-                            className="py-1.5 px-3 rounded hover:bg-surface-variant transition-colors"
-                          >
-                            Hủy bỏ
-                          </button>
-                          <button
-                            onClick={() => handleConfirmReject(reg._id)}
-                            className="bg-red-600 hover:bg-red-700 text-white font-bold py-1.5 px-4 rounded shadow transition-colors"
-                          >
-                            Xác nhận từ chối
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* --- Tab 3: Attendance Update --- */}
-      {activeTab === 'attendance' && selectedActivity && (
-        <div className="space-y-4">
-          <div className="flex justify-between items-center bg-surface-container-lowest p-4 rounded-xl border border-surface-variant">
-            <div>
-              <span className="text-xs text-on-surface-variant font-bold uppercase">Điểm danh hoạt động kết thúc:</span>
-              <h3 className="font-bold text-on-surface text-base">{selectedActivity.title}</h3>
+          <div className="flex flex-col">
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl font-bold text-on-surface">{currentUser.profile.full_name}</h2>
+              <span className="bg-[#006d37] text-white text-[10px] px-2 py-0.5 rounded-full font-bold uppercase">
+                Ban tổ chức
+              </span>
             </div>
-            <button 
-              onClick={() => {
-                setActiveTab('my-activities');
-                setSelectedActivity(null);
-              }}
-              className="text-xs font-bold text-primary hover:underline"
-            >
-              Quay lại danh sách
-            </button>
+            <p className="text-on-surface-variant text-sm mt-1">
+              Đại diện Ban tổ chức hoạt động • Hoạt động uy tín
+            </p>
           </div>
+        </section>
 
-          <div className="space-y-3">
-            {approvedAttendees.length === 0 ? (
-              <p className="text-sm text-on-surface-variant italic text-center p-8 bg-surface-container-lowest rounded-xl border border-surface-variant">
-                Chưa có tình nguyện viên nào được duyệt tham gia để tiến hành điểm danh.
-              </p>
-            ) : (
-              approvedAttendees.map(reg => {
-                return (
-                  <div key={reg._id} className="bg-surface-container-lowest p-5 rounded-xl border border-surface-variant shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center font-bold">
-                        {reg.denormalized_volunteer.name.substring(0, 2).toUpperCase()}
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-on-surface text-base">{reg.denormalized_volunteer.name}</h4>
-                        <p className="text-xs text-on-surface-variant">SĐT: {reg.denormalized_volunteer.phone} • Email: {reg.denormalized_volunteer.email}</p>
-                      </div>
-                    </div>
-
-                    <div className="flex gap-2">
-                      <button
-                        onClick={async () => {
-                          const res = updateParticipation(reg._id, 'Absent');
-                          const result = res instanceof Promise ? await res : res;
-                          if (!result.success) alert(result.error);
-                        }}
-                        className="border border-amber-600 text-amber-600 hover:bg-amber-50 py-1.5 px-4 rounded-full font-bold text-xs transition-colors"
-                      >
-                        Vắng mặt (Absent)
-                      </button>
-                      <button
-                        onClick={async () => {
-                          const res = updateParticipation(reg._id, 'Completed');
-                          const result = res instanceof Promise ? await res : res;
-                          if (!result.success) alert(result.error);
-                        }}
-                        className="bg-primary text-on-primary hover:bg-tertiary py-1.5 px-4 rounded-full font-bold text-xs shadow transition-colors"
-                      >
-                        Hoàn thành (Completed)
-                      </button>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
+        {/* 5-Tab Workspace panel links */}
+        <div className="flex border-b border-surface-variant/40 pb-2 overflow-x-auto whitespace-nowrap scrollbar-thin">
+          <button
+            onClick={() => setActiveTab('overview')}
+            className={`pb-2 px-4 font-semibold text-sm transition-all border-b-2 ${
+              activeTab === 'overview'
+                ? 'border-[#006d37] text-[#006d37]'
+                : 'border-transparent text-on-surface-variant hover:text-on-surface'
+            }`}
+          >
+            Tổng quan
+          </button>
+          <button
+            onClick={() => setActiveTab('my-campaigns')}
+            className={`pb-2 px-4 font-semibold text-sm transition-all border-b-2 ${
+              activeTab === 'my-campaigns'
+                ? 'border-[#006d37] text-[#006d37]'
+                : 'border-transparent text-on-surface-variant hover:text-on-surface'
+            }`}
+          >
+            Chiến dịch của tôi
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('create-campaign');
+              setEditMode(false);
+              resetForm();
+            }}
+            className={`pb-2 px-4 font-semibold text-sm transition-all border-b-2 ${
+              activeTab === 'create-campaign'
+                ? 'border-[#006d37] text-[#006d37]'
+                : 'border-transparent text-on-surface-variant hover:text-on-surface'
+            }`}
+          >
+            Tạo chiến dịch
+          </button>
+          <button
+            onClick={() => setActiveTab('approve')}
+            className={`pb-2 px-4 font-semibold text-sm transition-all border-b-2 ${
+              activeTab === 'approve'
+                ? 'border-[#006d37] text-[#006d37]'
+                : 'border-transparent text-on-surface-variant hover:text-on-surface'
+            }`}
+          >
+            Duyệt tình nguyện viên
+          </button>
+          <button
+            onClick={() => setActiveTab('attendance')}
+            className={`pb-2 px-4 font-semibold text-sm transition-all border-b-2 ${
+              activeTab === 'attendance'
+                ? 'border-[#006d37] text-[#006d37]'
+                : 'border-transparent text-on-surface-variant hover:text-on-surface'
+            }`}
+          >
+            Điểm danh & check-in
+          </button>
         </div>
-      )}
 
-      {/* --- CREATE / EDIT ACTIVITY MODAL (11-Tạo hoạt động mới.html layout) --- */}
-      {showCreateModal && (
-        <div className="fixed inset-0 z-[100] modal-overlay flex items-center justify-center p-4">
-          <div className="bg-surface w-full max-w-3xl rounded-lg shadow-2xl flex flex-col overflow-hidden max-h-[90vh] animate-fadeIn">
-            {/* Header */}
-            <div className="flex items-center justify-between px-md py-sm border-b border-surface-variant">
-              <h2 className="font-headline-md text-lg text-on-surface font-bold">
-                {editMode ? 'Chỉnh sửa hoạt động nháp' : 'Tạo hoạt động cộng đồng'}
-              </h2>
-              <button 
-                onClick={() => {
-                  setShowCreateModal(false);
-                  window.location.hash = '#/organizer/dashboard';
-                }}
-                className="p-1 hover:bg-surface-variant rounded-full text-on-surface-variant"
-              >
-                <span className="material-symbols-outlined">close</span>
-              </button>
-            </div>
+        {/* TAB WORKSPACE CONTENT */}
 
-            {/* Scrollable Form Body */}
-            <div className="p-6 overflow-y-auto flex-grow space-y-4">
-              
-              {/* Activity Image Link */}
-              <div>
-                <label className="block text-sm font-semibold text-on-surface mb-2">Ảnh bìa hoạt động</label>
-                <input 
-                  type="url"
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  placeholder="Nhập link ảnh (ví dụ: https://images.unsplash.com/...)"
-                  className="input-field w-full border border-outline-variant rounded-lg px-4 py-2.5 bg-surface-bright text-on-surface text-sm"
-                />
+        {/* 1. OVERVIEW TAB */}
+        {activeTab === 'overview' && (
+          <div className="space-y-8">
+            {/* Stats Row */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="bg-white border border-surface-variant/40 rounded-2xl p-6 text-center shadow-sm">
+                <h3 className="text-4xl font-bold text-[#006d37]">{totalCampaigns}</h3>
+                <p className="text-on-surface-variant font-semibold text-sm mt-1">Tổng số chiến dịch</p>
               </div>
+              <div className="bg-white border border-surface-variant/40 rounded-2xl p-6 text-center shadow-sm">
+                <h3 className="text-4xl font-bold text-[#006d37]">{totalRecruited}</h3>
+                <p className="text-on-surface-variant font-semibold text-sm mt-1">Tình nguyện viên đã tuyển</p>
+              </div>
+              <div className="bg-white border border-surface-variant/40 rounded-2xl p-6 text-center shadow-sm">
+                <h3 className="text-4xl font-bold text-[#b06000]">{pendingApprovalCount}</h3>
+                <p className="text-on-surface-variant font-semibold text-sm mt-1">Đăng ký đang chờ duyệt</p>
+              </div>
+              <div className="bg-white border border-surface-variant/40 rounded-2xl p-6 text-center shadow-sm">
+                <h3 className="text-4xl font-bold text-[#1e429f]">{totalCompleted}</h3>
+                <p className="text-on-surface-variant font-semibold text-sm mt-1">Chiến dịch hoàn thành</p>
+              </div>
+            </div>
 
-              {/* Title */}
-              <div>
-                <label className="block text-sm font-semibold text-on-surface mb-2">Tên hoạt động *</label>
+            {/* Campaign Summary list inside Overview tab */}
+            <div className="bg-white border border-surface-variant/40 rounded-2xl p-6 shadow-sm">
+              <h3 className="text-lg font-bold text-on-surface border-b border-surface-variant/40 pb-3 mb-4">
+                Chiến dịch đang mở tuyển gần đây
+              </h3>
+              {myCampaigns.length === 0 ? (
+                <p className="text-sm text-on-surface-variant italic">Bạn chưa tạo chiến dịch nào. Bấm tab Tạo chiến dịch để bắt đầu.</p>
+              ) : (
+                <div className="space-y-4">
+                  {myCampaigns.slice(0, 3).map(act => (
+                    <div key={act._id} className="flex justify-between items-center border-b border-slate-100 pb-3 last:border-b-0 last:pb-0">
+                      <div>
+                        <h4 className="font-bold text-sm text-on-surface">{act.title}</h4>
+                        <span className="text-xs text-on-surface-variant">
+                          Tuyển dụng: {act.approved_volunteers_count}/{act.limit_volunteers} TNV
+                        </span>
+                      </div>
+                      <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${
+                        act.status === 'Open' ? 'bg-[#e8f5e9] text-[#006d37]' :
+                        act.status === 'Pending Review' ? 'bg-[#fef7e0] text-[#b06000]' : 'bg-slate-100 text-slate-600'
+                      }`}>
+                        {act.status}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* 2. MY CAMPAIGNS TAB */}
+        {activeTab === 'my-campaigns' && (
+          <div className="bg-white border border-surface-variant/40 rounded-2xl shadow-sm overflow-hidden">
+            {myCampaigns.length === 0 ? (
+              <div className="p-16 text-center space-y-4">
+                <span className="material-symbols-outlined text-outline text-5xl">campaign</span>
+                <p className="text-sm text-on-surface-variant italic">Bạn chưa tạo chiến dịch nào.</p>
+                <button 
+                  onClick={() => setActiveTab('create-campaign')}
+                  className="bg-[#006d37] hover:bg-emerald-800 text-white font-bold px-6 py-2.5 rounded-xl transition-all text-sm shadow-sm"
+                >
+                  Tạo hoạt động đầu tiên
+                </button>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-left text-sm">
+                  <thead>
+                    <tr className="bg-[#f8f9fa] border-b border-surface-variant/40 text-on-surface-variant font-bold text-xs uppercase tracking-wider">
+                      <th className="px-6 py-4">Tên chiến dịch</th>
+                      <th className="px-6 py-4">Thời gian bắt đầu</th>
+                      <th className="px-6 py-4">Địa điểm</th>
+                      <th className="px-6 py-4">Trạng thái</th>
+                      <th className="px-6 py-4">Hành động</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-surface-variant/30 text-on-surface">
+                    {myCampaigns.map(act => (
+                      <tr key={act._id} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-6 py-5 font-bold">{act.title}</td>
+                        <td className="px-6 py-5 whitespace-nowrap text-on-surface-variant">
+                          {new Date(act.start_date).toLocaleDateString('vi-VN')}
+                        </td>
+                        <td className="px-6 py-5 text-on-surface-variant">
+                          {act.location.district}, {act.location.province}
+                        </td>
+                        <td className="px-6 py-5">
+                          <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+                            act.status === 'Open' ? 'bg-[#e8f5e9] text-[#006d37]' :
+                            act.status === 'Pending Review' ? 'bg-[#fef7e0] text-[#b06000]' :
+                            act.status === 'Completed' ? 'bg-[#e1effe] text-[#1e429f]' : 'bg-red-50 text-red-600'
+                          }`}>
+                            {act.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-5">
+                          <button
+                            onClick={() => handleEditCampaignClick(act)}
+                            className="text-[#006d37] hover:underline font-bold"
+                          >
+                            Chỉnh sửa
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 3. CREATE CAMPAIGN TAB */}
+        {activeTab === 'create-campaign' && (
+          <div className="bg-white border border-surface-variant/40 rounded-3xl p-6 md:p-8 max-w-[800px] mx-auto shadow-sm">
+            <h2 className="text-xl font-bold text-on-surface mb-6 border-b border-surface-variant/40 pb-3">
+              {editMode ? 'Chỉnh sửa hoạt động chiến dịch' : 'Tạo hoạt động mới'}
+            </h2>
+
+            <form onSubmit={handleSubmitActivity} className="space-y-6">
+              {/* Tên chiến dịch */}
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-bold text-on-surface uppercase tracking-wider">Tên chiến dịch *</label>
                 <input 
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Nhập tiêu đề hoạt động..."
-                  className="input-field w-full border border-outline-variant rounded-lg px-4 py-2.5 bg-surface-bright text-on-surface text-sm"
                   required
+                  placeholder="Ví dụ: Chiến dịch dọn rác bờ biển Cần Giờ 2026..."
+                  className="w-full px-4 py-2.5 border border-surface-variant rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm"
                 />
               </div>
 
-              {/* Category & Members Count Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-gutter">
-                <div>
-                  <label className="block text-sm font-semibold text-on-surface mb-2">Loại hoạt động *</label>
-                  <select 
+              {/* Lĩnh vực hoạt động & Số lượng */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs font-bold text-on-surface uppercase tracking-wider">Lĩnh vực hoạt động *</label>
+                  <select
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
-                    className="input-field w-full border border-outline-variant rounded-lg px-4 py-2.5 bg-surface-bright text-on-surface text-sm cursor-pointer"
+                    className="w-full px-4 py-2.5 border border-surface-variant rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm cursor-pointer bg-white"
                   >
                     <option value="Môi trường">Môi trường</option>
                     <option value="Giáo dục">Giáo dục</option>
+                    <option value="Y tế">Y tế</option>
                     <option value="Từ thiện">Từ thiện</option>
                     <option value="Gây quỹ">Gây quỹ</option>
-                    <option value="Hỗ trợ cộng đồng">Hỗ trợ cộng đồng</option>
                   </select>
                 </div>
-                <div>
-                  <label className="block text-sm font-semibold text-on-surface mb-2">Số lượng tuyển dụng *</label>
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs font-bold text-on-surface uppercase tracking-wider">Số lượng tình nguyện viên cần tuyển *</label>
                   <input 
                     type="number"
                     value={limitVolunteers}
-                    onChange={(e) => setLimitVolunteers(Number(e.target.value))}
-                    min={1}
-                    className="input-field w-full border border-outline-variant rounded-lg px-4 py-2.5 bg-surface-bright text-on-surface text-sm"
+                    onChange={(e) => setLimitVolunteers(Number(e.target.value) || 1)}
                     required
+                    min={1}
+                    className="w-full px-4 py-2.5 border border-surface-variant rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm"
                   />
                 </div>
               </div>
 
-              {/* Description */}
-              <div>
-                <label className="block text-sm font-semibold text-on-surface mb-2">Mô tả chi tiết *</label>
-                <textarea 
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Mô tả công việc, mục tiêu dự án..."
-                  rows={4}
-                  className="input-field w-full border border-outline-variant rounded-lg px-4 py-2.5 bg-surface-bright text-on-surface text-sm"
-                  required
-                ></textarea>
-              </div>
-
-              {/* Start & End Date Time Picker */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-gutter">
-                {/* Start */}
-                <div className="grid grid-cols-2 gap-sm">
-                  <div>
-                    <label className="block text-xs font-semibold text-on-surface mb-1">Ngày bắt đầu *</label>
-                    <input 
-                      type="date"
-                      value={startDate}
-                      onChange={(e) => setStartDate(e.target.value)}
-                      className="input-field w-full border border-outline-variant rounded-lg p-2 bg-surface-bright text-sm"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-on-surface mb-1">Giờ bắt đầu</label>
-                    <input 
-                      type="time"
-                      value={startTime}
-                      onChange={(e) => setStartTime(e.target.value)}
-                      className="input-field w-full border border-outline-variant rounded-lg p-2 bg-surface-bright text-sm"
-                    />
-                  </div>
+              {/* Start & End Datetime */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs font-bold text-on-surface uppercase tracking-wider">Thời gian bắt đầu *</label>
+                  <input 
+                    type="datetime-local"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    required
+                    className="w-full px-4 py-2.5 border border-surface-variant rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm"
+                  />
                 </div>
-                {/* End */}
-                <div className="grid grid-cols-2 gap-sm">
-                  <div>
-                    <label className="block text-xs font-semibold text-on-surface mb-1">Ngày kết thúc *</label>
-                    <input 
-                      type="date"
-                      value={endDate}
-                      onChange={(e) => setEndDate(e.target.value)}
-                      className="input-field w-full border border-outline-variant rounded-lg p-2 bg-surface-bright text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-on-surface mb-1">Giờ kết thúc</label>
-                    <input 
-                      type="time"
-                      value={endTime}
-                      onChange={(e) => setEndTime(e.target.value)}
-                      className="input-field w-full border border-outline-variant rounded-lg p-2 bg-surface-bright text-sm"
-                    />
-                  </div>
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs font-bold text-on-surface uppercase tracking-wider">Thời gian kết thúc *</label>
+                  <input 
+                    type="datetime-local"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    required
+                    className="w-full px-4 py-2.5 border border-surface-variant rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm"
+                  />
                 </div>
               </div>
 
-              {/* Location Fields */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-sm">
-                <div>
-                  <label className="block text-sm font-semibold text-on-surface mb-2">Tỉnh / Thành phố *</label>
-                  <select 
+              {/* Tỉnh thành, Quận huyện & Địa điểm chi tiết */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs font-bold text-on-surface uppercase tracking-wider">Tỉnh / Thành phố *</label>
+                  <input 
+                    type="text"
                     value={province}
                     onChange={(e) => setProvince(e.target.value)}
-                    className="input-field w-full border border-outline-variant rounded-lg px-3 py-2.5 bg-surface-bright text-sm"
-                  >
-                    <option value="TP. Hồ Chí Minh">TP. Hồ Chí Minh</option>
-                    <option value="Hà Nội">Hà Nội</option>
-                    <option value="Đà Nẵng">Đà Nẵng</option>
-                    <option value="Lào Cai">Lào Cai</option>
-                  </select>
+                    required
+                    placeholder="Ví dụ: TP. Hồ Chí Minh"
+                    className="w-full px-4 py-2.5 border border-surface-variant rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm"
+                  />
                 </div>
-                <div>
-                  <label className="block text-sm font-semibold text-on-surface mb-2">Quận / Huyện *</label>
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs font-bold text-on-surface uppercase tracking-wider">Quận / Huyện *</label>
                   <input 
                     type="text"
                     value={district}
                     onChange={(e) => setDistrict(e.target.value)}
-                    placeholder="ví dụ: Quận 1"
-                    className="input-field w-full border border-outline-variant rounded-lg px-3 py-2.5 bg-surface-bright text-sm"
                     required
+                    placeholder="Ví dụ: Huyện Cần Giờ"
+                    className="w-full px-4 py-2.5 border border-surface-variant rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-semibold text-on-surface mb-2">Địa chỉ chi tiết *</label>
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs font-bold text-on-surface uppercase tracking-wider">Địa chỉ chi tiết *</label>
                   <input 
                     type="text"
                     value={addressDetail}
                     onChange={(e) => setAddressDetail(e.target.value)}
-                    placeholder="ví dụ: Số 123 Đường Nguyễn Huệ"
-                    className="input-field w-full border border-outline-variant rounded-lg px-3 py-2.5 bg-surface-bright text-sm"
                     required
+                    placeholder="Ví dụ: Bãi biển 30/4"
+                    className="w-full px-4 py-2.5 border border-surface-variant rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm"
                   />
                 </div>
               </div>
 
-              {/* Requirements */}
-              <div>
-                <label className="block text-sm font-semibold text-on-surface mb-2">Yêu cầu & Ghi chú</label>
+              {/* Mô tả chi tiết */}
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-bold text-on-surface uppercase tracking-wider">Mô tả chi tiết chiến dịch *</label>
                 <textarea 
-                  value={requirements}
-                  onChange={(e) => setRequirements(e.target.value)}
-                  placeholder="ví dụ: Mang theo khẩu trang, giày thể thao..."
-                  rows={2}
-                  className="input-field w-full border border-outline-variant rounded-lg px-4 py-2.5 bg-surface-bright text-on-surface text-sm"
-                ></textarea>
+                  rows={6}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  required
+                  placeholder="Mô tả nội dung chương trình, hành trình cụ thể, các lợi ích và đóng góp..."
+                  className="w-full px-4 py-2.5 border border-surface-variant rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm"
+                />
               </div>
 
+              {/* Yêu cầu & ghi chú */}
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-bold text-on-surface uppercase tracking-wider">Yêu cầu & Ghi chú</label>
+                <textarea 
+                  rows={3}
+                  value={requirements}
+                  onChange={(e) => setRequirements(e.target.value)}
+                  placeholder="Độ tuổi tối thiểu, trang phục yêu cầu, sức khỏe..."
+                  className="w-full px-4 py-2.5 border border-surface-variant rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm"
+                />
+              </div>
+
+              {/* Link hình ảnh minh họa */}
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-bold text-on-surface uppercase tracking-wider">Hình ảnh minh họa (URL)</label>
+                <input 
+                  type="text"
+                  value={imageUrl}
+                  onChange={(e) => setImageUrl(e.target.value)}
+                  placeholder="https://images.unsplash.com/photo-..."
+                  className="w-full px-4 py-2.5 border border-surface-variant rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm"
+                />
+              </div>
+
+              {/* Submit Buttons */}
+              <div className="flex justify-end gap-4 border-t border-surface-variant/40 pt-6">
+                <button 
+                  type="button" 
+                  onClick={resetForm}
+                  className="px-6 py-2.5 border border-surface-variant text-on-surface-variant rounded-xl hover:bg-slate-50 transition-colors text-sm font-semibold"
+                >
+                  Hủy / Làm mới
+                </button>
+                <button 
+                  type="submit"
+                  className="px-6 py-2.5 bg-[#006d37] hover:bg-emerald-800 text-white rounded-xl transition-colors text-sm font-bold shadow-sm"
+                >
+                  {editMode ? 'Cập nhật chiến dịch' : 'Tạo hoạt động mới'}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* 4. APPROVE VOLUNTEERS TAB */}
+        {activeTab === 'approve' && (
+          <div className="space-y-6">
+            {/* Sub-selector dropdown */}
+            <div className="bg-white border border-surface-variant/40 rounded-2xl p-6 shadow-sm flex flex-col md:flex-row items-center gap-4">
+              <label className="font-bold text-sm text-on-surface whitespace-nowrap shrink-0">Lựa chọn chiến dịch:</label>
+              <select
+                value={selectedActivityId}
+                onChange={(e) => setSelectedActivityId(e.target.value)}
+                className="flex-grow px-4 py-2.5 border border-surface-variant rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm bg-white"
+              >
+                {myCampaigns.map(act => (
+                  <option key={act._id} value={act._id}>{act.title}</option>
+                ))}
+              </select>
             </div>
 
-            {/* Actions footer */}
-            <div className="p-6 border-t border-surface-variant flex justify-end items-center gap-sm bg-surface-bright">
-              <button 
-                onClick={() => {
-                  setShowCreateModal(false);
-                  window.location.hash = '#/organizer/dashboard';
-                }}
-                className="px-6 h-[48px] border border-outline-variant text-on-surface-variant rounded-lg hover:bg-surface-variant transition-colors font-semibold text-sm flex items-center justify-center"
-              >
-                Hủy
-              </button>
-              <button 
-                onClick={() => handleSubmitActivity(false)}
-                className="px-6 h-[48px] bg-surface-container-high text-on-surface hover:bg-surface-variant rounded-lg font-bold text-sm transition-colors shadow-sm flex items-center justify-center"
-              >
-                Lưu Nháp
-              </button>
-              <button 
-                onClick={() => handleSubmitActivity(true)}
-                className="px-8 h-[48px] bg-primary text-on-primary hover:bg-tertiary rounded-lg font-bold text-sm shadow-sm transition-colors flex items-center justify-center gap-1.5"
-              >
-                <span className="material-symbols-outlined text-base font-bold">publish</span>
-                Gửi Phê Duyệt
-              </button>
+            {/* Table of applications */}
+            <div className="bg-white border border-surface-variant/40 rounded-2xl shadow-sm overflow-hidden">
+              {!selectedActivityId || selectedRegs.length === 0 ? (
+                <div className="p-16 text-center">
+                  <span className="material-symbols-outlined text-outline text-5xl">person_search</span>
+                  <p className="text-sm text-on-surface-variant italic mt-3">Chưa có tình nguyện viên nào đăng ký chiến dịch này.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse text-left text-sm">
+                    <thead>
+                      <tr className="bg-[#f8f9fa] border-b border-surface-variant/40 text-on-surface-variant font-bold text-xs uppercase tracking-wider">
+                        <th className="px-6 py-4">Tên tình nguyện viên</th>
+                        <th className="px-6 py-4">Số điện thoại</th>
+                        <th className="px-6 py-4">Ngày đăng ký</th>
+                        <th className="px-6 py-4">Trạng thái</th>
+                        <th className="px-6 py-4">Hành động</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-surface-variant/30 text-on-surface">
+                      {selectedRegs.map(reg => {
+                        const isPending = reg.status === 'Pending';
+                        return (
+                          <tr key={reg._id} className="hover:bg-slate-50 transition-colors">
+                            <td className="px-6 py-5 font-bold">{reg.denormalized_volunteer.name}</td>
+                            <td className="px-6 py-5 whitespace-nowrap text-on-surface-variant">
+                              {reg.denormalized_volunteer.phone || '0987654321'}
+                            </td>
+                            <td className="px-6 py-5 whitespace-nowrap text-on-surface-variant">
+                              {new Date(reg.created_at).toLocaleDateString('vi-VN')}
+                            </td>
+                            <td className="px-6 py-5">
+                              <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+                                reg.status === 'Approved' ? 'bg-[#e8f5e9] text-[#006d37]' :
+                                reg.status === 'Pending' ? 'bg-[#fef7e0] text-[#b06000]' : 'bg-red-50 text-red-600'
+                              }`}>
+                                {reg.status === 'Pending' ? 'Đang chờ duyệt' : reg.status === 'Approved' ? 'Đã duyệt' : reg.status}
+                              </span>
+                            </td>
+                            <td className="px-6 py-5">
+                              {isPending ? (
+                                <div className="flex gap-3">
+                                  <button
+                                    onClick={() => handleApprove(reg._id)}
+                                    className="text-[#006d37] hover:underline font-bold"
+                                  >
+                                    Duyệt
+                                  </button>
+                                  <button
+                                    onClick={() => handleReject(reg._id)}
+                                    className="text-red-600 hover:underline font-bold"
+                                  >
+                                    Từ chối
+                                  </button>
+                                </div>
+                              ) : (
+                                <span className="text-on-surface-variant">-</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </div>
-        </div>
-      )}
+        )}
+
+        {/* 5. ATTENDANCE CHECK-IN TAB */}
+        {activeTab === 'attendance' && (
+          <div className="space-y-6">
+            {/* Sub-selector dropdown */}
+            <div className="bg-white border border-surface-variant/40 rounded-2xl p-6 shadow-sm flex flex-col md:flex-row items-center gap-4">
+              <label className="font-bold text-sm text-on-surface whitespace-nowrap shrink-0">Lựa chọn chiến dịch:</label>
+              <select
+                value={selectedActivityId}
+                onChange={(e) => setSelectedActivityId(e.target.value)}
+                className="flex-grow px-4 py-2.5 border border-surface-variant rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm bg-white"
+              >
+                {myCampaigns.map(act => (
+                  <option key={act._id} value={act._id}>{act.title}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Table of attendees */}
+            <div className="bg-white border border-surface-variant/40 rounded-2xl shadow-sm overflow-hidden">
+              {!selectedActivityId || selectedRegs.length === 0 ? (
+                <div className="p-16 text-center">
+                  <span className="material-symbols-outlined text-outline text-5xl">how_to_reg</span>
+                  <p className="text-sm text-on-surface-variant italic mt-3">Chưa có tình nguyện viên nào đăng ký chiến dịch này.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse text-left text-sm">
+                    <thead>
+                      <tr className="bg-[#f8f9fa] border-b border-surface-variant/40 text-on-surface-variant font-bold text-xs uppercase tracking-wider">
+                        <th className="px-6 py-4">Họ và tên</th>
+                        <th className="px-6 py-4">Số điện thoại</th>
+                        <th className="px-6 py-4">Trạng thái đăng ký</th>
+                        <th className="px-6 py-4">Điểm danh tham gia</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-surface-variant/30 text-on-surface">
+                      {selectedRegs.map(reg => {
+                        const canCheckIn = reg.status === 'Approved';
+                        const isCompleted = reg.status === 'Completed';
+                        const isAbsent = reg.status === 'Absent';
+                        
+                        return (
+                          <tr key={reg._id} className="hover:bg-slate-50 transition-colors">
+                            <td className="px-6 py-5 font-bold">{reg.denormalized_volunteer.name}</td>
+                            <td className="px-6 py-5 text-on-surface-variant">
+                              {reg.denormalized_volunteer.phone || '0987654321'}
+                            </td>
+                            <td className="px-6 py-5">
+                              <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+                                reg.status === 'Approved' ? 'bg-[#e8f5e9] text-[#006d37]' :
+                                reg.status === 'Completed' ? 'bg-[#e1effe] text-[#1e429f]' : 'bg-slate-100 text-slate-500'
+                              }`}>
+                                {reg.status === 'Approved' ? 'Đã duyệt' : reg.status === 'Completed' ? 'Đã tham gia' : reg.status}
+                              </span>
+                            </td>
+                            <td className="px-6 py-5">
+                              {canCheckIn ? (
+                                <div className="flex gap-3">
+                                  <button
+                                    onClick={() => handleCheckIn(reg._id, 'Completed')}
+                                    className="bg-[#006d37] hover:bg-emerald-800 text-white px-4 py-1.5 rounded-lg text-xs font-bold shadow-sm"
+                                  >
+                                    Điểm danh có mặt
+                                  </button>
+                                  <button
+                                    onClick={() => handleCheckIn(reg._id, 'Absent')}
+                                    className="border border-red-200 hover:bg-red-50 text-red-600 px-4 py-1.5 rounded-lg text-xs font-bold transition-all"
+                                  >
+                                    Vắng mặt
+                                  </button>
+                                </div>
+                              ) : isCompleted ? (
+                                <span className="text-[#006d37] font-bold text-xs flex items-center gap-1">
+                                  <span className="material-symbols-outlined text-sm font-bold">check_circle</span>
+                                  Có mặt (Đã hoàn thành)
+                                </span>
+                              ) : isAbsent ? (
+                                <span className="text-red-600 font-bold text-xs flex items-center gap-1">
+                                  <span className="material-symbols-outlined text-sm font-bold">cancel</span>
+                                  Vắng mặt
+                                </span>
+                              ) : (
+                                <span className="text-on-surface-variant">-</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+      </div>
     </div>
   );
 };
+
 export default OrganizerDashboard;

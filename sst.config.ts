@@ -41,6 +41,8 @@ export default $config({
               { name: "MONGODB_URL", value: "mongodb+srv://Admin:Admin123@volunteerconnect.m1vn2y8.mongodb.net/volunteer_connect?appName=VolunteerConnect" },
               { name: "DATABASE_NAME", value: "volunteer_connect" },
               { name: "JWT_SECRET", value: "your_jwt_secret" },
+              // Cấu hình Google Cloud Storage
+              { name: "GCS_BUCKET_NAME", value: process.env.GCS_BUCKET_NAME || "volunteer-connect-media-dev" },
               // Cấu hình SMTP Email OTP đọc từ môi trường khi deploy
               { name: "SMTP_HOST", value: process.env.SMTP_HOST || "smtp.gmail.com" },
               { name: "SMTP_PORT", value: process.env.SMTP_PORT || "587" },

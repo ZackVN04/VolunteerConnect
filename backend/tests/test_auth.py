@@ -413,7 +413,7 @@ async def test_register_overwrite_pending_user(mock_send_email, async_client, pe
     payload = {
         "email": pending_user.email,
         "phone_number": "+84999999992",  # Different phone
-        "password": "brand_new_password_123",
+        "password": "Brand_new_password_123!",
         "full_name": "New Owner Name"
     }
     response = await async_client.post("/api/v1/auth/register", json=payload)

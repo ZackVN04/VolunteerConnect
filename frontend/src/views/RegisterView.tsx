@@ -10,71 +10,105 @@ interface RegisterViewProps {
   onRegisterSuccess: (registeredPhone: string, email: string) => void;
 }
 
+const generateRandomPhoneE164 = (): string => {
+  const digits = Math.floor(100000000 + Math.random() * 900000000).toString();
+  return `+84${digits}`;
+};
+
 export const RegisterView: React.FC<RegisterViewProps> = ({ onNavigateToLogin, onRegisterSuccess }) => {
-  const { users, setCurrentUser } = useApp();
+  const { users } = useApp();
   const [fullname, setFullname] = useState('');
   const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+
+  // Password visibility states
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  // Alert and loading states
+  const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+  const [loading, setLoading] = useState(false);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fullname.trim() || !email.trim() || !phone.trim() || !password.trim() || !confirmPassword.trim()) {
-      alert('Vui lòng điền đầy đủ thông tin');
+    if (loading) return;
+    setErrorMsg('');
+    setSuccessMsg('');
+
+    if (!fullname.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()) {
+      setErrorMsg('Vui lòng điền đầy đủ thông tin.');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      setErrorMsg('Email không hợp lệ. Vui lòng nhập đúng định dạng (ví dụ: name@example.com).');
+      return;
+    }
+
+    // Quy tắc mật khẩu mạnh: ít nhất 8 ký tự, 1 chữ hoa, 1 chữ thường, 1 chữ số, 1 ký tự đặc biệt
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).{8,}$/;
+    if (!passwordRegex.test(password)) {
+      setErrorMsg('Mật khẩu phải có độ dài tối thiểu 8 ký tự và bao gồm ít nhất 1 chữ cái viết hoa, 1 chữ cái viết thường, 1 chữ số và 1 ký tự đặc biệt.');
       return;
     }
 
     if (password !== confirmPassword) {
-      alert('Mật khẩu nhập lại không khớp.');
+      setErrorMsg('Mật khẩu nhập lại không khớp.');
       return;
     }
 
-    const formattedPhone = formatPhoneE164(phone.trim());
-    if (!/^\+?[0-9]{10,15}$/.test(formattedPhone.replace('+', ''))) {
-      alert('Số điện thoại không hợp lệ. Vui lòng nhập từ 10 đến 15 chữ số.');
-      return;
-    }
+    setLoading(true);
 
     if (USE_REAL_BACKEND) {
       try {
-        await authService.register(fullname.trim(), email.trim(), formattedPhone, password);
-        alert('Đăng ký tài khoản thành công! Hệ thống đã gửi mã OTP xác thực tới địa chỉ email đăng ký.');
-        onRegisterSuccess(formattedPhone, email.trim());
+        const randomPhone = generateRandomPhoneE164();
+        await authService.register(fullname.trim(), email.trim(), randomPhone, password);
+        setSuccessMsg('Đăng ký tài khoản thành công! Hệ thống đã gửi mã OTP xác thực tới địa chỉ email đăng ký.');
+
+        setTimeout(() => {
+          onRegisterSuccess(randomPhone, email.trim());
+        }, 2000);
       } catch (err: any) {
-        let errorMsg = 'Đăng ký thất bại. Vui lòng thử lại.';
+        let msg = 'Đăng ký thất bại. Vui lòng thử lại.';
         const data = err.response?.data;
         if (data) {
           if (typeof data.detail === 'string') {
-            errorMsg = data.detail;
+            msg = data.detail;
           } else if (Array.isArray(data.detail)) {
-            errorMsg = data.detail.map((d: any) => d.msg).join('\n');
+            msg = data.detail.map((d: any) => d.msg).join('\n');
           } else if (data.message) {
-            errorMsg = data.message;
+            msg = data.message;
           }
         }
-        alert(errorMsg);
+        setErrorMsg(msg);
+      } finally {
+        setLoading(false);
       }
       return;
     }
 
-    // Check if email already registered
+    // Check if email already registered in simulated DB
     const emailExists = users.some(u => u.email === email.trim());
     if (emailExists) {
-      alert('Email này đã được sử dụng');
+      setErrorMsg('Email này đã được sử dụng.');
+      setLoading(false);
       return;
     }
 
-    // Simulating user creation
+    // Simulating delay for user creation
+    await new Promise((resolve) => setTimeout(resolve, 800));
+
+    const randomPhone = generateRandomPhoneE164();
     const newUser = {
       _id: `user_${Date.now()}`,
-      phone: formattedPhone,
-      is_phone_verified: true,
-      otp_code: null,
-      otp_expires_at: null,
-      otp_send_count: 0,
+      phone: randomPhone,
+      is_phone_verified: false,
+      otp_code: '123456',
+      otp_expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+      otp_send_count: 1,
       otp_cooldown_until: null,
       email: email.trim(),
       password_hash: 'hashed_password',
@@ -90,12 +124,13 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ onNavigateToLogin, o
       }
     };
 
-    // Update Simulated database users list
     users.push(newUser);
-    setCurrentUser(newUser);
+    setSuccessMsg('Đăng ký tài khoản thành công! Mã OTP xác thực (giả lập) đã được gửi tới địa chỉ email của bạn. Vui lòng sử dụng mã 123456 để xác thực.');
+    setLoading(false);
 
-    alert('Đăng ký tài khoản thành công! Bạn đã được đăng nhập tự động.');
-    window.location.hash = '#/feed';
+    setTimeout(() => {
+      onRegisterSuccess(randomPhone, email.trim());
+    }, 2000);
   };
 
   return (
@@ -103,9 +138,9 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ onNavigateToLogin, o
       {/* Left Side: Illustration (Hidden on Mobile) */}
       <div className="hidden md:flex md:w-1/2 relative bg-secondary-container items-center justify-center overflow-hidden h-screen">
         <div className="absolute inset-0 bg-primary/5 z-10 mix-blend-multiply"></div>
-        <img 
-          alt="Volunteer Connect Illustration" 
-          className="w-full h-full object-cover z-0 transition-transform duration-500 scale-105" 
+        <img
+          alt="Volunteer Connect Illustration"
+          className="w-full h-full object-cover z-0 transition-transform duration-500 scale-105"
           src={ASSETS.authBackground}
         />
       </div>
@@ -113,73 +148,67 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ onNavigateToLogin, o
       {/* Right Side: Registration Form */}
       <div className="w-full md:w-1/2 flex items-center justify-center p-margin-mobile md:p-lg bg-surface h-screen overflow-y-auto">
         <div className="w-full max-w-[440px] space-y-6">
-          
+
           {/* Brand Logo header */}
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-primary text-[32px] filled">volunteer_activism</span>
-            <span className="font-headline-md text-lg text-primary font-bold">Volunteer Connect</span>
+            <span className="font-headline-md text-lg text-primary font-bold tracking-tight">Volunteer Connect</span>
           </div>
 
-          {/* Header */}
-          <div>
-            <h1 className="font-display-lg-mobile text-2xl md:text-3xl font-bold text-on-surface mb-2">Tham gia cộng tác</h1>
-            <p className="font-body-md text-xs text-on-surface-variant leading-relaxed">
-              Tạo tài khoản để bắt đầu hành trình tình nguyện và kết nối với những người có cùng lý tưởng xã hội.
-            </p>
+          {/* Header titles */}
+          <div className="space-y-1">
+            <h1 className="text-2xl md:text-3xl text-on-surface font-bold">Đăng ký tài khoản</h1>
+            <p className="font-body-md text-sm text-on-surface-variant">Bắt đầu hành trình kết nối và cống hiến vì cộng đồng</p>
           </div>
 
-          {/* Registration Form */}
+          {errorMsg && (
+            <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg text-xs font-semibold leading-relaxed">
+              {errorMsg}
+            </div>
+          )}
+
+          {successMsg && (
+            <div className="bg-green-50 border border-green-200 text-green-700 p-3 rounded-lg text-xs font-semibold leading-relaxed">
+              {successMsg}
+            </div>
+          )}
+
+          {/* Register Form */}
           <form className="space-y-4" onSubmit={handleSubmit}>
-            {/* Full Name Input */}
+            {/* Họ và tên Input */}
             <div className="space-y-1">
               <label className="block font-label-sm text-xs text-on-surface font-semibold" htmlFor="fullname">Họ và tên *</label>
               <div className="relative">
                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-sm">person</span>
-                <input 
-                  className="w-full pl-10 pr-4 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-sm text-on-surface placeholder-outline-variant/60 focus:outline-none focus:border-primary" 
-                  id="fullname" 
-                  name="fullname" 
+                <input
+                  className="w-full pl-10 pr-4 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-sm text-on-surface placeholder-outline-variant/60 focus:outline-none focus:border-primary"
+                  id="fullname"
+                  name="fullname"
                   value={fullname}
                   onChange={(e) => setFullname(e.target.value)}
-                  placeholder="Nguyễn Văn A" 
+                  placeholder="Nguyễn Văn A"
                   required
-                  type="text" 
+                  type="text"
+                  disabled={loading}
                 />
               </div>
             </div>
 
             {/* Email Input */}
             <div className="space-y-1">
-              <label className="block font-label-sm text-xs text-on-surface font-semibold" htmlFor="email">Email đăng nhập *</label>
+              <label className="block font-label-sm text-xs text-on-surface font-semibold" htmlFor="email">Email *</label>
               <div className="relative">
                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-sm">mail</span>
-                <input 
-                  className="w-full pl-10 pr-4 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-sm text-on-surface placeholder-outline-variant/60 focus:outline-none focus:border-primary" 
-                  id="email" 
-                  name="email" 
+                <input
+                  className="w-full pl-10 pr-4 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-sm text-on-surface placeholder-outline-variant/60 focus:outline-none focus:border-primary"
+                  id="email"
+                  name="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="ví dụ: nguyenvana@gmail.com" 
+                  placeholder=" Email"
                   required
-                  type="email" 
-                />
-              </div>
-            </div>
-
-            {/* Phone Input */}
-            <div className="space-y-1">
-              <label className="block font-label-sm text-xs text-on-surface font-semibold" htmlFor="phone">Số điện thoại *</label>
-              <div className="relative">
-                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-sm">phone</span>
-                <input 
-                  className="w-full pl-10 pr-4 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-sm text-on-surface placeholder-outline-variant/60 focus:outline-none focus:border-primary" 
-                  id="phone" 
-                  name="phone" 
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="ví dụ: 0912345678" 
-                  required
-                  type="tel" 
+                  type="email"
+                  disabled={loading}
                 />
               </div>
             </div>
@@ -189,15 +218,16 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ onNavigateToLogin, o
               <label className="block font-label-sm text-xs text-on-surface font-semibold" htmlFor="password">Mật khẩu *</label>
               <div className="relative">
                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-sm">lock</span>
-                <input 
-                  className="w-full pl-10 pr-10 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-sm text-on-surface placeholder-outline-variant/60 focus:outline-none focus:border-primary" 
-                  id="password" 
-                  name="password" 
+                <input
+                  className="w-full pl-10 pr-10 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-sm text-on-surface placeholder-outline-variant/60 focus:outline-none focus:border-primary"
+                  id="password"
+                  name="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••" 
+                  placeholder="••••••••"
                   required
                   type={showPassword ? "text" : "password"}
+                  disabled={loading}
                 />
                 {password && (
                   <button
@@ -218,15 +248,16 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ onNavigateToLogin, o
               <label className="block font-label-sm text-xs text-on-surface font-semibold" htmlFor="confirmPassword">Nhập lại mật khẩu *</label>
               <div className="relative">
                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-sm">lock_reset</span>
-                <input 
-                  className="w-full pl-10 pr-10 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-sm text-on-surface placeholder-outline-variant/60 focus:outline-none focus:border-primary" 
-                  id="confirmPassword" 
-                  name="confirmPassword" 
+                <input
+                  className="w-full pl-10 pr-10 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-sm text-on-surface placeholder-outline-variant/60 focus:outline-none focus:border-primary"
+                  id="confirmPassword"
+                  name="confirmPassword"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="••••••••" 
+                  placeholder="••••••••"
                   required
                   type={showConfirmPassword ? "text" : "password"}
+                  disabled={loading}
                 />
                 {confirmPassword && (
                   <button
@@ -243,21 +274,23 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ onNavigateToLogin, o
             </div>
 
             {/* Submit Button */}
-            <button 
-              className="w-full mt-4 bg-primary hover:bg-tertiary text-on-primary font-label-sm text-sm font-bold rounded-full py-3 px-6 transition-all active:scale-95 flex justify-center items-center gap-1.5 shadow-sm" 
+            <button
+              className="w-full mt-4 bg-primary hover:bg-tertiary text-on-primary font-label-sm text-sm font-bold rounded-full py-3 px-6 transition-all active:scale-95 flex justify-center items-center gap-1.5 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
               type="submit"
+              disabled={loading}
             >
-              Đăng ký tài khoản
+              {loading ? 'Đang đăng ký tài khoản...' : 'Đăng ký tài khoản'}
               <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
             </button>
           </form>
 
           {/* Login Link */}
           <div className="text-center font-body-md text-xs text-on-surface-variant pt-2">
-            Đã có tài khoản? 
-            <button 
+            Đã có tài khoản?
+            <button
               onClick={onNavigateToLogin}
               className="text-primary font-bold hover:text-tertiary hover:underline transition-colors ml-1"
+              disabled={loading}
             >
               Đăng nhập ngay
             </button>
