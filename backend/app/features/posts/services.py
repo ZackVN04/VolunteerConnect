@@ -22,7 +22,8 @@ class PostService:
             id=str(post.id),
             title=post.title,
             content=post.content,
-            image_url=post.image_url,
+            images=post.images,
+            video_url=post.video_url,
             author_id=post.author_id,
             likes=post.likes,
             shares=post.shares,
@@ -39,7 +40,8 @@ class PostService:
         post = Post(
             title=data.title,
             content=data.content,
-            image_url=str(data.image_url) if data.image_url else None,
+            images=[str(img) for img in data.images] if data.images else [],
+            video_url=str(data.video_url) if data.video_url else None,
             author_id=author_id,
             hashtags=data.hashtags
         )

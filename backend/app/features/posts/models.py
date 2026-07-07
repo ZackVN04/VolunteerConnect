@@ -1,7 +1,7 @@
 from beanie import Document
 from pydantic import Field
 from datetime import datetime, timezone
-from typing import List
+from typing import List, Optional
 import pymongo
 
 class Post(Document):
@@ -10,7 +10,8 @@ class Post(Document):
     """
     title: str = Field(..., min_length=5, max_length=100)
     content: str = Field(..., min_length=10, max_length=5000)
-    image_url: str | None = None
+    images: List[str] = Field(default_factory=list)
+    video_url: Optional[str] = None
     author_id: str
     likes: int = 0
     shares: int = 0
