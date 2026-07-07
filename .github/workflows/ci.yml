@@ -125,7 +125,18 @@ jobs:
           SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
           SMTP_FROM_EMAIL: ${{ secrets.SMTP_FROM_EMAIL }}
-        # Chạy unlock trước để bẻ khóa nếu có lỗi, sau đó deploy bình thường
+        # Chạy unlock trước để bẻ khóa nếu có lỗi, sau đó deploy bình thường (bật verbose để hiển thị log chi tiết)
         run: |
           npx sst unlock --stage dev || true
           npx sst deploy --stage dev --verbose
+
+      - name: Print Pulumi logs on console
+        if: always()
+        run: cat .sst/log/pulumi.log || true
+
+      - name: Upload SST logs as Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sst-logs
+          path: .sst/log/
