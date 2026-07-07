@@ -48,6 +48,13 @@ async def lifespan(app: FastAPI):
         db = client.get_default_database()
     except Exception:
         db = client["volunteer_connect"]
+
+    # Failsafe: Xóa chỉ mục phone_number cũ không có sparse để Beanie cấu hình lại chỉ mục Sparse mới
+    try:
+        await db.users.drop_index("phone_number_1")
+        print("🧹 Dropped old index phone_number_1 successfully.")
+    except Exception as e:
+        print(f"ℹ️ Skipped dropping phone_number_1 index: {e}")
         
     await init_beanie(
         database=db,

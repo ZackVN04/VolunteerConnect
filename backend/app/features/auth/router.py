@@ -41,17 +41,18 @@ async def register(user_in: UserCreate):
             # Xóa tài khoản chưa kích hoạt cũ để cho phép đăng ký lại từ đầu
             await existing_email.delete()
         
-    # Kiểm tra xem Số điện thoại đã bị sử dụng chưa
-    existing_phone = await User.find_one(User.phone_number == user_in.phone_number)
-    if existing_phone:
-        if existing_phone.status == UserStatus.ACTIVE:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Số điện thoại đã được đăng ký",
-            )
-        else:
-            # Xóa tài khoản chưa kích hoạt cũ để cho phép đăng ký lại từ đầu
-            await existing_phone.delete()
+    # Kiểm tra xem Số điện thoại đã bị sử dụng chưa (chỉ kiểm tra nếu có nhập)
+    if user_in.phone_number:
+        existing_phone = await User.find_one(User.phone_number == user_in.phone_number)
+        if existing_phone:
+            if existing_phone.status == UserStatus.ACTIVE:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Số điện thoại đã được đăng ký",
+                )
+            else:
+                # Xóa tài khoản chưa kích hoạt cũ để cho phép đăng ký lại từ đầu
+                await existing_phone.delete()
     
     hashed_pwd = get_password_hash(user_in.password)
     

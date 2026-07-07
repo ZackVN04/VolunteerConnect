@@ -50,12 +50,14 @@ class UserBase(BaseModel):
     
 class UserCreate(UserBase):
     password: str
-    phone_number: str = Field(..., description="Số điện thoại định dạng chuẩn quốc tế E.164 (VD: +84912345678)")
+    phone_number: Optional[str] = Field(None, description="Số điện thoại định dạng chuẩn quốc tế E.164 (VD: +84912345678)")
     full_name: str = Field(..., min_length=1, max_length=100, description="Họ và tên người dùng")
     
     @field_validator('phone_number')
     @classmethod
-    def validate_phone_number(cls, v: str) -> str:
+    def validate_phone_number(cls, v: Optional[str]) -> Optional[str]:
+        if v is None or v == "":
+            return None
         return normalize_and_validate_phone_number(v)
 
     @field_validator('password')
@@ -84,13 +86,13 @@ class UserUpdate(BaseModel):
     @field_validator('phone_number')
     @classmethod
     def validate_phone_number(cls, v: Optional[str]) -> Optional[str]:
-        if v is None:
-            return v
+        if v is None or v == "":
+            return None
         return normalize_and_validate_phone_number(v)
 
 class UserProfileResponse(UserBase):
     id: PydanticObjectId = Field(alias="_id")
-    phone_number: str
+    phone_number: Optional[str] = None
     full_name: Optional[str] = None
     avatar_url: Optional[str] = None
     bio: Optional[str] = None
