@@ -113,6 +113,8 @@ jobs:
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          SST_TELEMETRY_DISABLED: 1
+          PULUMI_SKIP_UPDATE_CHECK: "true"
           # Gắn mã Băm (SHA) của lần Commit này vào đường link Docker
           IMAGE_URL: "asia-southeast1-docker.pkg.dev/volunteer-connect-prod-999/volunteer-connect-repo/volunteer-connect-api:${{ github.sha }}"
           FRONTEND_IMAGE_URL: "asia-southeast1-docker.pkg.dev/volunteer-connect-prod-999/volunteer-connect-repo/volunteer-connect-frontend:${{ github.sha }}"
