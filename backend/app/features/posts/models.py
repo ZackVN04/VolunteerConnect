@@ -1,1 +1,27 @@
-# TODO: Implement posts database models
+from beanie import Document
+from pydantic import Field
+from datetime import datetime, timezone
+from typing import List
+import pymongo
+
+class Post(Document):
+    """
+    Beanie Document representing a volunteer community post.
+    """
+    title: str = Field(..., min_length=5, max_length=100)
+    content: str = Field(..., min_length=10, max_length=5000)
+    image_url: str | None = None
+    author_id: str
+    likes: int = 0
+    shares: int = 0
+    hashtags: List[str] = Field(default_factory=list)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    class Settings:
+        name = "posts"
+        # CRITICAL: MongoDB index on created_at (descending) to heavily optimize pagination queries
+        indexes = [
+            [("created_at", pymongo.DESCENDING)],
+            [("hashtags", pymongo.ASCENDING)]
+        ]
