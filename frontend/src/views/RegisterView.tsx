@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { authService, formatPhoneE164 } from '../services/apiService';
+import { authService } from '../services/apiService';
 import { ASSETS } from '../constants/assets';
 
 const USE_REAL_BACKEND = true;
