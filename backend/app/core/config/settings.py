@@ -3,14 +3,21 @@ from typing import Optional
 
 class Settings(BaseSettings):
     SECRET_KEY: str = "super_secret_key_change_in_production"
+    JWT_SECRET: Optional[str] = None
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     MONGODB_URL: str = "mongodb://localhost:27017/volunteer_connect"
 
+    def __init__(self, **values):
+        super().__init__(**values)
+        if self.JWT_SECRET:
+            self.SECRET_KEY = self.JWT_SECRET
+
     @property
     def MONGO_URI(self) -> str:
         return self.MONGODB_URL
+
 
     # Cấu hình dịch vụ gửi Email (SMTP)
     SMTP_HOST: str = "smtp.gmail.com"

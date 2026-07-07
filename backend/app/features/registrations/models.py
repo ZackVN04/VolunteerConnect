@@ -7,7 +7,7 @@ from app.features.registrations.constants import RegistrationStatus
 
 class DenormalizedVolunteer(BaseModel):
     name: str
-    phone: str
+    phone: Optional[str] = None
     email: str
 
 class DenormalizedActivity(BaseModel):

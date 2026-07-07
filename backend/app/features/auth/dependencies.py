@@ -4,6 +4,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import ValidationError
 from beanie import PydanticObjectId
 
+from app.shared.enums import UserRole, UserStatus
 from app.core.security.jwt import decode_token
 from app.features.users.models import User
 
@@ -41,4 +42,19 @@ async def get_current_user(token: HTTPAuthorizationCredentials = Depends(securit
     if user is None:
         raise credentials_exception
         
+    if user.status == UserStatus.BANNED:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Tài khoản của bạn đã bị khóa."
+        )
+        
     return user
+
+async def require_admin(current_user: User = Depends(get_current_user)) -> User:
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Quyền truy cập bị từ chối. Chỉ Admin mới có quyền thực hiện."
+        )
+    return current_user
+

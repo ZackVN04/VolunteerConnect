@@ -7,6 +7,7 @@ on:
       - chore/setup-docker-deployment
       - feat/frontend-deployment
       - fix/*
+      - feature/api-sync-and-security-fix
 
 jobs:
   test-python-code:

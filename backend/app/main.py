@@ -1,5 +1,5 @@
 import json
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from beanie import init_beanie
@@ -23,6 +23,7 @@ from app.features.admin.router import router as admin_router
 from app.features.attendance.router import activities_attendance_router, registrations_attendance_router
 from app.features.media.router import router as media_router
 from fastapi.staticfiles import StaticFiles
+from app.features.auth.dependencies import require_admin
 import os
 
 # =============================================================================
@@ -89,9 +90,12 @@ app = FastAPI(
 # =============================================================================
 # 3. CORS MIDDLEWARE CONFIGURATION
 # =============================================================================
+allowed_origins_env = os.environ.get("ALLOWED_ORIGINS")
+allowed_origins = [origin.strip() for origin in allowed_origins_env.split(",")] if allowed_origins_env else ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Trong môi trường production nên cấu hình cụ thể
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -173,7 +177,7 @@ async def root():
 # 7. CRASH TEST ENDPOINT (Dành cho SRE giám sát)
 # =============================================================================
 @app.get('/crash', tags=["System Testing"])
-async def crash_test():
+async def crash_test(current_user: User = Depends(require_admin)):
     """
     Cố tình sinh ra lỗi HTTP 500 để kiểm tra hệ thống báo động (Alerting).
     """

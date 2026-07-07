@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from bson.errors import InvalidId
 from pydantic import ValidationError
 from app.features.activities.models import Activity
+from app.features.activities.constants import ActivityStatus
 from beanie import Document
 from pydantic import Field
 from app.shared.enums import RequestStatus
@@ -69,10 +70,10 @@ class AdminRepository:
             if not activity:
                 return None
                 
-            if activity.status in ["PUBLISHED", "REJECTED"]:
+            if activity.status in [ActivityStatus.OPEN.value, ActivityStatus.REJECTED.value]:
                 raise ValueError(f"Cannot approve or reject an activity that is already {activity.status}")
                 
-            activity.status = "PUBLISHED" if is_approved else "REJECTED"
+            activity.status = ActivityStatus.OPEN.value if is_approved else ActivityStatus.REJECTED.value
             await activity.save()
             return activity
         except (InvalidId, ValueError, ValidationError):
@@ -98,7 +99,7 @@ class AdminRepository:
             User.find_all().count(),
             Activity.find_all().count(),
             Post.find_all().count(),
-            OrganizerRequest.find({"status": "PENDING"}).count()
+            OrganizerRequest.find({"status": RequestStatus.PENDING.value}).count()
         )
         
         return {

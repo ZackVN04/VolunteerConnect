@@ -1,9 +1,15 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends
 from .schemas import AdminReviewRequest, RequestStatus, StatisticsResponse, ActivityApprovalRequest
 from .services import AdminService
+from app.features.auth.dependencies import require_admin
 
 # Initialize router with appropriate tags and prefix
-router = APIRouter(prefix="/admin", tags=["Admin Workflow"])
+router = APIRouter(
+    prefix="/api/v1/admin",
+    tags=["Admin Workflow"],
+    dependencies=[Depends(require_admin)]
+)
+
 
 @router.patch("/requests/{request_id}/approve")
 async def approve_request(request_id: str, data: AdminReviewRequest):
@@ -53,3 +59,21 @@ async def get_statistics():
     Fetch dashboard statistics calculated concurrently.
     """
     return await AdminService.get_statistics()
+
+@router.get("/organizer-requests")
+async def get_organizer_requests():
+    """
+    Get all organizer requests for admin.
+    """
+    from app.features.organizer_requests.models import OrganizerRequest
+    requests = await OrganizerRequest.find_all().sort("-created_at").to_list()
+    return {"success": True, "data": {"requests": requests}}
+
+@router.get("/activities")
+async def get_activities():
+    """
+    Get all activities for admin.
+    """
+    from app.features.activities.models import Activity
+    activities = await Activity.find_all().sort("-created_at").to_list()
+    return {"success": True, "data": {"activities": activities}}
