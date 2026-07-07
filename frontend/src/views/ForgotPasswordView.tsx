@@ -76,8 +76,10 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBackTo
       setErrorMsg('Mã OTP phải có đúng 6 chữ số.');
       return;
     }
-    if (newPassword.length < 6) {
-      setErrorMsg('Mật khẩu mới phải từ 6 ký tự trở lên.');
+    // Quy tắc mật khẩu mạnh: ít nhất 8 ký tự, 1 chữ hoa, 1 chữ thường, 1 chữ số, 1 ký tự đặc biệt
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).{8,}$/;
+    if (!passwordRegex.test(newPassword)) {
+      setErrorMsg('Mật khẩu mới phải có độ dài tối thiểu 8 ký tự và bao gồm ít nhất 1 chữ cái viết hoa, 1 chữ cái viết thường, 1 chữ số và 1 ký tự đặc biệt.');
       return;
     }
     if (newPassword !== confirmPassword) {

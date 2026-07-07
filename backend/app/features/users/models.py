@@ -13,6 +13,11 @@ class User(Document):
     phone_number: Annotated[str, Indexed(unique=True)]
     full_name: Optional[str] = None
     avatar_url: Optional[str] = None
+    bio: Optional[str] = None
+    skills: list[str] = Field(default_factory=list)
+    area_of_interest: Optional[str] = None
+    age: Optional[int] = None
+    gender: Optional[str] = None
     
     role: UserRole = Field(default=UserRole.VOLUNTEER)
     status: UserStatus = Field(default=UserStatus.PENDING_OTP)

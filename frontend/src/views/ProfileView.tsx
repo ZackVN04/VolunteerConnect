@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
+import { mediaService } from '../services/apiService';
 
 export const ProfileView: React.FC = () => {
   const { currentUser, organizerRequests, submitOrganizerRequest, updateProfile, showNotification } = useApp();
@@ -116,7 +117,7 @@ export const ProfileView: React.FC = () => {
     }
   };
 
-  const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -125,13 +126,15 @@ export const ProfileView: React.FC = () => {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64 = reader.result as string;
-      setAvatarUrl(base64);
+    try {
+      showNotification('Đang tải ảnh đại diện lên...', 'info');
+      const uploadRes = await mediaService.upload(file);
+      const publicUrl = uploadRes.url;
+      
+      setAvatarUrl(publicUrl);
       updateProfile(
         { 
-          avatar_url: base64,
+          avatar_url: publicUrl,
           full_name: currentUser.profile.full_name,
           skills: currentUser.profile.skills,
           bio: currentUser.profile.bio
@@ -140,9 +143,11 @@ export const ProfileView: React.FC = () => {
         currentUser.profile.area_of_interest || '',
         phone
       );
-      showNotification('Đã cập nhật ảnh đại diện mới!', 'success');
-    };
-    reader.readAsDataURL(file);
+      showNotification('Đã cập nhật ảnh đại diện mới thành công!', 'success');
+    } catch (err: any) {
+      console.error("Lỗi upload avatar:", err);
+      showNotification(err.response?.data?.detail || 'Có lỗi xảy ra khi tải ảnh lên máy chủ.', 'error');
+    }
   };
 
   return (

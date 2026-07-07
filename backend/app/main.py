@@ -18,6 +18,9 @@ from app.features.organizer_requests.router import router as organizer_requests_
 from app.features.activities.router import router as activities_router, organizer_router
 from app.features.registrations.router import router as registrations_router, action_router as registrations_action_router, user_router as registrations_user_router
 from app.features.attendance.router import activities_attendance_router, registrations_attendance_router
+from app.features.media.router import router as media_router
+from fastapi.staticfiles import StaticFiles
+import os
 
 # =============================================================================
 # 1. LIFESPAN (Startup and Shutdown events)
@@ -74,6 +77,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Mount thư mục static phục vụ tải ảnh cục bộ trong môi trường dev
+os.makedirs(os.path.join(os.getcwd(), "static", "uploads"), exist_ok=True)
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
 # =============================================================================
 # 4. CLOUD LOGGING MIDDLEWARE (HỘP ĐEN)
 # =============================================================================
@@ -127,6 +134,7 @@ app.include_router(registrations_action_router)
 app.include_router(registrations_user_router)
 app.include_router(activities_attendance_router)
 app.include_router(registrations_attendance_router)
+app.include_router(media_router)
 
 # =============================================================================
 # 6. ROOT ENDPOINT (Health Check)

@@ -48,8 +48,10 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ onNavigateToLogin, o
       return;
     }
 
-    if (password.length < 6) {
-      setErrorMsg('Mật khẩu phải có độ dài tối thiểu 6 ký tự để bảo mật.');
+    // Quy tắc mật khẩu mạnh: ít nhất 8 ký tự, 1 chữ hoa, 1 chữ thường, 1 chữ số, 1 ký tự đặc biệt
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).{8,}$/;
+    if (!passwordRegex.test(password)) {
+      setErrorMsg('Mật khẩu phải có độ dài tối thiểu 8 ký tự và bao gồm ít nhất 1 chữ cái viết hoa, 1 chữ cái viết thường, 1 chữ số và 1 ký tự đặc biệt.');
       return;
     }
 

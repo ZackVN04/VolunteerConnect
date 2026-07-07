@@ -1075,26 +1075,16 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       if (!currentUser) return;
       (async () => {
         try {
-          // Save the local-only fields to localStorage
-          const extraKey = `vc_profile_extra_${currentUser._id}`;
-          const currentExtraStr = localStorage.getItem(extraKey);
-          let extra: any = {};
-          if (currentExtraStr) {
-            try { extra = JSON.parse(currentExtraStr); } catch {}
-          }
-          if (updatedProfile.bio !== undefined) extra.bio = updatedProfile.bio;
-          if (updatedProfile.skills !== undefined) extra.skills = updatedProfile.skills;
-          if (province !== undefined) extra.area_of_interest = province;
-          if (updatedProfile.age !== undefined) extra.age = updatedProfile.age;
-          if (updatedProfile.gender !== undefined) extra.gender = updatedProfile.gender;
-          if (email !== undefined) extra.email = email;
-          if (phone !== undefined) extra.phone = phone;
-          localStorage.setItem(extraKey, JSON.stringify(extra));
-
-          // Only send full_name and avatar_url to backend
+          // Send all fields directly to the backend
           await userService.updateProfile({
             full_name: updatedProfile.full_name !== undefined ? updatedProfile.full_name : (currentUser.profile.full_name ?? undefined),
-            avatar_url: updatedProfile.avatar_url !== undefined ? updatedProfile.avatar_url : (currentUser.profile.avatar_url ?? undefined)
+            avatar_url: updatedProfile.avatar_url !== undefined ? updatedProfile.avatar_url : (currentUser.profile.avatar_url ?? undefined),
+            bio: updatedProfile.bio !== undefined ? updatedProfile.bio : (currentUser.profile.bio ?? undefined),
+            skills: updatedProfile.skills !== undefined ? updatedProfile.skills : (currentUser.profile.skills ?? undefined),
+            area_of_interest: province !== undefined ? province : (currentUser.profile.area_of_interest ?? undefined),
+            phone: phone !== undefined ? phone : (currentUser.phone ?? undefined),
+            age: updatedProfile.age !== undefined ? updatedProfile.age : (currentUser.profile.age ?? undefined),
+            gender: updatedProfile.gender !== undefined ? updatedProfile.gender : (currentUser.profile.gender ?? undefined)
           });
           const user = await authService.getCurrentUser();
           setCurrentUserInternal(user);
