@@ -139,6 +139,13 @@ const AppContent: React.FC = () => {
     return <FeedView />;
   };
 
+  const cleanHash = currentHash.split('?')[0];
+  const isAdminDashboard = cleanHash === '#/admin/dashboard' && currentUser?.role === 'Admin';
+
+  if (isAdminDashboard) {
+    return <AdminDashboard />;
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-background text-on-surface antialiased transition-all">
       {/* Top Navigation Bar */}

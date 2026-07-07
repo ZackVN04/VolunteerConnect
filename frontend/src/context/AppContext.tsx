@@ -187,8 +187,8 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         // Auto login first user in the saved database if explicitly saved
         if (db.currentUser !== undefined) {
           setCurrentUserInternal(db.currentUser);
-        } else if (db.users && db.users.length > 0) {
-          setCurrentUserInternal(db.users[0]); // default to admin or first user
+        } else if (!USE_REAL_BACKEND && db.users && db.users.length > 0) {
+          setCurrentUserInternal(db.users[0]); // default to admin or first user in simulated mode
         }
         return;
       } catch (e) {
@@ -318,9 +318,13 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     
     // Default logged in user is Nguyễn Văn A (Volunteer) for easy demo
     const defaultUser = defaultUsers.find(u => u._id === 'user_vol_a_002') || defaultUsers[0];
-    setCurrentUserInternal(defaultUser);
-
-    syncToLocalStorage(defaultUsers, defaultActivities, defaultRegistrations, defaultRequests, defaultPosts, defaultUser);
+    if (!USE_REAL_BACKEND) {
+      setCurrentUserInternal(defaultUser);
+      syncToLocalStorage(defaultUsers, defaultActivities, defaultRegistrations, defaultRequests, defaultPosts, defaultUser);
+    } else {
+      setCurrentUserInternal(null);
+      syncToLocalStorage(defaultUsers, defaultActivities, defaultRegistrations, defaultRequests, defaultPosts, null);
+    }
   };
 
   // Wrapper for setCurrentUser to also persist it
