@@ -6,7 +6,7 @@ interface ActivityDetailViewProps {
 }
 
 export const ActivityDetailView: React.FC<ActivityDetailViewProps> = ({ activityId }) => {
-  const { currentUser, activities, registrations, registerForActivity, cancelOrRejectRegistration } = useApp();
+  const { currentUser, activities, registrations, registerForActivity, cancelOrRejectRegistration, showNotification, showConfirm } = useApp();
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
 
@@ -43,17 +43,22 @@ export const ActivityDetailView: React.FC<ActivityDetailViewProps> = ({ activity
     const res = registerForActivity(activity._id);
     const result = res instanceof Promise ? await res : res;
     if (result.success) {
-      setShowSuccessToast(true);
-      setToastMessage('Yêu cầu tham gia của bạn đã được gửi. Vui lòng chờ Ban tổ chức duyệt.');
+      showNotification('Yêu cầu tham gia của bạn đã được gửi. Vui lòng chờ Ban tổ chức duyệt.', 'success');
     } else {
-      alert(result.error || 'Có lỗi xảy ra khi đăng ký');
+      showNotification(result.error || 'Có lỗi xảy ra khi đăng ký', 'error');
     }
   };
 
   const handleCancelRegistration = () => {
-    if (userRegistration && confirm('Bạn chắc chắn muốn hủy đăng ký tham gia hoạt động này?')) {
-      cancelOrRejectRegistration(userRegistration._id);
-      setShowSuccessToast(false);
+    if (userRegistration) {
+      showConfirm(
+        'Bạn chắc chắn muốn hủy đăng ký tham gia hoạt động này?',
+        () => {
+          cancelOrRejectRegistration(userRegistration._id);
+          showNotification('Đã hủy đăng ký thành công!', 'success');
+        },
+        'Hủy đăng ký tham gia'
+      );
     }
   };
 

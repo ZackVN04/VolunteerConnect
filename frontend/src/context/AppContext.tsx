@@ -10,7 +10,7 @@ import {
   adminService
 } from '../services/apiService';
 
-const USE_REAL_BACKEND = import.meta.env.VITE_USE_REAL_BACKEND === 'true';
+const USE_REAL_BACKEND = true;
 
 
 // --- Interface Definitions ---
@@ -149,15 +149,25 @@ interface AppContextType {
   updateParticipation: (registrationId: string, status: 'Completed' | 'Absent') => { success: boolean; error?: string };
   cancelActivity: (activityId: string) => void;
   submitOrganizerRequest: (reason: string, experience: string, contactPhone: string) => { success: boolean; error?: string };
-  reviewOrganizerRequest: (requestId: string, approve: boolean, feedback?: string) => void;
+  reviewOrganizerRequest: (requestId: string, approve: boolean, feedback?: string) => Promise<{ success: boolean; error?: string }>;
   createActivity: (activityData: Partial<Activity>, submitForReview: boolean) => void;
   editActivity: (activityId: string, activityData: Partial<Activity>) => void;
-  reviewActivity: (activityId: string, approve: boolean) => void;
+  reviewActivity: (activityId: string, approve: boolean) => Promise<{ success: boolean; error?: string }>;
   createPost: (content: string, images: string[], hashtags: string[]) => void;
   likePost: (postId: string) => void;
   updateProfile: (updatedProfile: Partial<UserProfile>, email: string, province: string, phone?: string) => void;
   changeUserRole: (userId: string, role: 'Volunteer' | 'Organizer' | 'Admin') => void;
   resetDatabase: () => void;
+
+  // Dialog / Toast System
+  notification: { message: string; type: 'success' | 'error' | 'info' } | null;
+  showNotification: (message: string, type?: 'success' | 'error' | 'info') => void;
+  confirmDialog: { message: string; title?: string; onConfirm: () => void } | null;
+  showConfirm: (message: string, onConfirm: () => void, title?: string) => void;
+  closeConfirm: () => void;
+  promptDialog: { message: string; title?: string; placeholder?: string; onConfirm: (val: string) => void } | null;
+  showPrompt: (message: string, onConfirm: (val: string) => void, title?: string, placeholder?: string) => void;
+  closePrompt: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -173,6 +183,32 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [organizerRequests, setOrganizerRequests] = useState<OrganizerRequest[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
 
+  // Dialog / Toast states
+  const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{ message: string; title?: string; onConfirm: () => void } | null>(null);
+  const [promptDialog, setPromptDialog] = useState<{ message: string; title?: string; placeholder?: string; onConfirm: (val: string) => void } | null>(null);
+
+  const showNotification = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
+    setNotification({ message, type });
+    setTimeout(() => setNotification(null), 3000);
+  };
+
+  const showConfirm = (message: string, onConfirm: () => void, title?: string) => {
+    setConfirmDialog({ message, title, onConfirm });
+  };
+
+  const closeConfirm = () => {
+    setConfirmDialog(null);
+  };
+
+  const showPrompt = (message: string, onConfirm: (val: string) => void, title?: string, placeholder?: string) => {
+    setPromptDialog({ message, title, placeholder, onConfirm });
+  };
+
+  const closePrompt = () => {
+    setPromptDialog(null);
+  };
+
   const loadLocalStorageData = () => {
     const savedDb = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (savedDb) {
@@ -187,8 +223,8 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         // Auto login first user in the saved database if explicitly saved
         if (db.currentUser !== undefined) {
           setCurrentUserInternal(db.currentUser);
-        } else if (db.users && db.users.length > 0) {
-          setCurrentUserInternal(db.users[0]); // default to admin or first user
+        } else if (!USE_REAL_BACKEND && db.users && db.users.length > 0) {
+          setCurrentUserInternal(db.users[0]); // default to admin or first user in simulated mode
         }
         return;
       } catch (e) {
@@ -318,9 +354,13 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     
     // Default logged in user is Nguyễn Văn A (Volunteer) for easy demo
     const defaultUser = defaultUsers.find(u => u._id === 'user_vol_a_002') || defaultUsers[0];
-    setCurrentUserInternal(defaultUser);
-
-    syncToLocalStorage(defaultUsers, defaultActivities, defaultRegistrations, defaultRequests, defaultPosts, defaultUser);
+    if (!USE_REAL_BACKEND) {
+      setCurrentUserInternal(defaultUser);
+      syncToLocalStorage(defaultUsers, defaultActivities, defaultRegistrations, defaultRequests, defaultPosts, defaultUser);
+    } else {
+      setCurrentUserInternal(null);
+      syncToLocalStorage(defaultUsers, defaultActivities, defaultRegistrations, defaultRequests, defaultPosts, null);
+    }
   };
 
   // Wrapper for setCurrentUser to also persist it
@@ -747,29 +787,35 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   // Review Organizer Role Request Flow
-  const reviewOrganizerRequest = (requestId: string, approve: boolean, feedback?: string) => {
+  const reviewOrganizerRequest = async (requestId: string, approve: boolean, feedback?: string): Promise<{ success: boolean; error?: string }> => {
     if (USE_REAL_BACKEND) {
-      (async () => {
-        try {
-          await adminService.approveOrganizerRequest(requestId, approve, feedback);
-          const reqs = await adminService.getOrganizerRequests();
-          setOrganizerRequests(reqs);
-          if (currentUser) {
-            const user = await authService.getCurrentUser();
-            setCurrentUserInternal(user);
-          }
-        } catch (e) {
-          console.error(e);
+      try {
+        await adminService.approveOrganizerRequest(requestId, approve, feedback);
+        const reqs = await adminService.getOrganizerRequests();
+        setOrganizerRequests(reqs);
+        if (currentUser) {
+          const user = await authService.getCurrentUser();
+          setCurrentUserInternal(user);
         }
-      })();
-      return;
+        return { success: true };
+      } catch (e: any) {
+        console.error(e);
+        let errorMsg = 'Không thể phê duyệt yêu cầu. Lỗi kết nối server.';
+        const detail = e.response?.data?.detail;
+        if (typeof detail === 'string') {
+          errorMsg = detail;
+        } else if (e.response?.status === 404) {
+          errorMsg = 'Lỗi 404: Endpoint phê duyệt chưa được xây dựng ở Backend.';
+        }
+        return { success: false, error: errorMsg };
+      }
     }
 
     const reqIndex = organizerRequests.findIndex(r => r._id === requestId);
-    if (reqIndex === -1) return;
+    if (reqIndex === -1) return { success: false, error: 'Không tìm thấy yêu cầu' };
 
     const req = organizerRequests[reqIndex];
-    if (req.status !== 'Pending') return;
+    if (req.status !== 'Pending') return { success: false, error: 'Yêu cầu đã được duyệt trước đó' };
 
     // Update Request
     const updatedReq: OrganizerRequest = {
@@ -809,6 +855,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     if (updatedCurrentUser) setCurrentUserInternal(updatedCurrentUser);
 
     syncToLocalStorage(updatedUsers, activities, registrations, newRequests, posts, updatedCurrentUser);
+    return { success: true };
   };
 
   // Organizer: Create Activity
@@ -889,25 +936,31 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   // Admin: Review Activity Approval
-  const reviewActivity = (activityId: string, approve: boolean) => {
+  const reviewActivity = async (activityId: string, approve: boolean): Promise<{ success: boolean; error?: string }> => {
     if (USE_REAL_BACKEND) {
-      (async () => {
-        try {
-          await adminService.approveActivity(activityId, approve);
-          const acts = await adminService.getActivities();
-          setActivities(acts);
-        } catch (e) {
-          console.error(e);
+      try {
+        await adminService.approveActivity(activityId, approve);
+        const acts = await adminService.getActivities();
+        setActivities(acts);
+        return { success: true };
+      } catch (e: any) {
+        console.error(e);
+        let errorMsg = 'Không thể phê duyệt hoạt động. Lỗi kết nối server.';
+        const detail = e.response?.data?.detail;
+        if (typeof detail === 'string') {
+          errorMsg = detail;
+        } else if (e.response?.status === 404) {
+          errorMsg = 'Lỗi 404: Endpoint phê duyệt chưa được xây dựng ở Backend.';
         }
-      })();
-      return;
+        return { success: false, error: errorMsg };
+      }
     }
 
     const index = activities.findIndex(a => a._id === activityId);
-    if (index === -1) return;
+    if (index === -1) return { success: false, error: 'Không tìm thấy hoạt động' };
 
     const original = activities[index];
-    if (original.status !== 'Pending Review') return;
+    if (original.status !== 'Pending Review') return { success: false, error: 'Hoạt động đã được duyệt trước đó' };
 
     const updated: Activity = {
       ...original,
@@ -920,6 +973,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
     setActivities(newActivities);
     syncToLocalStorage(users, newActivities, registrations, organizerRequests, posts, currentUser);
+    return { success: true };
   };
 
   // Create Community Post
@@ -1021,26 +1075,16 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       if (!currentUser) return;
       (async () => {
         try {
-          // Save the local-only fields to localStorage
-          const extraKey = `vc_profile_extra_${currentUser._id}`;
-          const currentExtraStr = localStorage.getItem(extraKey);
-          let extra: any = {};
-          if (currentExtraStr) {
-            try { extra = JSON.parse(currentExtraStr); } catch {}
-          }
-          if (updatedProfile.bio !== undefined) extra.bio = updatedProfile.bio;
-          if (updatedProfile.skills !== undefined) extra.skills = updatedProfile.skills;
-          if (province !== undefined) extra.area_of_interest = province;
-          if (updatedProfile.age !== undefined) extra.age = updatedProfile.age;
-          if (updatedProfile.gender !== undefined) extra.gender = updatedProfile.gender;
-          if (email !== undefined) extra.email = email;
-          if (phone !== undefined) extra.phone = phone;
-          localStorage.setItem(extraKey, JSON.stringify(extra));
-
-          // Only send full_name and avatar_url to backend
+          // Send all fields directly to the backend
           await userService.updateProfile({
             full_name: updatedProfile.full_name !== undefined ? updatedProfile.full_name : (currentUser.profile.full_name ?? undefined),
-            avatar_url: updatedProfile.avatar_url !== undefined ? updatedProfile.avatar_url : (currentUser.profile.avatar_url ?? undefined)
+            avatar_url: updatedProfile.avatar_url !== undefined ? updatedProfile.avatar_url : (currentUser.profile.avatar_url ?? undefined),
+            bio: updatedProfile.bio !== undefined ? updatedProfile.bio : (currentUser.profile.bio ?? undefined),
+            skills: updatedProfile.skills !== undefined ? updatedProfile.skills : (currentUser.profile.skills ?? undefined),
+            area_of_interest: province !== undefined ? province : (currentUser.profile.area_of_interest ?? undefined),
+            phone: phone !== undefined ? phone : (currentUser.phone ?? undefined),
+            age: updatedProfile.age !== undefined ? updatedProfile.age : (currentUser.profile.age ?? undefined),
+            gender: updatedProfile.gender !== undefined ? updatedProfile.gender : (currentUser.profile.gender ?? undefined)
           });
           const user = await authService.getCurrentUser();
           setCurrentUserInternal(user);
@@ -1127,7 +1171,15 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         likePost,
         updateProfile,
         changeUserRole,
-        resetDatabase
+        resetDatabase,
+        notification,
+        showNotification,
+        confirmDialog,
+        showConfirm,
+        closeConfirm,
+        promptDialog,
+        showPrompt,
+        closePrompt
       }}
     >
       {children}

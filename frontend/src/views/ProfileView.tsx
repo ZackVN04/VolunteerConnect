@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
+import { mediaService } from '../services/apiService';
 
 export const ProfileView: React.FC = () => {
-  const { currentUser, organizerRequests, submitOrganizerRequest, updateProfile } = useApp();
+  const { currentUser, organizerRequests, submitOrganizerRequest, updateProfile, showNotification } = useApp();
   
   // View mode state: 'details' (default), 'edit', 'upgrade'
   const [viewMode, setViewMode] = useState<'details' | 'edit' | 'upgrade'>('details');
@@ -15,6 +16,8 @@ export const ProfileView: React.FC = () => {
   const [skillsStr, setSkillsStr] = useState(currentUser?.profile.skills?.join(', ') || '');
   const [bio, setBio] = useState(currentUser?.profile.bio || '');
   const [avatarUrl, setAvatarUrl] = useState(currentUser?.profile.avatar_url || '');
+  const [age, setAge] = useState<number | ''>(currentUser?.profile.age !== undefined ? currentUser.profile.age : '');
+  const [gender, setGender] = useState(currentUser?.profile.gender || '');
 
   // Form states for Organizer Upgrade
   const [requestOrgName, setRequestOrgName] = useState('');
@@ -48,6 +51,8 @@ export const ProfileView: React.FC = () => {
       setSkillsStr(currentUser.profile.skills?.join(', ') || '');
       setBio(currentUser.profile.bio || '');
       setAvatarUrl(currentUser.profile.avatar_url || '');
+      setAge(currentUser.profile.age !== undefined ? currentUser.profile.age : '');
+      setGender(currentUser.profile.gender || '');
       setRequestContact(currentUser.phone || '');
     }
   }, [currentUser]);
@@ -64,6 +69,28 @@ export const ProfileView: React.FC = () => {
 
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!fullName.trim()) {
+      showNotification('Họ và tên không được để trống.', 'error');
+      return;
+    }
+    if (fullName.trim().length > 100) {
+      showNotification('Họ và tên không được vượt quá 100 ký tự.', 'error');
+      return;
+    }
+    if (!phone.trim()) {
+      showNotification('Số điện thoại không được để trống.', 'error');
+      return;
+    }
+    const cleanPhone = phone.trim().replace(/[\s\-\(\)]/g, "");
+    if (!/^\+?[0-9]{10,15}$/.test(cleanPhone)) {
+      showNotification('Số điện thoại không hợp lệ (phải từ 10-15 chữ số).', 'error');
+      return;
+    }
+    if (age !== '' && (Number(age) < 0 || Number(age) > 120)) {
+      showNotification('Tuổi nhập vào không hợp lệ (từ 0 đến 120).', 'error');
+      return;
+    }
+
     const skills = skillsStr
       .split(',')
       .map(s => s.trim())
@@ -74,13 +101,15 @@ export const ProfileView: React.FC = () => {
         full_name: fullName, 
         skills, 
         bio,
-        avatar_url: avatarUrl
+        avatar_url: avatarUrl,
+        age: age !== '' ? Number(age) : undefined,
+        gender: gender || undefined
       }, 
       email || '', 
       areaOfInterest || '',
       phone
     );
-    alert('Cập nhật thông tin hồ sơ thành công!');
+    showNotification('Cập nhật thông tin hồ sơ thành công!', 'success');
     setViewMode('details');
     window.location.hash = '#/profile';
   };
@@ -93,6 +122,8 @@ export const ProfileView: React.FC = () => {
     setSkillsStr(currentUser.profile.skills?.join(', ') || '');
     setBio(currentUser.profile.bio || '');
     setAvatarUrl(currentUser.profile.avatar_url || '');
+    setAge(currentUser.profile.age !== undefined ? currentUser.profile.age : '');
+    setGender(currentUser.profile.gender || '');
     setViewMode('details');
     window.location.hash = '#/profile';
   };
@@ -100,38 +131,40 @@ export const ProfileView: React.FC = () => {
   const handleSendRequest = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!requestOrgDesc.trim() || !requestOrgName.trim() || !requestContact.trim()) {
-      alert('Vui lòng nhập đầy đủ thông tin yêu cầu.');
+      showNotification('Vui lòng nhập đầy đủ thông tin yêu cầu.', 'error');
       return;
     }
 
     const res = submitOrganizerRequest(requestOrgDesc, requestOrgName, requestContact);
     const result = res instanceof Promise ? await res : res;
     if (result.success) {
-      alert('Gửi yêu cầu nâng cấp tài khoản thành công!');
+      showNotification('Gửi yêu cầu nâng cấp tài khoản thành công!', 'success');
       setRequestOrgDesc('');
       setRequestOrgName('');
       setViewMode('details');
     } else {
-      alert(result.error || 'Có lỗi xảy ra khi gửi yêu cầu');
+      showNotification(result.error || 'Có lỗi xảy ra khi gửi yêu cầu', 'error');
     }
   };
 
-  const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     if (file.size > 2 * 1024 * 1024) {
-      alert('File ảnh quá lớn! Vui lòng chọn ảnh có dung lượng dưới 2MB.');
+      showNotification('File ảnh quá lớn! Vui lòng chọn ảnh có dung lượng dưới 2MB.', 'error');
       return;
     }
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64 = reader.result as string;
-      setAvatarUrl(base64);
+    try {
+      showNotification('Đang tải ảnh đại diện lên...', 'info');
+      const uploadRes = await mediaService.upload(file);
+      const publicUrl = uploadRes.url;
+      
+      setAvatarUrl(publicUrl);
       updateProfile(
         { 
-          avatar_url: base64,
+          avatar_url: publicUrl,
           full_name: currentUser.profile.full_name,
           skills: currentUser.profile.skills,
           bio: currentUser.profile.bio
@@ -140,9 +173,11 @@ export const ProfileView: React.FC = () => {
         currentUser.profile.area_of_interest || '',
         phone
       );
-      alert('Đã cập nhật ảnh đại diện mới!');
-    };
-    reader.readAsDataURL(file);
+      showNotification('Đã cập nhật ảnh đại diện mới thành công!', 'success');
+    } catch (err: any) {
+      console.error("Lỗi upload avatar:", err);
+      showNotification(err.response?.data?.detail || 'Có lỗi xảy ra khi tải ảnh lên máy chủ.', 'error');
+    }
   };
 
   return (
@@ -230,6 +265,14 @@ export const ProfileView: React.FC = () => {
                   <div className="space-y-1">
                     <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider block">Kỹ năng nổi bật</span>
                     <span className="text-on-surface font-semibold block">{skillsStr || "Chưa cập nhật kỹ năng"}</span>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider block">Tuổi</span>
+                    <span className="text-on-surface font-semibold block">{currentUser.profile.age !== undefined ? currentUser.profile.age : "Chưa cập nhật"}</span>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider block">Giới tính</span>
+                    <span className="text-on-surface font-semibold block">{currentUser.profile.gender || "Chưa cập nhật"}</span>
                   </div>
                 </div>
 
@@ -347,10 +390,9 @@ export const ProfileView: React.FC = () => {
                     <input 
                       type="email" 
                       value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
+                      disabled
                       placeholder="minhthu.le@gmail.com"
-                      className="w-full px-4 py-2.5 border border-surface-variant rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm"
+                      className="w-full px-4 py-2.5 border border-surface-variant rounded-xl text-sm bg-slate-100 text-slate-500 cursor-not-allowed focus:outline-none"
                     />
                   </div>
                   
@@ -406,6 +448,35 @@ export const ProfileView: React.FC = () => {
                     placeholder="Sinh viên Đại học Sư Phạm TP.HCM, đam mê các hoạt động giáo dục trẻ em."
                     className="w-full px-4 py-2.5 border border-surface-variant rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm"
                   />
+                </div>
+
+                {/* Age & Gender Row */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div className="flex flex-col gap-2">
+                    <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Tuổi</label>
+                    <input 
+                      type="number" 
+                      value={age}
+                      onChange={(e) => setAge(e.target.value === '' ? '' : Number(e.target.value))}
+                      placeholder="Nhập tuổi..."
+                      min={0}
+                      max={120}
+                      className="w-full px-4 py-2.5 border border-surface-variant rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Giới tính</label>
+                    <select
+                      value={gender}
+                      onChange={(e) => setGender(e.target.value)}
+                      className="w-full px-4 py-2.5 border border-surface-variant rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm bg-white cursor-pointer"
+                    >
+                      <option value="">Chưa chọn</option>
+                      <option value="Nam">Nam</option>
+                      <option value="Nữ">Nữ</option>
+                      <option value="Khác">Khác</option>
+                    </select>
+                  </div>
                 </div>
 
                 {/* Action Buttons */}

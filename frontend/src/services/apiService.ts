@@ -27,38 +27,30 @@ export const mapBackendUserToFrontend = (beUser: any): User => {
   };
 
   const userId = beUser.id || beUser._id;
-  let localExtra: any = {};
-  try {
-    const extraStr = localStorage.getItem(`vc_profile_extra_${userId}`);
-    if (extraStr) {
-      localExtra = JSON.parse(extraStr);
-    }
-  } catch (e) {
-    console.error(e);
-  }
+  // Dữ liệu profile được đọc trực tiếp từ API backend, không còn lưu cache localStorage
 
   return {
     _id: userId,
-    phone: localExtra.phone !== undefined ? localExtra.phone : beUser.phone_number,
+    phone: beUser.phone_number || '',
     is_phone_verified: beUser.status === 'active',
     otp_code: null,
     otp_expires_at: null,
     otp_send_count: 0,
     otp_cooldown_until: null,
-    email: localExtra.email !== undefined ? localExtra.email : beUser.email,
+    email: beUser.email,
     password_hash: '',
     role: roleMap[beUser.role] || 'Volunteer',
     profile: {
       full_name: beUser.full_name || 'Người dùng',
       avatar_url: beUser.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=150',
-      bio: localExtra.bio !== undefined ? localExtra.bio : (beUser.bio || 'Thành viên Volunteer Connect'),
+      bio: beUser.bio || 'Thành viên Volunteer Connect',
       joined_activity_count: beUser.joined_activity_count || 0,
-      skills: localExtra.skills !== undefined ? localExtra.skills : (beUser.skills || []),
-      area_of_interest: localExtra.area_of_interest !== undefined ? localExtra.area_of_interest : (beUser.area_of_interest || 'Hồ Chí Minh'),
+      skills: beUser.skills || [],
+      area_of_interest: beUser.area_of_interest || 'Hồ Chí Minh',
       organizer_request_status: statusMap[beUser.organizer_request_status] || 'None',
       organizer_request_feedback: beUser.organizer_request_feedback || null,
-      age: localExtra.age !== undefined ? localExtra.age : undefined,
-      gender: localExtra.gender !== undefined ? localExtra.gender : undefined
+      age: beUser.age !== undefined ? beUser.age : undefined,
+      gender: beUser.gender !== undefined ? beUser.gender : undefined
     },
     created_at: beUser.created_at,
     updated_at: beUser.updated_at || beUser.created_at
@@ -222,11 +214,19 @@ export const postService = {
 
 // User Profile Services
 export const userService = {
-  updateProfile: async (updatedProfile: Partial<UserProfile>): Promise<User> => {
-    // Backend: PUT /api/v1/users/me, body: { full_name, avatar_url }
+  updateProfile: async (
+    updatedProfile: Partial<UserProfile> & { phone?: string; age?: number; gender?: string }
+  ): Promise<User> => {
+    // Backend: PUT /api/v1/users/me, body: { full_name, avatar_url, bio, skills, area_of_interest, phone_number, age, gender }
     const res = await api.put('/users/me', { 
       full_name: updatedProfile.full_name,
-      avatar_url: updatedProfile.avatar_url
+      avatar_url: updatedProfile.avatar_url,
+      bio: updatedProfile.bio,
+      skills: updatedProfile.skills,
+      area_of_interest: updatedProfile.area_of_interest,
+      phone_number: updatedProfile.phone,
+      age: updatedProfile.age,
+      gender: updatedProfile.gender
     });
     return mapBackendUserToFrontend(res.data);
   }
@@ -252,6 +252,20 @@ export const adminService = {
   },
   getStatistics: async (): Promise<any> => {
     const res = await api.get('/admin/statistics');
+    return res.data;
+  }
+};
+
+// Media/File Upload Services
+export const mediaService = {
+  upload: async (file: File): Promise<{ url: string }> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await api.post('/media/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
     return res.data;
   }
 };

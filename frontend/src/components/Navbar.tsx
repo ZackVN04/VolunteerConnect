@@ -4,6 +4,7 @@ import { useApp } from '../context/AppContext';
 export const Navbar: React.FC = () => {
   const { currentUser, setCurrentUser } = useApp();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const currentHash = window.location.hash || '#/feed';
 
   if (!currentUser) return null;
@@ -17,57 +18,6 @@ export const Navbar: React.FC = () => {
         : 'text-on-surface-variant hover:text-[#006d37] hover:bg-surface-container-low'
     }`;
 
-  // Admin Header
-  if (currentUser.role === 'Admin') {
-    return (
-      <header className="bg-surface sticky top-0 z-50 w-full border-b border-surface-variant shadow-sm transition-all duration-200">
-        <div className="flex justify-between items-center px-4 md:px-8 py-4 w-full max-w-[1440px] mx-auto h-[72px]">
-          {/* Left: Brand & Admin Tag */}
-          <div className="flex items-center gap-3">
-            <a href="#/admin/dashboard" className="font-headline-md text-xl text-primary font-bold flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary text-3xl filled">diversity_3</span>
-              <span className="tracking-tight select-none">Volunteer Connect</span>
-            </a>
-            <span className="text-on-surface-variant border-l border-surface-variant pl-3 font-semibold text-sm">
-              Quản trị hệ thống
-            </span>
-          </div>
-
-          {/* Right: Admin Info & Log out */}
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2.5">
-              <div className="flex flex-col text-right">
-                <span className="font-bold text-xs text-on-surface leading-tight">
-                  {currentUser.profile.full_name}
-                </span>
-                <span className="text-[10px] text-on-surface-variant font-medium">System Admin</span>
-              </div>
-              <div className="w-10 h-10 rounded-full border-2 border-primary-container overflow-hidden bg-surface-container-high shrink-0">
-                <img 
-                  alt="Avatar" 
-                  className="w-full h-full object-cover" 
-                  src={currentUser.profile.avatar_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150&q=80"}
-                />
-              </div>
-            </div>
-            
-            <button 
-              onClick={() => {
-                localStorage.removeItem('token');
-                setCurrentUser(null);
-                window.location.hash = '#/feed';
-              }}
-              className="border border-surface-variant text-on-surface-variant hover:text-red-600 hover:border-red-300 bg-white px-4 py-1.5 rounded-lg text-xs font-semibold shadow-sm transition-all"
-            >
-              Đăng xuất
-            </button>
-          </div>
-        </div>
-      </header>
-    );
-  }
-
-  // Volunteer & Organizer Header
   return (
     <header className="bg-surface sticky top-0 z-50 w-full border-b border-surface-variant shadow-sm transition-all duration-200">
       <div className="flex justify-between items-center px-4 md:px-8 py-4 w-full max-w-[1280px] mx-auto h-[72px]">
@@ -86,7 +36,6 @@ export const Navbar: React.FC = () => {
           {currentUser.role === 'Volunteer' && (
             <a className={navLinkClass('#/my-registrations')} href="#/my-registrations">Đăng ký của tôi</a>
           )}
-          <a className={navLinkClass('#/profile')} href="#/profile">Hồ sơ cá nhân</a>
         </nav>
 
         {/* Right side: Actions */}
@@ -109,36 +58,79 @@ export const Navbar: React.FC = () => {
             </a>
           )}
 
-          {/* User profile & Avatar */}
-          <div className="flex items-center gap-2.5 pl-2 border-l border-outline-variant/50">
-            <div className="w-10 h-10 rounded-full border-2 border-primary-container overflow-hidden bg-surface-container-high shrink-0">
-              <img 
-                alt="Avatar" 
-                className="w-full h-full object-cover" 
-                src={currentUser.profile.avatar_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150&q=80"}
-              />
-            </div>
-            <div className="flex flex-col text-left">
-              <span className="font-bold text-xs text-on-surface leading-tight">
-                {currentUser.profile.full_name}
-              </span>
-              <span className="text-[10px] text-on-surface-variant font-semibold mt-0.5">
-                {currentUser.role === 'Organizer' ? 'Ban tổ chức' : 'Tình nguyện viên'}
-              </span>
-            </div>
-          </div>
+          {/* User profile & Avatar Dropdown Trigger */}
+          <div className="relative">
+            <button 
+              onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+              className="flex items-center gap-2.5 pl-2 border-l border-outline-variant/50 focus:outline-none cursor-pointer"
+            >
+              <div className="w-10 h-10 rounded-full border-2 border-primary-container overflow-hidden bg-surface-container-high shrink-0 hover:scale-105 active:scale-95 transition-all">
+                <img 
+                  alt="Avatar" 
+                  className="w-full h-full object-cover" 
+                  src={currentUser.profile.avatar_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150&q=80"}
+                />
+              </div>
+              <div className="flex flex-col text-left">
+                <span className="font-bold text-xs text-on-surface leading-tight">
+                  {currentUser.profile.full_name}
+                </span>
+                <span className="text-[10px] text-on-surface-variant font-semibold mt-0.5 flex items-center gap-0.5">
+                  {currentUser.role === 'Admin' ? 'Quản trị viên' : (currentUser.role === 'Organizer' ? 'Ban tổ chức' : 'Tình nguyện viên')}
+                  <span className="material-symbols-outlined text-[12px] text-outline-variant">keyboard_arrow_down</span>
+                </span>
+              </div>
+            </button>
 
-          {/* Logout */}
-          <button 
-            onClick={() => {
-              localStorage.removeItem('token');
-              setCurrentUser(null);
-              window.location.hash = '#/feed';
-            }}
-            className="border border-surface-variant text-on-surface-variant hover:text-red-600 hover:border-red-300 bg-white px-4 py-1.5 rounded-lg text-xs font-semibold shadow-sm transition-all"
-          >
-            Đăng xuất
-          </button>
+            {/* Dropdown Menu */}
+            {profileDropdownOpen && (
+              <>
+                {/* Backdrop overlay */}
+                <div 
+                  onClick={() => setProfileDropdownOpen(false)}
+                  className="fixed inset-0 z-40 bg-transparent"
+                ></div>
+                
+                {/* Menu list */}
+                <div className="absolute right-0 mt-2 w-48 bg-white border border-surface-variant rounded-xl shadow-lg py-2 z-50 animate-fadeIn text-left text-xs font-semibold">
+                  {currentUser.role === 'Admin' && (
+                    <>
+                      <a 
+                        href="#/admin/dashboard" 
+                        onClick={() => setProfileDropdownOpen(false)}
+                        className="flex items-center gap-2.5 px-4 py-2.5 text-on-surface hover:bg-slate-50 transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-sm text-on-surface-variant">dashboard</span>
+                        Quản trị hệ thống
+                      </a>
+                      <hr className="border-outline-variant/30 my-1" />
+                    </>
+                  )}
+                  <a 
+                    href="#/profile" 
+                    onClick={() => setProfileDropdownOpen(false)}
+                    className="flex items-center gap-2.5 px-4 py-2.5 text-on-surface hover:bg-slate-50 transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-sm text-on-surface-variant">account_circle</span>
+                    Hồ sơ cá nhân
+                  </a>
+                  <hr className="border-outline-variant/30 my-1" />
+                  <button 
+                    onClick={() => {
+                      setProfileDropdownOpen(false);
+                      localStorage.removeItem('token');
+                      setCurrentUser(null);
+                      window.location.hash = '#/feed';
+                    }}
+                    className="w-full flex items-center gap-2.5 px-4 py-2.5 text-red-600 hover:bg-red-50 transition-colors text-left font-semibold"
+                  >
+                    <span className="material-symbols-outlined text-sm text-red-500">logout</span>
+                    Đăng xuất
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Mobile menu toggle */}
@@ -182,6 +174,17 @@ export const Navbar: React.FC = () => {
               href="#/my-registrations"
             >
               Đăng ký của tôi
+            </a>
+          )}
+          {currentUser.role === 'Admin' && (
+            <a 
+              onClick={() => setMobileMenuOpen(false)}
+              className={`block py-2.5 px-4 rounded-lg font-medium text-sm transition-all ${
+                isActive('#/admin/dashboard') ? 'bg-[#006d37] text-white' : 'text-on-surface hover:bg-surface-container-high'
+              }`} 
+              href="#/admin/dashboard"
+            >
+              Quản trị hệ thống
             </a>
           )}
           <a 
@@ -230,4 +233,3 @@ export const Navbar: React.FC = () => {
 };
 
 export default Navbar;
-

@@ -3,7 +3,7 @@ import { useApp } from '../context/AppContext';
 import { authService } from '../services/apiService';
 import { ASSETS } from '../constants/assets';
 
-const USE_REAL_BACKEND = import.meta.env.VITE_USE_REAL_BACKEND === 'true';
+const USE_REAL_BACKEND = true;
 
 interface LoginViewProps {
   onNavigateToRegister: () => void;
@@ -17,12 +17,14 @@ export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToRegister, onNa
   const [errorMsg, setErrorMsg] = useState('');
   const [showVerifyLink, setShowVerifyLink] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim()) return;
+    if (!email.trim() || loading) return;
     setErrorMsg('');
     setShowVerifyLink(false);
+    setLoading(true);
 
     if (USE_REAL_BACKEND) {
       try {
@@ -50,9 +52,15 @@ export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToRegister, onNa
         ) {
           setShowVerifyLink(true);
         }
+      } finally {
+        setLoading(false);
       }
       return;
     }
+
+    // Simulated login delay
+    await new Promise((resolve) => setTimeout(resolve, 800));
+    setLoading(false);
 
     // Search user
     const matchedUser = users.find(u => u.email === email.trim());
@@ -60,7 +68,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToRegister, onNa
       loginAs(matchedUser._id);
       window.location.hash = '#/feed';
     } else {
-      setErrorMsg('Tài khoản không tồn tại. Vui lòng thử lại hoặc chọn một tài khoản Demo có sẵn bên dưới.');
+      setErrorMsg('Tài khoản không tồn tại. Vui lòng thử lại.');
     }
   };
 
@@ -174,10 +182,11 @@ export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToRegister, onNa
 
             {/* Submit Button */}
             <button
-              className="w-full py-3 px-6 bg-primary text-on-primary rounded-full font-label-sm text-sm hover:bg-tertiary active:scale-[0.98] transition-all flex items-center justify-center gap-1 shadow-sm font-bold mt-4"
+              className="w-full py-3 px-6 bg-primary text-on-primary rounded-full font-label-sm text-sm hover:bg-tertiary active:scale-[0.98] transition-all flex items-center justify-center gap-1 shadow-sm font-bold mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
               type="submit"
+              disabled={loading}
             >
-              Đăng nhập
+              {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
               <span className="material-symbols-outlined text-[20px]">login</span>
             </button>
           </form>

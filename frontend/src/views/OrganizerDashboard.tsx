@@ -6,7 +6,8 @@ export const OrganizerDashboard: React.FC = () => {
   const { 
     currentUser, activities, registrations, 
     createActivity, editActivity, 
-    approveRegistration, cancelOrRejectRegistration, updateParticipation 
+    approveRegistration, cancelOrRejectRegistration, updateParticipation,
+    showNotification, showPrompt
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'overview' | 'my-campaigns' | 'create-campaign' | 'approve' | 'attendance'>('overview');
@@ -110,7 +111,7 @@ export const OrganizerDashboard: React.FC = () => {
   const handleSubmitActivity = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !description.trim() || !district.trim() || !addressDetail.trim() || !startDate || !endDate) {
-      alert('Vui lòng điền đầy đủ các thông tin bắt buộc');
+      showNotification('Vui lòng điền đầy đủ các thông tin bắt buộc', 'error');
       return;
     }
 
@@ -133,10 +134,10 @@ export const OrganizerDashboard: React.FC = () => {
 
     if (editMode && editingActivityId) {
       editActivity(editingActivityId, activityData);
-      alert('Đã cập nhật chiến dịch và gửi yêu cầu duyệt lại!');
+      showNotification('Đã cập nhật chiến dịch và gửi yêu cầu duyệt lại!', 'success');
     } else {
       createActivity(activityData, true); // true = submit for review
-      alert('Tạo chiến dịch mới thành công! Đang chờ Admin duyệt.');
+      showNotification('Tạo chiến dịch mới thành công! Đang chờ Admin duyệt.', 'success');
     }
 
     resetForm();
@@ -146,23 +147,28 @@ export const OrganizerDashboard: React.FC = () => {
 
   const handleApprove = (regId: string) => {
     approveRegistration(regId);
-    alert('Đã duyệt tình nguyện viên này tham gia.');
+    showNotification('Đã duyệt tình nguyện viên này tham gia.', 'success');
   };
 
   const handleReject = (regId: string) => {
-    const reason = prompt('Nhập lý do từ chối:');
-    if (reason === null) return; // cancelled prompt
-    if (!reason.trim()) {
-      alert('Vui lòng nhập lý do từ chối.');
-      return;
-    }
-    cancelOrRejectRegistration(regId, reason);
-    alert('Đã từ chối đơn đăng ký.');
+    showPrompt(
+      'Nhập lý do từ chối đăng ký:',
+      (reason) => {
+        if (!reason.trim()) {
+          showNotification('Vui lòng nhập lý do từ chối.', 'error');
+          return;
+        }
+        cancelOrRejectRegistration(regId, reason);
+        showNotification('Đã từ chối đơn đăng ký.', 'success');
+      },
+      'Từ chối đăng ký',
+      'Lý do từ chối...'
+    );
   };
 
   const handleCheckIn = (regId: string, status: 'Completed' | 'Absent') => {
     updateParticipation(regId, status);
-    alert(`Đã điểm danh: ${status === 'Completed' ? 'Có mặt' : 'Vắng mặt'}`);
+    showNotification(`Đã điểm danh: ${status === 'Completed' ? 'Có mặt' : 'Vắng mặt'}`, 'success');
   };
 
   return (

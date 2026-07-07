@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: Optional[str] = None
     SMTP_FROM_EMAIL: Optional[str] = None
 
+    # Cấu hình Google Cloud Storage
+    GCS_BUCKET_NAME: str = "volunteer-connect-media-dev"
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
 settings = Settings()
