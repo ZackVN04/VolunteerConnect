@@ -16,7 +16,17 @@ class ActivityRepository:
         skip: int = 0,
         limit: int = 10
     ) -> Tuple[List[Activity], int]:
-        query = {"status": ActivityStatus.OPEN}
+        query = {
+            "status": {
+                "$in": [
+                    ActivityStatus.OPEN,
+                    ActivityStatus.FULL,
+                    ActivityStatus.ONGOING,
+                    ActivityStatus.COMPLETED,
+                    ActivityStatus.CANCELLED
+                ]
+            }
+        }
         
         if search:
             query["$text"] = {"$search": search}
