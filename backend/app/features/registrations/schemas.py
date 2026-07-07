@@ -38,6 +38,43 @@ class RegistrationListResponse(BaseModel):
     message: str
     data: RegistrationListResponseData
 
+class RegistrationCreateResponse(BaseModel):
+    message: str
+    data: RegistrationResponse
+
+class ActivityDetailInRegistration(BaseModel):
+    """Full activity info embedded inside a registration detail response."""
+    id: str
+    title: str
+    description: str
+    categories: List[str]
+    status: str
+    start_date: datetime
+    end_date: datetime
+    limit_volunteers: int
+    approved_volunteers_count: int
+    requirements: Optional[str] = None
+    image_url: Optional[str] = None
+    location_province: str
+    location_district: str
+    location_address_detail: str
+    organizer_name: str
+
+class RegistrationDetailResponse(BaseModel):
+    """Detailed registration info including full activity + rejection reason."""
+    id: str
+    activity_id: str
+    status: RegistrationStatus
+    created_at: datetime
+    updated_at: datetime
+    rejection_reason: Optional[str] = None
+    reviewed_at: Optional[datetime] = None
+    activity: Optional[ActivityDetailInRegistration] = None
+
+    class Config:
+        from_attributes = True
+
+
 class BulkApproveRequest(BaseModel):
     registration_ids: List[str]
 

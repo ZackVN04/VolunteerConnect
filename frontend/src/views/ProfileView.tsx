@@ -1,509 +1,521 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 
 export const ProfileView: React.FC = () => {
-  const { currentUser, registrations, organizerRequests, submitOrganizerRequest, updateProfile } = useApp();
+  const { currentUser, organizerRequests, submitOrganizerRequest, updateProfile } = useApp();
   
-  // Edit mode state
-  const [isEditing, setIsEditing] = useState(false);
-  const [bio, setBio] = useState(currentUser?.profile.bio || '');
-  const isVirtualEmail = currentUser?.email?.endsWith('@volunteerconnect.com') || false;
-  const [email, setEmail] = useState(isVirtualEmail ? '' : (currentUser?.email || ''));
-  const [province, setProvince] = useState(currentUser?.profile.area_of_interest || '');
-  const [skillsStr, setSkillsStr] = useState(currentUser?.profile.skills.join(', ') || '');
+  // View mode state: 'details' (default), 'edit', 'upgrade'
+  const [viewMode, setViewMode] = useState<'details' | 'edit' | 'upgrade'>('details');
+
+  // Form states for Edit Profile
   const [fullName, setFullName] = useState(currentUser?.profile.full_name || '');
-  const [avatarUrl, setAvatarUrl] = useState(currentUser?.profile.avatar_url || '');
+  const [email, setEmail] = useState(currentUser?.email || '');
   const [phone, setPhone] = useState(currentUser?.phone || '');
+  const [areaOfInterest, setAreaOfInterest] = useState(currentUser?.profile.area_of_interest || 'TP. Hồ Chí Minh');
+  const [skillsStr, setSkillsStr] = useState(currentUser?.profile.skills?.join(', ') || '');
+  const [bio, setBio] = useState(currentUser?.profile.bio || '');
+  const [avatarUrl, setAvatarUrl] = useState(currentUser?.profile.avatar_url || '');
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        alert("Dung lượng ảnh phải nhỏ hơn 2MB.");
-        return;
+  // Form states for Organizer Upgrade
+  const [requestOrgName, setRequestOrgName] = useState('');
+  const [requestOrgDesc, setRequestOrgDesc] = useState('');
+  const [requestContact, setRequestContact] = useState(currentUser?.phone || '');
+
+  // Sync state if URL specifies a tab
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash;
+      if (hash.includes('tab=upgrade')) {
+        setViewMode('upgrade');
+      } else if (hash.includes('tab=edit')) {
+        setViewMode('edit');
+      } else {
+        setViewMode('details');
       }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (typeof reader.result === 'string') {
-          setAvatarUrl(reader.result);
-        }
-      };
-      reader.readAsDataURL(file);
-    }
-  };
+    };
+    handleHashChange();
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
 
-  // Organizer request modal state
-  const [showRequestModal, setShowRequestModal] = useState(false);
-  const [requestReason, setRequestReason] = useState('');
-  const [requestExp, setRequestExp] = useState('');
-  const [requestPhone, setRequestPhone] = useState(currentUser?.phone || '');
+  // Update states if currentUser changes
+  useEffect(() => {
+    if (currentUser) {
+      setFullName(currentUser.profile.full_name || '');
+      setEmail(currentUser.email || '');
+      setPhone(currentUser.phone || '');
+      setAreaOfInterest(currentUser.profile.area_of_interest || 'TP. Hồ Chí Minh');
+      setSkillsStr(currentUser.profile.skills?.join(', ') || '');
+      setBio(currentUser.profile.bio || '');
+      setAvatarUrl(currentUser.profile.avatar_url || '');
+      setRequestContact(currentUser.phone || '');
+    }
+  }, [currentUser]);
 
   if (!currentUser) return null;
 
-  // Filter completed registrations
-  const completedRegs = registrations.filter(
-    r => r.volunteer_id === currentUser._id && r.status === 'Completed'
-  );
-
-  // Get current organizer request status
+  // Retrieve current organizer request
   const userRequest = organizerRequests.find(r => r.volunteer_id === currentUser._id);
 
-  const handleSaveProfile = () => {
+  // Sync request states if already submitted
+  const isPending = userRequest?.status === 'Pending';
+  const isApproved = userRequest?.status === 'Approved';
+  const isRejected = userRequest?.status === 'Rejected';
+
+  const handleSaveProfile = (e: React.FormEvent) => {
+    e.preventDefault();
     const skills = skillsStr
       .split(',')
       .map(s => s.trim())
       .filter(s => s.length > 0);
 
-    updateProfile({ bio, skills, full_name: fullName, avatar_url: avatarUrl }, email, province, phone.trim());
-    setIsEditing(false);
+    updateProfile(
+      { 
+        full_name: fullName, 
+        skills, 
+        bio,
+        avatar_url: avatarUrl
+      }, 
+      email || '', 
+      areaOfInterest || '',
+      phone
+    );
+    alert('Cập nhật thông tin hồ sơ thành công!');
+    setViewMode('details');
+    window.location.hash = '#/profile';
   };
 
   const handleCancelEdit = () => {
-    setBio(currentUser.profile.bio || '');
-    setEmail(isVirtualEmail ? '' : (currentUser.email || ''));
-    setProvince(currentUser.profile.area_of_interest || '');
-    setSkillsStr(currentUser.profile.skills.join(', '));
     setFullName(currentUser.profile.full_name || '');
-    setAvatarUrl(currentUser.profile.avatar_url || '');
+    setEmail(currentUser.email || '');
     setPhone(currentUser.phone || '');
-    setIsEditing(false);
+    setAreaOfInterest(currentUser.profile.area_of_interest || 'TP. Hồ Chí Minh');
+    setSkillsStr(currentUser.profile.skills?.join(', ') || '');
+    setBio(currentUser.profile.bio || '');
+    setAvatarUrl(currentUser.profile.avatar_url || '');
+    setViewMode('details');
+    window.location.hash = '#/profile';
   };
 
   const handleSendRequest = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!requestReason.trim() || !requestPhone.trim()) return;
+    if (!requestOrgDesc.trim() || !requestOrgName.trim() || !requestContact.trim()) {
+      alert('Vui lòng nhập đầy đủ thông tin yêu cầu.');
+      return;
+    }
 
-    const res = submitOrganizerRequest(requestReason, requestExp, requestPhone);
+    const res = submitOrganizerRequest(requestOrgDesc, requestOrgName, requestContact);
     const result = res instanceof Promise ? await res : res;
     if (result.success) {
-      setShowRequestModal(false);
-      setRequestReason('');
-      setRequestExp('');
+      alert('Gửi yêu cầu nâng cấp tài khoản thành công!');
+      setRequestOrgDesc('');
+      setRequestOrgName('');
+      setViewMode('details');
     } else {
       alert(result.error || 'Có lỗi xảy ra khi gửi yêu cầu');
     }
   };
 
+  const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      alert('File ảnh quá lớn! Vui lòng chọn ảnh có dung lượng dưới 2MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64 = reader.result as string;
+      setAvatarUrl(base64);
+      updateProfile(
+        { 
+          avatar_url: base64,
+          full_name: currentUser.profile.full_name,
+          skills: currentUser.profile.skills,
+          bio: currentUser.profile.bio
+        }, 
+        currentUser.email || '', 
+        currentUser.profile.area_of_interest || '',
+        phone
+      );
+      alert('Đã cập nhật ảnh đại diện mới!');
+    };
+    reader.readAsDataURL(file);
+  };
+
   return (
-    <div className="flex-grow w-full max-w-[1280px] mx-auto px-4 md:px-8 py-8 grid grid-cols-1 lg:grid-cols-12 gap-gutter text-left">
-      {/* Left Column: Profile Card & Actions */}
-      <section className="lg:col-span-4 flex flex-col gap-md">
-        
-        {/* Profile Card */}
-        <div className="bg-surface-container-lowest rounded-lg p-6 border border-surface-variant shadow-sm flex flex-col items-center text-center">
-          {!isEditing && (
-            <div className="w-full flex justify-end mb-2">
-              <button 
-                onClick={() => setIsEditing(true)}
-                className="flex items-center gap-1 text-primary font-label-sm text-sm hover:bg-primary-container/20 px-2.5 py-1 rounded-md transition-colors font-bold"
+    <div className="w-full bg-[#f8f9fa] min-h-screen pb-16 text-left">
+      <div className="max-w-[800px] mx-auto px-4 md:px-8 py-8 space-y-6">
+
+        {/* ------------------------------------------- */}
+        {/* VIEW 1: PROFILE DETAILS VIEW (DEFAULT) */}
+        {viewMode === 'details' && (
+          <div className="space-y-6">
+            
+            {/* Header section with Edit Button */}
+            <div className="flex justify-between items-start gap-4">
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight text-on-surface font-headline-md">
+                  Hồ sơ cá nhân
+                </h1>
+                <p className="text-on-surface-variant text-sm mt-1.5 font-semibold">
+                  Quản lý thông tin tài khoản và xem lịch sử tích lũy hoạt động xã hội
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setViewMode('edit');
+                  window.location.hash = '#/profile?tab=edit';
+                }}
+                className="border border-[#006d37] hover:bg-emerald-50 text-[#006d37] font-bold px-6 py-2.5 rounded-xl transition-all text-sm shadow-sm shrink-0"
               >
-                <span className="material-symbols-outlined text-sm">edit</span> Chỉnh sửa
+                Chỉnh sửa hồ sơ
               </button>
             </div>
-          )}
 
-          <div className="relative mb-4">
-            <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-surface-bright shadow-sm bg-surface-container-high flex items-center justify-center relative group">
-              <img 
-                className="w-full h-full object-cover" 
-                src={
-                  isEditing 
-                    ? (avatarUrl || 'https://lh3.googleusercontent.com/aida-public/AB6AXuCqR7c6MmYIK026t2CIKgJdzN-HVXJHuqj92skuH6GsQRsHvMxbEHHfJw4SZzJn1z7ycOuw65ul7NnXNvhBxovjiMraR3LbRNHHR4d6HmA29IW3oVGYPNSaG5QPYI0VCqShoV70UAg15BkVDPICUKrC5a1D4OhhpawjfyMo1BFfKacEJXqW3UQYfZvAq2O0roU323LKHahR9UoY_5rWFImGEoXmFIcsACP6G1q73EUHh8hTMmhtEEtQ8A')
-                    : (currentUser.profile.avatar_url ||
-                       (currentUser._id === 'user_vol_a_002' ? 'https://lh3.googleusercontent.com/aida-public/AB6AXuB_PQBoM34v-KHc_RgV_5yx56GMnqxDEhWKCFYBFHs2DD_v0AfXxYHUzf2X3lHHgAe2vyMGRQql2_ip1v1PHVYhvFyoXhPynpBV2nxiOGxa8e8ofteEH-zmu0GxXB6A8jodf8hDo5WAuXJJrmVLLOR1IjbvdDXwj0qbFpahbPlbl0ck9hpAKNzpXmdr75nvpBMMDMs4UZOVhWf1sVfevY5pMBzIvjY41MIz8mTplH5pZ7hrKQrRtevMrQ' :
-                        currentUser._id === 'user_org_b_003' ? 'https://lh3.googleusercontent.com/aida-public/AB6AXuAkQYvd65g9k6JOGizWiwW69fSLpWWr-F9ZrbB9rVITYy_HR6LpTrryKx45BWMirCv1Bl458Rn7xSD7iNoQiH2qr1i-zXYYpEOVAhyzlwAiSWYaeDSajjvTk79HCfIoD2bKu6PP-Ni7Rl8dNUcyusGXtwrW_leJf2pHSMyVYQ7GGycn96gK0LnhC85StwbzmSLfjRVsPGdPZvSyywYXC6R-9TA5TRIQ_rODyBNU7NlmuV4LUv8M9-3XUw' :
-                        currentUser._id === 'user_admin_001' ? 'https://lh3.googleusercontent.com/aida-public/AB6AXuCYcsfThBjqJ3O_WR02laZ868Vy0rbWRrqdcH5bE3iJVWcOgHMoh3CsowraUnMiJ6A8cGSGFjyuG_USGZmPk9q36M_dwSakgzQkp_8IfSXGp7yLav94zAH16CEYFw3LDkyEtm7yzOYC78AETUOiDy0IlPDic3zG1k8vpFwuKZ9138GaZWz-wC0CRMWAolLdDQkliuxw0LYkcJqLf-shkA2mNmKjWWYkkobzu4FtFN95KYT-bCJPwGNXzw' :
-                        'https://lh3.googleusercontent.com/aida-public/AB6AXuCqR7c6MmYIK026t2CIKgJdzN-HVXJHuqj92skuH6GsQRsHvMxbEHHfJw4SZzJn1z7ycOuw65ul7NnXNvhBxovjiMraR3LbRNHHR4d6HmA29IW3oVGYPNSaG5QPYI0VCqShoV70UAg15BkVDPICUKrC5a1D4OhhpawjfyMo1BFfKacEJXqW3UQYfZvAq2O0roU323LKHahR9UoY_5rWFImGEoXmFIcsACP6G1q73EUHh8hTMmhtEEtQ8A'))
-                }
-                alt="Profile Avatar"
-              />
-            </div>
-          </div>
-
-          {isEditing ? (
-            <div className="w-full space-y-3 mb-4">
-              <div>
-                <label className="block text-left text-xs font-semibold text-on-surface-variant mb-1">Họ và tên</label>
-                <input 
-                  type="text"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  className="w-full p-2 bg-surface-container-low border border-outline-variant rounded-lg text-sm outline-none focus:border-primary text-on-surface"
-                  placeholder="Họ và tên..."
+            {/* Profile Info Card */}
+            <div className="bg-white border border-surface-variant/40 rounded-3xl shadow-sm p-6 md:p-8 flex flex-col md:flex-row gap-8 items-center md:items-start">
+              
+              {/* Left Column: Avatar image with upload trigger */}
+              <div className="relative group w-36 h-36 rounded-full overflow-hidden border-4 border-[#006d37]/80 shrink-0 bg-slate-50 cursor-pointer">
+                <img 
+                  src={avatarUrl || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=250&h=250&q=80"} 
+                  alt="User Avatar" 
+                  className="w-full h-full object-cover"
                 />
+                <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white text-[10px] font-bold uppercase transition-all duration-200 cursor-pointer">
+                  <span className="material-symbols-outlined text-xl mb-1">photo_camera</span>
+                  Đổi ảnh
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    onChange={handleAvatarFileChange} 
+                    className="hidden" 
+                  />
+                </label>
               </div>
-              <div>
-                <label className="block text-left text-xs font-semibold text-on-surface-variant mb-1">Ảnh đại diện</label>
-                <div className="flex items-center gap-3 mt-1.5">
-                  <label className="cursor-pointer bg-primary-container text-primary font-bold px-4 py-2.5 rounded-lg hover:bg-primary-container/80 transition-colors text-xs flex items-center gap-1.5 shadow-sm border border-primary/20">
-                    <span className="material-symbols-outlined text-sm font-bold">upload</span>
-                    Tải ảnh từ thiết bị
-                    <input 
-                      type="file" 
-                      accept="image/*" 
-                      onChange={handleFileChange} 
-                      className="hidden" 
-                    />
-                  </label>
-                  {avatarUrl && (
-                    <span className="text-xs text-on-surface-variant italic truncate max-w-[180px]">
-                      Đã chọn ảnh mới
+
+              {/* Right Column: User details list */}
+              <div className="flex-grow space-y-6 w-full text-center md:text-left">
+                
+                {/* Name & Badge */}
+                <div className="space-y-1">
+                  <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
+                    <h2 className="text-2xl font-bold text-on-surface">{currentUser.profile.full_name}</h2>
+                    <span className="bg-[#e8f5e9] text-[#006d37] text-xs px-3 py-1 rounded-full font-bold uppercase">
+                      {currentUser.role === 'Volunteer' ? 'Tình nguyện viên' : currentUser.role}
                     </span>
-                  )}
-                </div>
-              </div>
-            </div>
-          ) : (
-            <>
-              <h1 className="font-headline-md text-xl text-on-surface mb-1 font-bold">{currentUser.profile.full_name}</h1>
-              <p className="font-body-md text-sm text-on-surface-variant mb-4">
-                {currentUser.role === 'Admin' ? 'Quản trị viên toàn hệ thống' :
-                 currentUser.role === 'Organizer' ? 'Nhà tổ chức hoạt động' : 'Tình nguyện viên tích cực'}
-              </p>
-            </>
-          )}
-
-          {/* About Me Section */}
-          <div className="w-full text-left mb-4">
-            <h3 className="font-label-sm text-sm text-on-surface mb-2 uppercase tracking-wider font-bold">Giới thiệu bản thân</h3>
-            {isEditing ? (
-              <textarea
-                value={bio}
-                onChange={(e) => setBio(e.target.value)}
-                className="w-full p-2 bg-surface-container-low border border-outline-variant rounded-lg focus:border-primary focus:ring-1 focus:ring-primary outline-none text-xs min-h-[100px]"
-                placeholder="Mô tả bản thân của bạn..."
-              />
-            ) : (
-              <p className="font-body-md text-sm text-on-surface-variant leading-relaxed">
-                {currentUser.profile.bio || 'Chưa có thông tin giới thiệu.'}
-              </p>
-            )}
-          </div>
-
-          {/* Volunteer level tracker */}
-          <div className="w-full text-left mb-6">
-            <div className="flex justify-between items-center mb-1.5 text-sm font-semibold">
-              <span className="text-on-surface">Cấp độ tình nguyện</span>
-              <span className="text-primary">
-                {currentUser.profile.joined_activity_count >= 5 ? 'Vàng (Gold) 🥇' : 
-                 currentUser.profile.joined_activity_count >= 1 ? 'Bạc (Silver) 🥈' : 'Đồng (Bronze) 🥉'}
-              </span>
-            </div>
-            <div className="progress-bar-track">
-              <div 
-                className="progress-bar-fill"
-                style={{ width: `${Math.min(100, (currentUser.profile.joined_activity_count / 5) * 100)}%` }}
-              ></div>
-            </div>
-            <p className="text-xs text-on-surface-variant mt-1 text-right">
-              {currentUser.profile.joined_activity_count >= 5 ? 'Đã đạt cấp Gold' : `Cần hoàn thành ${5 - currentUser.profile.joined_activity_count} hoạt động nữa để lên Vàng`}
-            </p>
-          </div>
-
-          {/* Role Upgrade Request triggers */}
-          {currentUser.role === 'Volunteer' && (
-            <div className="w-full">
-              {userRequest ? (
-                <div className={`p-3 rounded-lg border text-xs text-left ${
-                  userRequest.status === 'Pending' ? 'bg-amber-50 border-amber-300 text-amber-800' :
-                  userRequest.status === 'Approved' ? 'bg-emerald-50 border-emerald-300 text-emerald-800' :
-                  'bg-red-50 border-red-300 text-red-800'
-                }`}>
-                  <div className="font-bold flex items-center gap-1">
-                    <span className="material-symbols-outlined text-sm">
-                      {userRequest.status === 'Pending' ? 'hourglass_empty' :
-                       userRequest.status === 'Approved' ? 'verified' : 'cancel'}
-                    </span>
-                    Yêu cầu nâng quyền: {
-                      userRequest.status === 'Pending' ? 'Đang chờ duyệt' :
-                      userRequest.status === 'Approved' ? 'Đã duyệt' : 'Bị từ chối'
-                    }
                   </div>
-                  <p className="mt-1 text-on-surface-variant">Ngày gửi: {new Date(userRequest.created_at).toLocaleDateString('vi-VN')}</p>
-                  {userRequest.admin_feedback && (
-                    <p className="mt-1 text-[11px] font-medium text-red-700 bg-red-100/50 p-1.5 rounded">
-                      <strong>Lý do:</strong> {userRequest.admin_feedback}
-                    </p>
-                  )}
-                  {userRequest.status === 'Rejected' && (
-                    <button 
-                      onClick={() => setShowRequestModal(true)}
-                      className="mt-2.5 w-full bg-primary hover:bg-tertiary text-on-primary font-bold py-1.5 rounded text-xs transition-colors"
+                  <p className="text-on-surface-variant text-sm mt-1 font-semibold italic text-slate-500">
+                    {bio || "Không có giới thiệu bản thân."}
+                  </p>
+                </div>
+
+                {/* 2-Column Info Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 text-sm text-left">
+                  <div className="space-y-1">
+                    <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider block">Địa chỉ Email</span>
+                    <span className="text-on-surface font-semibold block break-all">{currentUser.email || "Chưa cập nhật"}</span>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider block">Số điện thoại</span>
+                    <span className="text-on-surface font-semibold block">{currentUser.phone || "Chưa cập nhật"}</span>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider block">Khu vực hoạt động</span>
+                    <span className="text-on-surface font-semibold block">{areaOfInterest || "TP. Hồ Chí Minh"}</span>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider block">Kỹ năng nổi bật</span>
+                    <span className="text-on-surface font-semibold block">{skillsStr || "Chưa cập nhật kỹ năng"}</span>
+                  </div>
+                </div>
+
+                {/* Stats highlight box */}
+                <div className="inline-flex items-center gap-3 bg-[#e8f5e9]/40 border border-[#006d37]/10 p-4 rounded-2xl w-full max-w-[320px] text-left">
+                  <span className="material-symbols-outlined text-[#e3a008] text-3xl font-bold">star</span>
+                  <div>
+                    <span className="text-xs text-on-surface-variant font-bold block">Số hoạt động đã tham gia</span>
+                    <span className="text-lg font-bold text-[#006d37]">{currentUser.profile.joined_activity_count || 0} hoạt động</span>
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+
+            {/* Request upgrade panel or request status */}
+            {currentUser.role === 'Volunteer' && (
+              userRequest ? (
+                /* Display upgrade request status if already submitted */
+                <div className="bg-white border border-surface-variant/40 rounded-3xl p-6 md:p-8 space-y-4">
+                  <div className={`p-4 rounded-xl border text-sm ${
+                    isPending ? 'bg-[#fef7e0] border-[#b06000]/30 text-[#b06000]' :
+                    isApproved ? 'bg-[#e8f5e9] border-[#006d37]/30 text-[#006d37]' :
+                    'bg-red-50 border-red-200 text-red-700'
+                  }`}>
+                    <div className="font-bold flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-lg">
+                        {isPending ? 'hourglass_empty' : isApproved ? 'verified' : 'cancel'}
+                      </span>
+                      Trạng thái yêu cầu nâng quyền: {
+                        isPending ? 'Đang chờ duyệt' :
+                        isApproved ? 'Đã duyệt thành công' : 'Bị từ chối'
+                      }
+                    </div>
+                    <p className="mt-2 text-xs opacity-90">Ngày gửi: {new Date(userRequest.created_at).toLocaleDateString('vi-VN')}</p>
+                    
+                    {userRequest.admin_feedback && (
+                      <p className="mt-3 p-3 bg-white/60 border border-current/20 rounded-lg text-xs leading-relaxed font-semibold">
+                        <strong>Lý do phản hồi:</strong> {userRequest.admin_feedback}
+                      </p>
+                    )}
+                  </div>
+
+                  {isRejected && (
+                    <button
+                      onClick={() => setViewMode('upgrade')}
+                      className="w-full bg-[#006d37] hover:bg-emerald-800 text-white py-3 rounded-xl font-bold text-sm shadow transition-all"
                     >
-                      Gửi lại yêu cầu nâng quyền
+                      Gửi lại yêu cầu nâng quyền khác
                     </button>
                   )}
                 </div>
               ) : (
-                <button
-                  onClick={() => setShowRequestModal(true)}
-                  className="w-full bg-transparent border-2 border-primary text-primary hover:bg-primary hover:text-white px-4 py-3 rounded-lg font-label-sm text-sm font-bold transition-all duration-200 active:scale-95 text-center flex items-center justify-center gap-1"
-                >
-                  <span className="material-symbols-outlined text-sm">workspace_premium</span>
-                  Yêu cầu vai trò Tổ chức (Organizer)
-                </button>
-              )}
-            </div>
-          )}
-        </div>
+                /* Bottom Upgrade Banner matching figma design card */
+                <div className="bg-[#e8f5e9]/30 border border-[#006d37]/20 rounded-3xl p-6 md:p-8 flex flex-col md:flex-row justify-between items-center gap-6">
+                  <div className="space-y-1.5">
+                    <h3 className="text-lg font-bold text-on-surface">Trở thành Nhà tổ chức hoạt động</h3>
+                    <p className="text-on-surface-variant text-sm leading-relaxed max-w-[500px]">
+                      Bạn là đại diện câu lạc bộ, doanh nghiệp xã hội hoặc mong muốn tự tổ chức hoạt động vì cộng đồng? Hãy nâng cấp tài khoản lên vai trò Organizer.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setViewMode('upgrade');
+                      window.location.hash = '#/profile?tab=upgrade';
+                    }}
+                    className="bg-[#006d37] hover:bg-emerald-800 text-white font-bold px-6 py-3 rounded-xl transition-all text-sm shadow-sm whitespace-nowrap"
+                  >
+                    Yêu cầu nâng cấp &rarr;
+                  </button>
+                </div>
+              )
+            )}
 
-        {/* Contact/Details Panel */}
-        <div className="bg-surface-container-lowest rounded-lg p-6 border border-surface-variant shadow-sm">
-          <h3 className="font-label-sm text-sm text-on-surface mb-3 uppercase tracking-wider font-bold">Thông tin liên hệ</h3>
-          {isEditing ? (
-            <ul className="flex flex-col gap-3 text-sm">
-              {!isVirtualEmail && (
-                <li className="flex items-center gap-3">
-                  <span className="material-symbols-outlined text-primary text-base">mail</span>
-                  <input 
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="flex-grow p-1.5 bg-surface-container-low border border-outline-variant rounded-md text-sm outline-none focus:border-primary text-on-surface"
-                  />
-                </li>
-              )}
-              <li className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-primary text-base">phone</span>
-                <input 
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="Số điện thoại"
-                  className="flex-grow p-1.5 bg-surface-container-low border border-outline-variant rounded-md text-sm outline-none focus:border-primary text-on-surface"
-                />
-              </li>
-              <li className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-primary text-base">location_on</span>
-                <input 
-                  type="text"
-                  value={province}
-                  onChange={(e) => setProvince(e.target.value)}
-                  placeholder="Thành phố/Khu vực"
-                  className="flex-grow p-1.5 bg-surface-container-low border border-outline-variant rounded-md text-sm outline-none focus:border-primary text-on-surface"
-                />
-              </li>
-            </ul>
-          ) : (
-            <ul className="flex flex-col gap-3 text-sm text-on-surface-variant font-medium">
-              {!isVirtualEmail && (
-                <li className="flex items-center gap-3">
-                  <span className="material-symbols-outlined text-primary text-base">mail</span>
-                  <span>{currentUser.email || 'Chưa điền email'}</span>
-                </li>
-              )}
-              <li className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-primary text-base">phone</span>
-                <span>{currentUser.phone || 'Chưa điền số điện thoại'}</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-primary text-base">location_on</span>
-                <span>{currentUser.profile.area_of_interest || 'Chưa điền khu vực'}</span>
-              </li>
-              <li className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-primary text-base">calendar_month</span>
-                <span>Tham gia: {new Date(currentUser.created_at).toLocaleDateString('vi-VN')}</span>
-              </li>
-            </ul>
-          )}
-        </div>
-
-        {/* Skills Panel */}
-        <div className="bg-surface-container-lowest rounded-lg p-6 border border-surface-variant shadow-sm">
-          <h3 className="font-label-sm text-sm text-on-surface mb-3 uppercase tracking-wider font-bold">Kỹ năng</h3>
-          {isEditing ? (
-            <div className="flex flex-col gap-2">
-              <input 
-                type="text"
-                value={skillsStr}
-                onChange={(e) => setSkillsStr(e.target.value)}
-                placeholder="ví dụ: Giao tiếp, Làm việc nhóm, Sơ cứu..."
-                className="w-full p-2 bg-surface-container-low border border-outline-variant rounded-lg text-sm focus:border-primary outline-none"
-              />
-              <p className="text-[10px] text-on-surface-variant">Phân cách các kỹ năng bằng dấu phẩy</p>
-            </div>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {currentUser.profile.skills.length > 0 ? (
-                currentUser.profile.skills.map((skill, idx) => (
-                  <span key={idx} className="bg-secondary-container text-on-secondary-container px-3 py-1 rounded-full text-sm font-semibold">
-                    {skill}
-                  </span>
-                ))
-              ) : (
-                <span className="text-sm text-on-surface-variant italic">Chưa khai báo kỹ năng</span>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Save/Cancel edit action row */}
-        {isEditing && (
-          <div className="flex gap-3">
-            <button 
-              onClick={handleSaveProfile}
-              className="flex-grow bg-primary text-on-primary hover:bg-tertiary px-4 py-3 rounded-lg font-label-sm text-sm font-bold shadow transition-colors"
-            >
-              Lưu thay đổi
-            </button>
-            <button 
-              onClick={handleCancelEdit}
-              className="flex-grow bg-surface-container-high text-on-surface hover:bg-surface-variant px-4 py-3 rounded-lg font-label-sm text-sm font-bold transition-colors"
-            >
-              Hủy
-            </button>
           </div>
         )}
-      </section>
 
-      {/* Right Column: Stats & Completed Activities */}
-      <section className="lg:col-span-8 flex flex-col gap-md">
-        {/* Profile Hero Stats Panel */}
-        <div className="bg-primary-container/20 text-on-primary-container rounded-lg p-8 flex flex-col items-center justify-center text-center relative overflow-hidden shadow-sm border border-surface-variant min-h-[250px]">
-          {/* Decorative gradients */}
-          <div className="absolute -top-10 -left-10 w-40 h-40 bg-primary/10 rounded-full blur-2xl"></div>
-          <div className="absolute -bottom-10 -right-10 w-60 h-60 bg-tertiary/10 rounded-full blur-3xl"></div>
-          
-          <span className="material-symbols-outlined text-primary mb-3 filled" style={{ fontSize: '48px' }}>volunteer_activism</span>
-          <h2 className="font-display-lg text-4xl font-bold mb-1">{currentUser.profile.joined_activity_count}</h2>
-          <p className="font-headline-md text-base opacity-90 font-semibold uppercase tracking-wide">Số hoạt động đã tham gia hoàn thành</p>
-          
-          <div className="mt-4">
-            <span className="bg-surface-container-lowest text-primary px-4 py-1.5 rounded-full text-sm font-bold shadow-sm uppercase tracking-wider">
-              {currentUser.profile.joined_activity_count >= 5 ? 'Top 5% Contributor' : 
-               currentUser.profile.joined_activity_count >= 1 ? 'Top 20% Contributor' : 'Thành viên mới'}
-            </span>
-          </div>
-        </div>
+        {/* ------------------------------------------- */}
+        {/* VIEW 2: EDIT PROFILE FORM */}
+        {viewMode === 'edit' && (
+          <div className="space-y-4">
+            {/* Top link navigation */}
+            <button
+              onClick={handleCancelEdit}
+              className="text-[#006d37] hover:underline font-bold text-sm flex items-center gap-1"
+            >
+              &larr; Hủy & Quay lại hồ sơ
+            </button>
 
-        {/* Recently Completed Activities Section */}
-        <div className="mt-4">
-          <h3 className="font-headline-md text-lg text-on-surface mb-6 flex items-center gap-2 font-bold uppercase tracking-wider">
-            <span className="material-symbols-outlined text-primary">history</span> Lịch sử hoạt động đã hoàn thành
-          </h3>
+            {/* Edit Card Form */}
+            <div className="bg-white border border-surface-variant/40 rounded-3xl shadow-sm p-6 md:p-8">
+              <h2 className="text-2xl font-bold text-on-surface mb-6">
+                Cập nhật thông tin cá nhân
+              </h2>
 
-          {completedRegs.length === 0 ? (
-            <div className="bg-surface-container-lowest rounded-lg p-8 border border-surface-variant text-center space-y-3 shadow-sm">
-              <span className="material-symbols-outlined text-outline text-4xl">history_toggle_off</span>
-              <p className="text-sm text-on-surface-variant italic">Bạn chưa hoàn thành hoạt động nào trên hệ thống.</p>
-              <a href="#/activities" className="inline-block bg-primary text-on-primary px-4 py-2 rounded-lg font-medium text-sm shadow hover:bg-tertiary transition-colors">
-                Khám phá chiến dịch ngay
-              </a>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
-              {completedRegs.map(reg => (
-                <div key={reg._id} className="bg-surface-container-lowest rounded-lg border border-surface-variant shadow-sm overflow-hidden hover:shadow-md transition-all flex flex-col h-[320px]">
-                  <div className="h-36 w-full bg-surface-container relative shrink-0">
-                    <div className="absolute top-4 left-4 bg-secondary-fixed text-primary px-3 py-1 rounded-full text-xs font-bold uppercase shadow-sm">
-                      Hoàn thành
-                    </div>
-                  </div>
-                  <div className="p-6 flex-grow flex flex-col justify-between">
-                    <div>
-                      <h4 className="font-headline-md text-on-surface text-base font-bold line-clamp-2 leading-tight mb-2">
-                        {reg.denormalized_activity.title}
-                      </h4>
-                      <p className="text-sm text-on-surface-variant mb-4">
-                        Diễn ra từ: {new Date(reg.denormalized_activity.start_date).toLocaleDateString('vi-VN')}
-                      </p>
-                    </div>
-                    <div className="flex items-center justify-between text-sm text-on-surface-variant border-t border-surface-variant pt-3">
-                      <span className="flex items-center gap-1">
-                        <span className="material-symbols-outlined text-base">event_available</span>
-                        Đã điểm danh
-                      </span>
-                      <span className="flex items-center gap-1 text-[#137333] font-bold">
-                        <span className="material-symbols-outlined text-base">verified</span> Completed
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* Organizer request submission modal */}
-      {showRequestModal && (
-        <div className="fixed inset-0 z-[100] modal-overlay flex items-center justify-center p-4">
-          <div className="bg-surface w-full max-w-xl rounded-xl shadow-2xl overflow-hidden animate-fadeIn">
-            {/* Header */}
-            <div className="flex justify-between items-center px-md py-sm border-b border-surface-variant">
-              <h3 className="font-headline-md text-lg text-on-surface font-bold">Đơn xin cấp quyền Organizer</h3>
-              <button 
-                onClick={() => setShowRequestModal(false)}
-                className="p-1 hover:bg-surface-variant rounded-full text-on-surface-variant"
-              >
-                <span className="material-symbols-outlined">close</span>
-              </button>
-            </div>
-
-            {/* Form */}
-            <form onSubmit={handleSendRequest}>
-              <div className="p-md space-y-4">
-                <div>
-                  <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2" htmlFor="reason">
-                    Lý do muốn trở thành Nhà tổ chức *
-                  </label>
-                  <textarea 
-                    id="reason"
-                    value={requestReason}
-                    onChange={(e) => setRequestReason(e.target.value)}
-                    required
-                    rows={4}
-                    placeholder="Mô tả lý do bạn muốn tạo hoạt động, tổ chức của bạn là gì, mục đích thế nào..."
-                    className="w-full p-3 bg-surface-container-low border border-outline-variant rounded-lg focus:border-primary focus:ring-1 focus:ring-primary outline-none text-sm"
-                  ></textarea>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2" htmlFor="experience">
-                    Kinh nghiệm tổ chức / Tên CLB, Đội, Nhóm (Nếu có)
-                  </label>
-                  <textarea 
-                    id="experience"
-                    value={requestExp}
-                    onChange={(e) => setRequestExp(e.target.value)}
-                    rows={3}
-                    placeholder="Kể tên các hoạt động bạn từng tham gia điều phối hoặc tên nhóm tình nguyện..."
-                    className="w-full p-3 bg-surface-container-low border border-outline-variant rounded-lg focus:border-primary focus:ring-1 focus:ring-primary outline-none text-sm"
-                  ></textarea>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-2" htmlFor="phone">
-                    Số điện thoại liên hệ *
-                  </label>
+              <form onSubmit={handleSaveProfile} className="space-y-6">
+                {/* Họ và tên */}
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Họ và tên</label>
                   <input 
-                    id="phone"
-                    type="text"
-                    value={requestPhone}
-                    onChange={(e) => setRequestPhone(e.target.value)}
+                    type="text" 
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
                     required
-                    className="w-full p-2.5 bg-surface-container-low border border-outline-variant rounded-lg focus:border-primary focus:ring-1 focus:ring-primary outline-none text-sm"
+                    placeholder="Lê Minh Thư"
+                    className="w-full px-4 py-2.5 border border-surface-variant rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm"
                   />
                 </div>
-              </div>
-              <div className="px-md py-sm border-t border-surface-variant flex justify-end gap-2 bg-surface-bright">
-                <button 
-                  type="button"
-                  onClick={() => setShowRequestModal(false)}
-                  className="px-4 py-2 border border-outline-variant text-on-surface-variant rounded-lg hover:bg-surface-variant font-medium text-xs transition-colors"
-                >
-                  Hủy
-                </button>
-                <button 
-                  type="submit"
-                  className="px-6 py-2 bg-primary text-on-primary hover:bg-tertiary rounded-lg font-medium text-xs shadow transition-colors"
-                >
-                  Gửi Đề Xuất
-                </button>
-              </div>
-            </form>
+
+                {/* Email & Phone Row */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div className="flex flex-col gap-2">
+                    <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Địa chỉ Email</label>
+                    <input 
+                      type="email" 
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      placeholder="minhthu.le@gmail.com"
+                      className="w-full px-4 py-2.5 border border-surface-variant rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm"
+                    />
+                  </div>
+                  
+                  {/* Phone input without country code prefix box */}
+                  <div className="flex flex-col gap-2">
+                    <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Số điện thoại</label>
+                    <input 
+                      type="text" 
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      required
+                      placeholder="Nhập số điện thoại..."
+                      className="w-full px-4 py-2.5 border border-surface-variant rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm"
+                    />
+                  </div>
+                </div>
+
+                {/* Area of Interest & Skills Row */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div className="flex flex-col gap-2">
+                    <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Khu vực hoạt động</label>
+                    <select
+                      value={areaOfInterest}
+                      onChange={(e) => setAreaOfInterest(e.target.value)}
+                      className="w-full px-4 py-2.5 border border-surface-variant rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm bg-white cursor-pointer"
+                    >
+                      <option value="TP. Hồ Chí Minh">TP. Hồ Chí Minh</option>
+                      <option value="Hà Nội">Hà Nội</option>
+                      <option value="Đà Nẵng">Đà Nẵng</option>
+                      <option value="Cần Thơ">Cần Thơ</option>
+                      <option value="Hải Phòng">Hải Phòng</option>
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Kỹ năng nổi bật</label>
+                    <input 
+                      type="text" 
+                      value={skillsStr}
+                      onChange={(e) => setSkillsStr(e.target.value)}
+                      placeholder="Giao tiếp tiếng Anh, Dạy học, Vẽ tranh"
+                      className="w-full px-4 py-2.5 border border-surface-variant rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm"
+                    />
+                  </div>
+                </div>
+
+                {/* Bio Description */}
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Giới thiệu ngắn bản thân</label>
+                  <textarea 
+                    rows={4}
+                    value={bio}
+                    onChange={(e) => setBio(e.target.value)}
+                    placeholder="Sinh viên Đại học Sư Phạm TP.HCM, đam mê các hoạt động giáo dục trẻ em."
+                    className="w-full px-4 py-2.5 border border-surface-variant rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm"
+                  />
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex justify-end gap-4 border-t border-surface-variant/40 pt-6">
+                  <button 
+                    type="button" 
+                    onClick={handleCancelEdit}
+                    className="px-6 py-2.5 border border-surface-variant text-on-surface-variant rounded-xl hover:bg-slate-50 transition-colors text-sm font-semibold"
+                  >
+                    Hủy
+                  </button>
+                  <button 
+                    type="submit"
+                    className="px-6 py-2.5 bg-[#006d37] hover:bg-emerald-800 text-white rounded-xl transition-colors text-sm font-bold shadow-sm"
+                  >
+                    Lưu thay đổi
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+
+        {/* ------------------------------------------- */}
+        {/* VIEW 3: ORGANIZER UPGRADE REQUEST */}
+        {viewMode === 'upgrade' && (
+          <div className="space-y-4">
+            {/* Top link navigation */}
+            <button
+              onClick={() => setViewMode('details')}
+              className="text-[#006d37] hover:underline font-bold text-sm flex items-center gap-1"
+            >
+              &larr; Hủy & Quay lại hồ sơ
+            </button>
+
+            {/* Upgrade Request Card */}
+            <div className="bg-white border border-surface-variant/40 rounded-3xl shadow-sm p-6 md:p-8">
+              <span className="text-xs text-on-surface-variant block font-semibold mb-2">Hồ sơ cá nhân &gt; Xin quyền tổ chức</span>
+              <h2 className="text-2xl font-bold text-on-surface mb-2">
+                Đăng ký quyền Ban tổ chức (Organizer)
+              </h2>
+              <p className="text-on-surface-variant text-sm leading-relaxed mb-6 font-semibold">
+                Vui lòng cung cấp đầy đủ thông tin để Ban quản trị (Admin) kiểm duyệt năng lực tổ chức của bạn. Sau khi phê duyệt, vai trò tài khoản của bạn sẽ đổi thành Organizer và mở khóa chức năng tự tạo hoạt động.
+              </p>
+
+              <form onSubmit={handleSendRequest} className="space-y-6">
+                
+                {/* Emergency Contact Phone input */}
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Số điện thoại liên hệ khẩn cấp</label>
+                  <input 
+                    type="text" 
+                    value={requestContact}
+                    onChange={(e) => setRequestContact(e.target.value)}
+                    required
+                    placeholder="Nhập số điện thoại..."
+                    className="w-full px-4 py-2.5 border border-surface-variant rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm"
+                  />
+                </div>
+
+                {/* Kinh nghiệm hoạt động */}
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Kinh nghiệm hoạt động / Tên tổ chức đại diện</label>
+                  <textarea 
+                    rows={4}
+                    value={requestOrgName}
+                    onChange={(e) => setRequestOrgName(e.target.value)}
+                    required
+                    placeholder="Nêu rõ kinh nghiệm làm tình nguyện của bạn hoặc ghi tên câu lạc bộ/nhóm tình nguyện mà bạn đang đại diện..."
+                    className="w-full px-4 py-2.5 border border-surface-variant rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm"
+                  />
+                </div>
+
+                {/* Lý do muốn trở thành nhà tổ chức */}
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Lý do muốn trở thành Nhà tổ chức</label>
+                  <textarea 
+                    rows={4}
+                    value={requestOrgDesc}
+                    onChange={(e) => setRequestOrgDesc(e.target.value)}
+                    required
+                    placeholder="Chia sẻ mục đích của bạn (ví dụ: Muốn tổ chức gom pin cũ định kỳ hàng tuần, Muốn liên kết các bữa ăn thiện nguyện tại các mái ấm...)"
+                    className="w-full px-4 py-2.5 border border-surface-variant rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm"
+                  />
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex justify-end gap-4 border-t border-surface-variant/40 pt-6">
+                  <button 
+                    type="button"
+                    onClick={() => setViewMode('details')}
+                    className="px-6 py-2.5 border border-surface-variant text-on-surface-variant rounded-xl hover:bg-slate-50 transition-colors text-sm font-semibold"
+                  >
+                    Hủy bỏ
+                  </button>
+                  <button 
+                    type="submit"
+                    className="px-6 py-2.5 bg-[#006d37] hover:bg-emerald-800 text-white rounded-xl transition-colors text-sm font-bold shadow-sm"
+                  >
+                    Gửi yêu cầu duyệt
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+      </div>
     </div>
   );
 };
+
 export default ProfileView;

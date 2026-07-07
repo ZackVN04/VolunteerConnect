@@ -341,3 +341,26 @@ class RegistrationService:
 
         # 2. Call repository
         return await self.repository.list_activity_registrations(act_id, status, skip, limit)
+
+    async def get_registration_detail(self, volunteer: User, registration_id: str) -> tuple[Registration, Activity]:
+        try:
+            reg_id = PydanticObjectId(registration_id)
+        except Exception:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid registration ID")
+
+        # 1. Fetch Registration
+        registration = await Registration.get(reg_id)
+        if not registration:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Registration not found")
+
+        # 2. Check Ownership (chỉ TNV sở hữu mới được xem)
+        if registration.volunteer_id != volunteer.id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to view this registration")
+
+        # 3. Fetch full Activity detail
+        activity = await Activity.get(registration.activity_id)
+        if not activity:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Activity not found")
+
+        return registration, activity
+
