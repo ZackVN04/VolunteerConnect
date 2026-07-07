@@ -128,4 +128,4 @@ jobs:
         # Chạy unlock trước để bẻ khóa nếu có lỗi, sau đó deploy bình thường
         run: |
           npx sst unlock --stage dev || true
-          npx sst deploy --stage dev
+          npx sst deploy --stage dev --verbose
