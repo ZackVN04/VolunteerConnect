@@ -16,13 +16,14 @@ class DenormalizedOrganizer(BaseModel):
 class Activity(Document):
     organizer_id: PydanticObjectId
     title: str = Field(..., min_length=5, max_length=150)
-    description: str = Field(..., min_length=20)
+    description: str = Field(..., min_length=20, max_length=500)
     categories: List[str]
     location: Location
     start_date: datetime
     end_date: datetime
     limit_volunteers: int = Field(..., gt=0)
     approved_volunteers_count: int = Field(default=0, ge=0)
+    active_volunteers_count: int = Field(default=0, ge=0)
     requirements: Optional[str] = Field(default=None, max_length=1000)
     image_url: Optional[str] = None
     status: str = Field(default=ActivityStatus.DRAFT)

@@ -6,7 +6,7 @@ import string
 from datetime import datetime, timedelta, timezone
 
 from app.features.users.models import User
-from app.features.users.schemas import UserCreate, UserLogin, VerifyOTP, ForgotPasswordRequest, ResetPasswordRequest
+from app.features.users.schemas import UserCreate, UserLogin, VerifyOTP, ForgotPasswordRequest, ResetPasswordRequest, ResendOTPRequest
 from app.shared.enums import UserStatus
 
 from app.core.security.password import get_password_hash, verify_password
@@ -32,18 +32,27 @@ async def register(user_in: UserCreate):
     # Kiểm tra xem Email đã bị sử dụng chưa
     existing_email = await User.find_one(User.email == user_in.email)
     if existing_email:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email đã được đăng ký",
-        )
+        if existing_email.status == UserStatus.ACTIVE:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email đã được đăng ký",
+            )
+        else:
+            # Xóa tài khoản chưa kích hoạt cũ để cho phép đăng ký lại từ đầu
+            await existing_email.delete()
         
-    # Kiểm tra xem Số điện thoại đã bị sử dụng chưa
-    existing_phone = await User.find_one(User.phone_number == user_in.phone_number)
-    if existing_phone:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Số điện thoại đã được đăng ký",
-        )
+    # Kiểm tra xem Số điện thoại đã bị sử dụng chưa (chỉ kiểm tra nếu có nhập)
+    if user_in.phone_number:
+        existing_phone = await User.find_one(User.phone_number == user_in.phone_number)
+        if existing_phone:
+            if existing_phone.status == UserStatus.ACTIVE:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Số điện thoại đã được đăng ký",
+                )
+            else:
+                # Xóa tài khoản chưa kích hoạt cũ để cho phép đăng ký lại từ đầu
+                await existing_phone.delete()
     
     hashed_pwd = get_password_hash(user_in.password)
     
@@ -54,6 +63,7 @@ async def register(user_in: UserCreate):
     new_user = User(
         email=user_in.email,
         phone_number=user_in.phone_number,
+        full_name=user_in.full_name,
         hashed_password=hashed_pwd,
         status=UserStatus.PENDING_OTP,
         otp_code=otp_code,          # Lưu mã vào DB để xác thực sau
@@ -103,6 +113,44 @@ async def verify_otp(otp_data: VerifyOTP):
     await user.save()
     
     return {"message": "Xác thực tài khoản thành công"}
+
+@router.post("/resend-otp", status_code=status.HTTP_200_OK)
+async def resend_otp(otp_request: ResendOTPRequest):
+    # Tìm kiếm User bằng email
+    user = await User.find_one(User.email == otp_request.email)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail="Người dùng không tồn tại"
+        )
+        
+    if user.status != UserStatus.PENDING_OTP:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Tài khoản đã được xác thực hoặc không ở trạng thái chờ OTP"
+        )
+        
+    # Kiểm tra cooldown chống spam (1 phút = 60 giây)
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    if user.otp_expiry:
+        otp_expiry = user.otp_expiry.replace(tzinfo=None)
+        time_left = otp_expiry - now
+        if time_left.total_seconds() > 240:  # 5 phút tối đa - 1 phút cooldown = còn lại trên 4 phút (240s)
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Vui lòng đợi 1 phút trước khi yêu cầu gửi lại mã mới"
+            )
+            
+    # Tạo mã OTP mới và cập nhật hạn dùng mới
+    new_otp = generate_otp()
+    user.otp_code = new_otp
+    user.otp_expiry = datetime.now(timezone.utc) + timedelta(minutes=5)
+    await user.save()
+    
+    # Gửi lại email OTP
+    await send_otp_email(user.email, new_otp)
+    
+    return {"message": "Mã OTP mới đã được gửi tới email của bạn."}
 
 @router.post("/login", response_model=TokenResponse)
 async def login(credentials: UserLogin):
