@@ -9,6 +9,7 @@ from app.features.registrations.models import Registration, DenormalizedVoluntee
 from app.features.registrations.repositories import RegistrationRepository
 from app.features.registrations.constants import RegistrationStatus, ReviewAction
 from app.features.registrations.schemas import BulkApproveRequest, BulkRejectRequest, RejectRequest, BulkReviewResponse
+from app.shared.enums import UserRole
 
 class RegistrationService:
     def __init__(self, repository: RegistrationRepository):
@@ -25,6 +26,10 @@ class RegistrationService:
         if not activity:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Activity not found")
         
+        # 1.1 Verify role
+        if volunteer.role != UserRole.VOLUNTEER:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only volunteers can register for activities")
+        
         # 1.5 Prevent self-registration
         if activity.organizer_id == volunteer.id:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="You cannot register for your own activity")
@@ -33,13 +38,19 @@ class RegistrationService:
         if activity.status != ActivityStatus.OPEN.value:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Activity is not open for registration. Current status: {activity.status}")
         
-        # 3. Check capacity limit
-        if activity.approved_volunteers_count >= activity.limit_volunteers:
+        # 3. Check capacity limit using active_volunteers_count
+        if getattr(activity, "active_volunteers_count", 0) >= activity.limit_volunteers:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Activity is full")
             
         # 4. Check if already registered
         existing = await self.repository.get_by_volunteer_and_activity(volunteer.id, act_id)
-        if existing:
+        if existing and existing.status in [
+            RegistrationStatus.PENDING.value, 
+            RegistrationStatus.APPROVED.value,
+            RegistrationStatus.REJECTED.value
+        ]:
+            if existing.status == RegistrationStatus.REJECTED.value:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Your registration for this activity was rejected")
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Already registered for this activity")
 
         # 5. Check overlapping activities
@@ -49,29 +60,44 @@ class RegistrationService:
         if overlaps:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Overlapping activity schedule")
         
-        # 6. Create registration
-        denorm_vol = DenormalizedVolunteer(
-            name=volunteer.full_name or "Unknown",
-            phone=volunteer.phone_number,
-            email=volunteer.email
-        )
+        # 6. Reactivate or Create registration
+        if existing:
+            existing.status = RegistrationStatus.PENDING.value
+            existing.updated_at = datetime.now(timezone.utc)
+            existing.rejection_reason = None
+            existing.reviewed_at = None
+            await existing.save()
+            registration_to_return = existing
+        else:
+            denorm_vol = DenormalizedVolunteer(
+                name=volunteer.full_name or "Unknown",
+                phone=volunteer.phone_number,
+                email=volunteer.email
+            )
+            
+            denorm_act = DenormalizedActivity(
+                title=activity.title,
+                status=activity.status,
+                start_date=activity.start_date,
+                end_date=activity.end_date
+            )
+            
+            new_registration = Registration(
+                volunteer_id=volunteer.id,
+                activity_id=act_id,
+                denormalized_volunteer=denorm_vol,
+                denormalized_activity=denorm_act
+            )
+            await new_registration.insert()
+            registration_to_return = new_registration
         
-        denorm_act = DenormalizedActivity(
-            title=activity.title,
-            status=activity.status,
-            start_date=activity.start_date,
-            end_date=activity.end_date
-        )
-        
-        new_registration = Registration(
-            volunteer_id=volunteer.id,
-            activity_id=act_id,
-            denormalized_volunteer=denorm_vol,
-            denormalized_activity=denorm_act
-        )
-        
-        await new_registration.insert()
-        return new_registration
+        # 7. Update activity active count and status
+        activity.active_volunteers_count = getattr(activity, "active_volunteers_count", 0) + 1
+        if activity.active_volunteers_count >= activity.limit_volunteers:
+            activity.status = ActivityStatus.FULL.value
+        await activity.save()
+            
+        return registration_to_return
 
     async def cancel_registration(self, volunteer: User, registration_id: str) -> Registration:
         try:
@@ -112,14 +138,19 @@ class RegistrationService:
         if not activity:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Activity not found")
 
-        # 6. Update Activity if approved
+        # 6. Update Activity counts
+        activity.active_volunteers_count = getattr(activity, "active_volunteers_count", 0) - 1
+        if activity.active_volunteers_count < 0:
+            activity.active_volunteers_count = 0
+            
         if registration.status == RegistrationStatus.APPROVED:
             activity.approved_volunteers_count -= 1
             if activity.approved_volunteers_count < 0:
                 activity.approved_volunteers_count = 0
-            if activity.status == ActivityStatus.FULL.value:
-                activity.status = ActivityStatus.OPEN.value
-            await activity.save()
+                
+        if activity.status == ActivityStatus.FULL.value and activity.active_volunteers_count < activity.limit_volunteers:
+            activity.status = ActivityStatus.OPEN.value
+        await activity.save()
 
         # 7. Update Registration
         registration.status = RegistrationStatus.CANCELLED
@@ -191,7 +222,8 @@ class RegistrationService:
         # 5. Update Activity
         if actual_processed > 0:
             activity.approved_volunteers_count += actual_processed
-            if activity.approved_volunteers_count >= activity.limit_volunteers:
+            # active_volunteers_count is unchanged because PENDING -> APPROVED doesn't change active count
+            if getattr(activity, "active_volunteers_count", 0) >= activity.limit_volunteers:
                 activity.status = ActivityStatus.FULL.value
             await activity.save()
             
@@ -252,6 +284,16 @@ class RegistrationService:
         await Registration.find(In(Registration.id, processed_ids)).update(
             {"$set": update_doc}
         )
+        
+        # 5. Update Activity counts
+        if actual_processed > 0:
+            activity.active_volunteers_count = getattr(activity, "active_volunteers_count", 0) - actual_processed
+            if activity.active_volunteers_count < 0:
+                activity.active_volunteers_count = 0
+                
+            if activity.status == ActivityStatus.FULL.value and activity.active_volunteers_count < activity.limit_volunteers:
+                activity.status = ActivityStatus.OPEN.value
+            await activity.save()
 
         return BulkReviewResponse(
             processed=actual_processed,
@@ -278,17 +320,15 @@ class RegistrationService:
         if registration.status != RegistrationStatus.PENDING:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only pending registrations can be approved")
 
-        if activity.approved_volunteers_count >= activity.limit_volunteers:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Activity is full")
-
+        # active_volunteers_count is unchanged because PENDING -> APPROVED
         now = datetime.now(timezone.utc)
         registration.status = RegistrationStatus.APPROVED
         registration.reviewed_at = now
         registration.updated_at = now
         await registration.save()
-
+        
         activity.approved_volunteers_count += 1
-        if activity.approved_volunteers_count >= activity.limit_volunteers:
+        if getattr(activity, "active_volunteers_count", 0) >= activity.limit_volunteers:
             activity.status = ActivityStatus.FULL.value
         await activity.save()
 
@@ -322,6 +362,15 @@ class RegistrationService:
             registration.rejection_reason = request.rejection_reason
             
         await registration.save()
+        
+        # Update Activity counts
+        activity.active_volunteers_count = getattr(activity, "active_volunteers_count", 0) - 1
+        if activity.active_volunteers_count < 0:
+            activity.active_volunteers_count = 0
+            
+        if activity.status == ActivityStatus.FULL.value and activity.active_volunteers_count < activity.limit_volunteers:
+            activity.status = ActivityStatus.OPEN.value
+        await activity.save()
 
         return registration
 
