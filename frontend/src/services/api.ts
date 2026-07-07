@@ -21,6 +21,9 @@ const api = axios.create({
 // Interceptor to inject bearer token on every outbound HTTP request
 api.interceptors.request.use(
   (config) => {
+    if (config.url && config.url.startsWith('/') && !config.url.startsWith('/api/v1')) {
+      config.url = `/api/v1${config.url}`;
+    }
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;

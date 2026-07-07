@@ -116,10 +116,8 @@ export const OrganizerDashboard: React.FC = () => {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
-  if (!currentUser) return null;
-
   // Filter campaigns created by this organizer
-  const myCampaigns = activities.filter(a => a.organizer_id === currentUser._id);
+  const myCampaigns = currentUser ? activities.filter(a => a.organizer_id === currentUser._id) : [];
 
   // Default selected activity ID for sub-selectors
   useEffect(() => {
@@ -127,6 +125,8 @@ export const OrganizerDashboard: React.FC = () => {
       setSelectedActivityId(myCampaigns[0]._id);
     }
   }, [myCampaigns, selectedActivityId]);
+
+  if (!currentUser) return null;
 
   // Compute stats dynamically
   const totalCampaigns = myCampaigns.length;
