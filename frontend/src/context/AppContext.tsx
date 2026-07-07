@@ -149,10 +149,10 @@ interface AppContextType {
   updateParticipation: (registrationId: string, status: 'Completed' | 'Absent') => { success: boolean; error?: string };
   cancelActivity: (activityId: string) => void;
   submitOrganizerRequest: (reason: string, experience: string, contactPhone: string) => { success: boolean; error?: string };
-  reviewOrganizerRequest: (requestId: string, approve: boolean, feedback?: string) => void;
+  reviewOrganizerRequest: (requestId: string, approve: boolean, feedback?: string) => Promise<{ success: boolean; error?: string }>;
   createActivity: (activityData: Partial<Activity>, submitForReview: boolean) => void;
   editActivity: (activityId: string, activityData: Partial<Activity>) => void;
-  reviewActivity: (activityId: string, approve: boolean) => void;
+  reviewActivity: (activityId: string, approve: boolean) => Promise<{ success: boolean; error?: string }>;
   createPost: (content: string, images: string[], hashtags: string[]) => void;
   likePost: (postId: string) => void;
   updateProfile: (updatedProfile: Partial<UserProfile>, email: string, province: string, phone?: string) => void;
@@ -787,29 +787,35 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   // Review Organizer Role Request Flow
-  const reviewOrganizerRequest = (requestId: string, approve: boolean, feedback?: string) => {
+  const reviewOrganizerRequest = async (requestId: string, approve: boolean, feedback?: string): Promise<{ success: boolean; error?: string }> => {
     if (USE_REAL_BACKEND) {
-      (async () => {
-        try {
-          await adminService.approveOrganizerRequest(requestId, approve, feedback);
-          const reqs = await adminService.getOrganizerRequests();
-          setOrganizerRequests(reqs);
-          if (currentUser) {
-            const user = await authService.getCurrentUser();
-            setCurrentUserInternal(user);
-          }
-        } catch (e) {
-          console.error(e);
+      try {
+        await adminService.approveOrganizerRequest(requestId, approve, feedback);
+        const reqs = await adminService.getOrganizerRequests();
+        setOrganizerRequests(reqs);
+        if (currentUser) {
+          const user = await authService.getCurrentUser();
+          setCurrentUserInternal(user);
         }
-      })();
-      return;
+        return { success: true };
+      } catch (e: any) {
+        console.error(e);
+        let errorMsg = 'Không thể phê duyệt yêu cầu. Lỗi kết nối server.';
+        const detail = e.response?.data?.detail;
+        if (typeof detail === 'string') {
+          errorMsg = detail;
+        } else if (e.response?.status === 404) {
+          errorMsg = 'Lỗi 404: Endpoint phê duyệt chưa được xây dựng ở Backend.';
+        }
+        return { success: false, error: errorMsg };
+      }
     }
 
     const reqIndex = organizerRequests.findIndex(r => r._id === requestId);
-    if (reqIndex === -1) return;
+    if (reqIndex === -1) return { success: false, error: 'Không tìm thấy yêu cầu' };
 
     const req = organizerRequests[reqIndex];
-    if (req.status !== 'Pending') return;
+    if (req.status !== 'Pending') return { success: false, error: 'Yêu cầu đã được duyệt trước đó' };
 
     // Update Request
     const updatedReq: OrganizerRequest = {
@@ -849,6 +855,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     if (updatedCurrentUser) setCurrentUserInternal(updatedCurrentUser);
 
     syncToLocalStorage(updatedUsers, activities, registrations, newRequests, posts, updatedCurrentUser);
+    return { success: true };
   };
 
   // Organizer: Create Activity
@@ -929,25 +936,31 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   // Admin: Review Activity Approval
-  const reviewActivity = (activityId: string, approve: boolean) => {
+  const reviewActivity = async (activityId: string, approve: boolean): Promise<{ success: boolean; error?: string }> => {
     if (USE_REAL_BACKEND) {
-      (async () => {
-        try {
-          await adminService.approveActivity(activityId, approve);
-          const acts = await adminService.getActivities();
-          setActivities(acts);
-        } catch (e) {
-          console.error(e);
+      try {
+        await adminService.approveActivity(activityId, approve);
+        const acts = await adminService.getActivities();
+        setActivities(acts);
+        return { success: true };
+      } catch (e: any) {
+        console.error(e);
+        let errorMsg = 'Không thể phê duyệt hoạt động. Lỗi kết nối server.';
+        const detail = e.response?.data?.detail;
+        if (typeof detail === 'string') {
+          errorMsg = detail;
+        } else if (e.response?.status === 404) {
+          errorMsg = 'Lỗi 404: Endpoint phê duyệt chưa được xây dựng ở Backend.';
         }
-      })();
-      return;
+        return { success: false, error: errorMsg };
+      }
     }
 
     const index = activities.findIndex(a => a._id === activityId);
-    if (index === -1) return;
+    if (index === -1) return { success: false, error: 'Không tìm thấy hoạt động' };
 
     const original = activities[index];
-    if (original.status !== 'Pending Review') return;
+    if (original.status !== 'Pending Review') return { success: false, error: 'Hoạt động đã được duyệt trước đó' };
 
     const updated: Activity = {
       ...original,
@@ -960,6 +973,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
     setActivities(newActivities);
     syncToLocalStorage(users, newActivities, registrations, organizerRequests, posts, currentUser);
+    return { success: true };
   };
 
   // Create Community Post

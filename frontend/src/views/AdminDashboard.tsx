@@ -17,41 +17,57 @@ export const AdminDashboard: React.FC = () => {
   const pendingRequests = organizerRequests.filter(r => r.status === 'Pending');
   const pendingActivities = activities.filter(a => a.status === 'Pending Review');
 
-  const handleApproveOrganizer = (reqId: string) => {
-    reviewOrganizerRequest(reqId, true);
-    showNotification('Đã duyệt nâng cấp tài khoản này lên Ban tổ chức.', 'success');
+  const handleApproveOrganizer = async (reqId: string) => {
+    const res = await reviewOrganizerRequest(reqId, true);
+    if (res.success) {
+      showNotification('Đã duyệt nâng cấp tài khoản này lên Ban tổ chức.', 'success');
+    } else {
+      showNotification(res.error || 'Duyệt nâng cấp thất bại.', 'error');
+    }
   };
 
   const handleRejectOrganizer = (reqId: string) => {
     showPrompt(
       'Nhập lý do từ chối nâng cấp:',
-      (feedback) => {
+      async (feedback) => {
         if (!feedback.trim()) {
           showNotification('Vui lòng nhập lý do từ chối.', 'error');
           return;
         }
-        reviewOrganizerRequest(reqId, false, feedback);
-        showNotification('Đã từ chối yêu cầu nâng cấp.', 'success');
+        const res = await reviewOrganizerRequest(reqId, false, feedback);
+        if (res.success) {
+          showNotification('Đã từ chối yêu cầu nâng cấp.', 'success');
+        } else {
+          showNotification(res.error || 'Từ chối nâng cấp thất bại.', 'error');
+        }
       },
       'Từ chối nâng cấp'
     );
   };
 
-  const handleApproveActivity = (actId: string) => {
-    reviewActivity(actId, true);
-    showNotification('Đã duyệt hoạt động này.', 'success');
+  const handleApproveActivity = async (actId: string) => {
+    const res = await reviewActivity(actId, true);
+    if (res.success) {
+      showNotification('Đã duyệt hoạt động này.', 'success');
+    } else {
+      showNotification(res.error || 'Duyệt hoạt động thất bại.', 'error');
+    }
   };
 
   const handleRejectActivity = (actId: string) => {
     showPrompt(
       'Nhập lý do từ chối hoạt động:',
-      (feedback) => {
+      async (feedback) => {
         if (!feedback.trim()) {
           showNotification('Vui lòng nhập lý do từ chối.', 'error');
           return;
         }
-        reviewActivity(actId, false);
-        showNotification('Đã từ chối duyệt hoạt động.', 'success');
+        const res = await reviewActivity(actId, false);
+        if (res.success) {
+          showNotification('Đã từ chối duyệt hoạt động.', 'success');
+        } else {
+          showNotification(res.error || 'Từ chối duyệt hoạt động thất bại.', 'error');
+        }
       },
       'Từ chối hoạt động'
     );
