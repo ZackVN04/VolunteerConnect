@@ -17,6 +17,7 @@ from app.features.users.router import router as users_router
 from app.features.organizer_requests.router import router as organizer_requests_router
 from app.features.activities.router import router as activities_router, organizer_router
 from app.features.registrations.router import router as registrations_router, action_router as registrations_action_router, user_router as registrations_user_router
+from app.features.attendance.router import activities_attendance_router, registrations_attendance_router
 
 # =============================================================================
 # 1. LIFESPAN (Startup and Shutdown events)
@@ -124,6 +125,8 @@ app.include_router(organizer_router)
 app.include_router(registrations_router)
 app.include_router(registrations_action_router)
 app.include_router(registrations_user_router)
+app.include_router(activities_attendance_router)
+app.include_router(registrations_attendance_router)
 
 # =============================================================================
 # 6. ROOT ENDPOINT (Health Check)

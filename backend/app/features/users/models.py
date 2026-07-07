@@ -17,6 +17,7 @@ class User(Document):
     role: UserRole = Field(default=UserRole.VOLUNTEER)
     status: UserStatus = Field(default=UserStatus.PENDING_OTP)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    joined_activity_count: int = 0
     
     # Các trường lưu trữ OTP tạm thời. Sau khi xác thực thành công sẽ gán thành None
     otp_code: Optional[str] = None
