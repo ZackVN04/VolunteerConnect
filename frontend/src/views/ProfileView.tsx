@@ -16,6 +16,8 @@ export const ProfileView: React.FC = () => {
   const [skillsStr, setSkillsStr] = useState(currentUser?.profile.skills?.join(', ') || '');
   const [bio, setBio] = useState(currentUser?.profile.bio || '');
   const [avatarUrl, setAvatarUrl] = useState(currentUser?.profile.avatar_url || '');
+  const [age, setAge] = useState<number | ''>(currentUser?.profile.age !== undefined ? currentUser.profile.age : '');
+  const [gender, setGender] = useState(currentUser?.profile.gender || '');
 
   // Form states for Organizer Upgrade
   const [requestOrgName, setRequestOrgName] = useState('');
@@ -49,6 +51,8 @@ export const ProfileView: React.FC = () => {
       setSkillsStr(currentUser.profile.skills?.join(', ') || '');
       setBio(currentUser.profile.bio || '');
       setAvatarUrl(currentUser.profile.avatar_url || '');
+      setAge(currentUser.profile.age !== undefined ? currentUser.profile.age : '');
+      setGender(currentUser.profile.gender || '');
       setRequestContact(currentUser.phone || '');
     }
   }, [currentUser]);
@@ -65,6 +69,28 @@ export const ProfileView: React.FC = () => {
 
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!fullName.trim()) {
+      showNotification('Họ và tên không được để trống.', 'error');
+      return;
+    }
+    if (fullName.trim().length > 100) {
+      showNotification('Họ và tên không được vượt quá 100 ký tự.', 'error');
+      return;
+    }
+    if (!phone.trim()) {
+      showNotification('Số điện thoại không được để trống.', 'error');
+      return;
+    }
+    const cleanPhone = phone.trim().replace(/[\s\-\(\)]/g, "");
+    if (!/^\+?[0-9]{10,15}$/.test(cleanPhone)) {
+      showNotification('Số điện thoại không hợp lệ (phải từ 10-15 chữ số).', 'error');
+      return;
+    }
+    if (age !== '' && (Number(age) < 0 || Number(age) > 120)) {
+      showNotification('Tuổi nhập vào không hợp lệ (từ 0 đến 120).', 'error');
+      return;
+    }
+
     const skills = skillsStr
       .split(',')
       .map(s => s.trim())
@@ -75,7 +101,9 @@ export const ProfileView: React.FC = () => {
         full_name: fullName, 
         skills, 
         bio,
-        avatar_url: avatarUrl
+        avatar_url: avatarUrl,
+        age: age !== '' ? Number(age) : undefined,
+        gender: gender || undefined
       }, 
       email || '', 
       areaOfInterest || '',
@@ -94,6 +122,8 @@ export const ProfileView: React.FC = () => {
     setSkillsStr(currentUser.profile.skills?.join(', ') || '');
     setBio(currentUser.profile.bio || '');
     setAvatarUrl(currentUser.profile.avatar_url || '');
+    setAge(currentUser.profile.age !== undefined ? currentUser.profile.age : '');
+    setGender(currentUser.profile.gender || '');
     setViewMode('details');
     window.location.hash = '#/profile';
   };
@@ -236,6 +266,14 @@ export const ProfileView: React.FC = () => {
                     <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider block">Kỹ năng nổi bật</span>
                     <span className="text-on-surface font-semibold block">{skillsStr || "Chưa cập nhật kỹ năng"}</span>
                   </div>
+                  <div className="space-y-1">
+                    <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider block">Tuổi</span>
+                    <span className="text-on-surface font-semibold block">{currentUser.profile.age !== undefined ? currentUser.profile.age : "Chưa cập nhật"}</span>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider block">Giới tính</span>
+                    <span className="text-on-surface font-semibold block">{currentUser.profile.gender || "Chưa cập nhật"}</span>
+                  </div>
                 </div>
 
                 {/* Stats highlight box */}
@@ -352,10 +390,9 @@ export const ProfileView: React.FC = () => {
                     <input 
                       type="email" 
                       value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
+                      disabled
                       placeholder="minhthu.le@gmail.com"
-                      className="w-full px-4 py-2.5 border border-surface-variant rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm"
+                      className="w-full px-4 py-2.5 border border-surface-variant rounded-xl text-sm bg-slate-100 text-slate-500 cursor-not-allowed focus:outline-none"
                     />
                   </div>
                   
@@ -411,6 +448,35 @@ export const ProfileView: React.FC = () => {
                     placeholder="Sinh viên Đại học Sư Phạm TP.HCM, đam mê các hoạt động giáo dục trẻ em."
                     className="w-full px-4 py-2.5 border border-surface-variant rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm"
                   />
+                </div>
+
+                {/* Age & Gender Row */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div className="flex flex-col gap-2">
+                    <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Tuổi</label>
+                    <input 
+                      type="number" 
+                      value={age}
+                      onChange={(e) => setAge(e.target.value === '' ? '' : Number(e.target.value))}
+                      placeholder="Nhập tuổi..."
+                      min={0}
+                      max={120}
+                      className="w-full px-4 py-2.5 border border-surface-variant rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Giới tính</label>
+                    <select
+                      value={gender}
+                      onChange={(e) => setGender(e.target.value)}
+                      className="w-full px-4 py-2.5 border border-surface-variant rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm bg-white cursor-pointer"
+                    >
+                      <option value="">Chưa chọn</option>
+                      <option value="Nam">Nam</option>
+                      <option value="Nữ">Nữ</option>
+                      <option value="Khác">Khác</option>
+                    </select>
+                  </div>
                 </div>
 
                 {/* Action Buttons */}
