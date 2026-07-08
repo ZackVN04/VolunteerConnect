@@ -311,7 +311,22 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           // 3. Load activities from backend
           try {
             let serverActs: Activity[] = [];
-            if (activeUser && (activeUser.role === 'Organizer' || activeUser.role === 'Admin')) {
+            if (activeUser && activeUser.role === 'Admin') {
+              // Admin cần load tất cả activities kể cả Pending Review
+              const [allActs, adminActs] = await Promise.allSettled([
+                activityService.getAll(),
+                adminService.getActivities()
+              ]);
+              const mergedMap = new Map<string, Activity>();
+              if (allActs.status === 'fulfilled') {
+                allActs.value.forEach(a => mergedMap.set(a._id, a));
+              }
+              if (adminActs.status === 'fulfilled') {
+                // adminService.getActivities() trả về activities kể cả Pending Review
+                adminActs.value.forEach(a => mergedMap.set(a._id, a));
+              }
+              serverActs = Array.from(mergedMap.values());
+            } else if (activeUser && activeUser.role === 'Organizer') {
               const [orgActs, allActs] = await Promise.all([
                 activityService.getOrganizerActivities(),
                 activityService.getAll()
@@ -994,8 +1009,30 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     if (USE_REAL_BACKEND) {
       try {
         await adminService.approveActivity(activityId, approve);
-        const acts = await adminService.getActivities();
-        setActivities(acts);
+        // Sau khi duyệt, reload tất cả activities để cập nhật trạng thái mới
+        const [allActs, adminActs] = await Promise.allSettled([
+          activityService.getAll(),
+          adminService.getActivities()
+        ]);
+        const mergedMap = new Map<string, Activity>();
+        if (allActs.status === 'fulfilled') {
+          allActs.value.forEach(a => mergedMap.set(a._id, a));
+        }
+        if (adminActs.status === 'fulfilled') {
+          adminActs.value.forEach(a => mergedMap.set(a._id, a));
+        }
+        if (mergedMap.size > 0) {
+          setActivities(Array.from(mergedMap.values()));
+        } else {
+          // Fallback: cập nhật local state
+          setActivities(prev =>
+            prev.map(a =>
+              a._id === activityId
+                ? { ...a, status: approve ? 'Open' : 'Rejected', updated_at: new Date().toISOString() }
+                : a
+            )
+          );
+        }
         return { success: true };
       } catch (e: any) {
         console.error(e);
@@ -1004,7 +1041,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         if (typeof detail === 'string') {
           errorMsg = detail;
         } else if (e.response?.status === 404) {
-          errorMsg = 'Lỗi 404: Endpoint phê duyệt chưa được xây dựng ở Backend.';
+          errorMsg = 'Lỗi 404: Endpoint phê duyệt hoạt động chưa được xây dựng ở Backend.';
         }
         return { success: false, error: errorMsg };
       }
