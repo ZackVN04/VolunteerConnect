@@ -751,12 +751,12 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           const reqObj: OrganizerRequest = {
             _id: req.id || req._id,
             volunteer_id: currentUser?._id || '',
-            reason: req.organization_name,
-            experience: req.documents?.[0] || '',
-            contact_phone: req.documents?.[1] || '',
+            reason: req.reason || reason,
+            experience: req.experience || experience || null,
+            contact_phone: req.contact_phone || contactPhone,
             status: statusMap[req.status] || 'Pending',
             admin_feedback: null,
-            created_at: req.requested_at,
+            created_at: req.created_at || new Date().toISOString(),
             reviewed_at: null,
             reviewed_by: null,
             denormalized_volunteer: {
@@ -771,7 +771,17 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           }
           return { success: true };
         } catch (e: any) {
-          return { success: false, error: e.response?.data?.detail || e.response?.data?.message || 'Lỗi gửi yêu cầu' };
+          // Extract string error message, never return object
+          const detail = e.response?.data?.detail;
+          let errorMsg = 'Lỗi gửi yêu cầu nâng cấp tài khoản.';
+          if (typeof detail === 'string') {
+            errorMsg = detail;
+          } else if (Array.isArray(detail) && detail.length > 0) {
+            errorMsg = detail.map((d: any) => d.msg || d.message || JSON.stringify(d)).join(', ');
+          } else if (e.response?.data?.message) {
+            errorMsg = e.response.data.message;
+          }
+          return { success: false, error: errorMsg };
         }
       })();
     }
@@ -896,7 +906,17 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         return { success: true };
       } catch (e: any) {
         console.error(e);
-        return { success: false, error: e.response?.data?.detail || e.response?.data?.message || 'Có lỗi xảy ra khi tạo chiến dịch.' };
+        // FastAPI 422 trả về array detail, cần extract thông báo
+        let errorMsg = 'Có lỗi xảy ra khi tạo chiến dịch.';
+        const detail = e.response?.data?.detail;
+        if (typeof detail === 'string') {
+          errorMsg = detail;
+        } else if (Array.isArray(detail) && detail.length > 0) {
+          errorMsg = detail.map((d: any) => d.msg || d.message || JSON.stringify(d)).join(', ');
+        } else if (e.response?.data?.message) {
+          errorMsg = e.response.data.message;
+        }
+        return { success: false, error: errorMsg };
       }
     }
 

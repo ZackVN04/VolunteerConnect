@@ -171,7 +171,7 @@ export const ProfileView: React.FC = () => {
       showNotification('Số điện thoại không được để trống.', 'error');
       return;
     }
-    const cleanPhone = phone.trim().replace(/[\s\-\(\)]/g, "");
+    const cleanPhone = phone.trim().replace(/[\s\-()]/g, "");
     if (!/^\+?[0-9]{10,15}$/.test(cleanPhone)) {
       showNotification('Số điện thoại không hợp lệ (phải từ 10-15 chữ số).', 'error');
       return;

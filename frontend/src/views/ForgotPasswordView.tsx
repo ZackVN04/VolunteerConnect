@@ -142,9 +142,9 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBackTo
     <div className="flex w-full h-screen overflow-hidden text-left font-body-md bg-background">
       {/* Left Side: Illustration */}
       <div className="hidden lg:flex w-1/2 bg-surface-container-low h-full items-center justify-center relative overflow-hidden">
-        <div 
-          aria-hidden="true" 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat scale-105" 
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat scale-105"
           style={{ backgroundImage: `url("${ASSETS.authBackground}")` }}
         ></div>
         <div className="absolute inset-0 bg-gradient-to-t from-black/35 to-transparent"></div>
@@ -165,8 +165,8 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBackTo
           <div className="text-center space-y-2">
             <h1 className="text-2xl md:text-3xl text-on-surface font-bold">Quên mật khẩu</h1>
             <p className="text-sm text-on-surface-variant">
-              {step === 1 
-                ? 'Nhập địa chỉ email đăng ký để nhận mã OTP khôi phục mật khẩu.' 
+              {step === 1
+                ? 'Nhập địa chỉ email đăng ký để nhận mã OTP khôi phục mật khẩu.'
                 : `Nhập mã xác thực đã gửi đến email của bạn và mật khẩu mới.`
               }
             </p>
@@ -188,26 +188,26 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBackTo
             /* STEP 1: Enter email */
             <form className="space-y-4" onSubmit={handleRequestReset}>
               <div className="space-y-1">
-                <label className="block text-xs text-on-surface font-semibold" htmlFor="email">Email tài khoản</label>
+                <label className="block text-xs text-on-surface font-semibold" htmlFor="email">Email</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <span className="material-symbols-outlined text-outline text-sm">mail</span>
                   </div>
-                  <input 
-                    className="w-full pl-10 pr-4 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg focus:outline-none focus:border-primary text-sm placeholder-on-surface-variant/50 text-on-surface" 
-                    id="email" 
+                  <input
+                    className="w-full pl-10 pr-4 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg focus:outline-none focus:border-primary text-sm placeholder-on-surface-variant/50 text-on-surface"
+                    id="email"
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Ví dụ: nguyenvana@gmail.com" 
-                    required 
+                    placeholder="Ví dụ: nguyenvana@gmail.com"
+                    required
                     disabled={loading}
                   />
                 </div>
               </div>
 
-              <button 
-                className="w-full bg-primary hover:bg-tertiary text-on-primary font-bold rounded-full py-3 px-6 transition-all disabled:opacity-50 mt-2" 
+              <button
+                className="w-full bg-primary hover:bg-tertiary text-on-primary font-bold rounded-full py-3 px-6 transition-all disabled:opacity-50 mt-2"
                 type="submit"
                 disabled={loading}
               >
@@ -220,14 +220,14 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBackTo
               {/* OTP Code */}
               <div className="space-y-1">
                 <label className="block text-xs text-on-surface font-semibold" htmlFor="otp">Mã xác thực (6 số)</label>
-                <input 
-                  className="w-full px-4 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg text-center tracking-widest text-lg font-bold placeholder-on-surface-variant/35 focus:outline-none focus:border-primary" 
-                  id="otp" 
+                <input
+                  className="w-full px-4 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg text-center tracking-widest text-lg font-bold placeholder-on-surface-variant/35 focus:outline-none focus:border-primary"
+                  id="otp"
                   maxLength={6}
                   value={otpCode}
                   onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
-                  placeholder="000000" 
-                  required 
+                  placeholder="000000"
+                  required
                   type="text"
                   disabled={loading}
                 />
@@ -240,14 +240,14 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBackTo
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <span className="material-symbols-outlined text-outline text-sm">lock</span>
                   </div>
-                  <input 
-                    className="w-full pl-10 pr-4 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg focus:outline-none focus:border-primary text-sm placeholder-on-surface-variant/50 text-on-surface" 
-                    id="newPassword" 
+                  <input
+                    className="w-full pl-10 pr-4 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg focus:outline-none focus:border-primary text-sm placeholder-on-surface-variant/50 text-on-surface"
+                    id="newPassword"
                     type="password"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="••••••••" 
-                    required 
+                    placeholder="••••••••"
+                    required
                     disabled={loading}
                   />
                 </div>
@@ -260,21 +260,21 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBackTo
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <span className="material-symbols-outlined text-outline text-sm">lock</span>
                   </div>
-                  <input 
-                    className="w-full pl-10 pr-4 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg focus:outline-none focus:border-primary text-sm placeholder-on-surface-variant/50 text-on-surface" 
-                    id="confirmPassword" 
+                  <input
+                    className="w-full pl-10 pr-4 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg focus:outline-none focus:border-primary text-sm placeholder-on-surface-variant/50 text-on-surface"
+                    id="confirmPassword"
                     type="password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="••••••••" 
-                    required 
+                    placeholder="••••••••"
+                    required
                     disabled={loading}
                   />
                 </div>
               </div>
 
-              <button 
-                className="w-full bg-primary hover:bg-tertiary text-on-primary font-bold rounded-full py-3 px-6 transition-all disabled:opacity-50 mt-2" 
+              <button
+                className="w-full bg-primary hover:bg-tertiary text-on-primary font-bold rounded-full py-3 px-6 transition-all disabled:opacity-50 mt-2"
                 type="submit"
                 disabled={loading}
               >
@@ -295,7 +295,7 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBackTo
           )}
 
           <div className="text-center text-xs text-on-surface-variant pt-2 border-t border-outline-variant/30">
-            <button 
+            <button
               onClick={onBackToLogin}
               className="text-primary font-bold hover:underline transition-colors"
             >

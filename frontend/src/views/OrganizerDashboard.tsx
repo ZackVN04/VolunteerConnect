@@ -183,54 +183,74 @@ export const OrganizerDashboard: React.FC = () => {
 
   const handleSubmitActivity = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !description.trim() || !district.trim() || !addressDetail.trim() || !startDate || !endDate) {
-      showNotification('Vui lòng điền đầy đủ các thông tin bắt buộc', 'error');
-      return;
-    }
-
-    const limitNum = Number(limitVolunteers);
-    if (isNaN(limitNum) || limitNum < 1) {
-      showNotification('Số lượng tình nguyện viên tối thiểu là 1', 'error');
-      return;
-    }
-
-    const activityData: Partial<Activity> = {
-      title,
-      description,
-      categories: [category],
-      location: {
-        province,
-        district,
-        address_detail: addressDetail
-      },
-      start_date: startDate.includes('T') ? `${startDate}:00.000Z` : `${startDate}T08:00:00.000Z`,
-      end_date: endDate.includes('T') ? `${endDate}:00.000Z` : `${endDate}T17:00:00.000Z`,
-      limit_volunteers: limitNum,
-      requirements: requirements.trim() || null,
-      image_url: imageUrl.trim() || 'https://images.unsplash.com/photo-1544027993-37dbfe43562a?q=80&w=600',
-      status: 'Pending Review' // All newly created/edited activities go to Pending Review
-    };
-
-    if (editMode && editingActivityId) {
-      const res = await editActivity(editingActivityId, activityData);
-      if (res.success) {
-        showNotification('Đã cập nhật chiến dịch và gửi yêu cầu duyệt lại!', 'success');
-        resetForm();
-        setActiveTab('my-campaigns');
-        window.location.hash = '#/organizer/dashboard';
-      } else {
-        showNotification(res.error || 'Có lỗi xảy ra khi cập nhật chiến dịch.', 'error');
+    try {
+      if (!title.trim() || !description.trim() || !district.trim() || !addressDetail.trim() || !startDate || !endDate) {
+        showNotification('Vui lòng điền đầy đủ các thông tin bắt buộc', 'error');
+        return;
       }
-    } else {
-      const res = await createActivity(activityData, true); // true = submit for review
-      if (res.success) {
-        showNotification('Tạo chiến dịch mới thành công! Đang chờ Admin duyệt.', 'success');
-        resetForm();
-        setActiveTab('my-campaigns');
-        window.location.hash = '#/organizer/dashboard';
-      } else {
-        showNotification(res.error || 'Có lỗi xảy ra khi tạo chiến dịch.', 'error');
+
+      if (title.trim().length < 5) {
+        showNotification('Tiêu đề phải có ít nhất 5 ký tự', 'error');
+        return;
       }
+
+      if (description.trim().length < 20) {
+        showNotification('Mô tả phải có ít nhất 20 ký tự', 'error');
+        return;
+      }
+
+      if (new Date(endDate) <= new Date(startDate)) {
+        showNotification('Ngày kết thúc phải sau ngày bắt đầu', 'error');
+        return;
+      }
+
+      const limitNum = Number(limitVolunteers);
+      if (isNaN(limitNum) || limitNum < 1) {
+        showNotification('Số lượng tình nguyện viên tối thiểu là 1', 'error');
+        return;
+      }
+
+      const activityData: Partial<Activity> = {
+        title,
+        description,
+        categories: [category],
+        location: {
+          province,
+          district,
+          address_detail: addressDetail
+        },
+        start_date: startDate.includes('T') ? `${startDate}:00.000Z` : `${startDate}T08:00:00.000Z`,
+        end_date: endDate.includes('T') ? `${endDate}:00.000Z` : `${endDate}T17:00:00.000Z`,
+        limit_volunteers: limitNum,
+        requirements: requirements.trim() || null,
+        image_url: imageUrl.trim() || 'https://images.unsplash.com/photo-1544027993-37dbfe43562a?q=80&w=600',
+        status: 'Pending Review'
+      };
+
+      if (editMode && editingActivityId) {
+        const res = await editActivity(editingActivityId, activityData);
+        if (res.success) {
+          showNotification('Đã cập nhật chiến dịch và gửi yêu cầu duyệt lại!', 'success');
+          resetForm();
+          setActiveTab('my-campaigns');
+          window.location.hash = '#/organizer/dashboard';
+        } else {
+          showNotification(res.error || 'Có lỗi xảy ra khi cập nhật chiến dịch.', 'error');
+        }
+      } else {
+        const res = await createActivity(activityData, true);
+        if (res.success) {
+          showNotification('Tạo chiến dịch mới thành công! Đang chờ Admin duyệt.', 'success');
+          resetForm();
+          setActiveTab('my-campaigns');
+          window.location.hash = '#/organizer/dashboard';
+        } else {
+          showNotification(res.error || 'Có lỗi xảy ra khi tạo chiến dịch.', 'error');
+        }
+      }
+    } catch (err: any) {
+      console.error('Lỗi không mong muốn khi tạo/cập nhật chiến dịch:', err);
+      showNotification('Có lỗi không mong muốn. Vui lòng thử lại.', 'error');
     }
   };
 

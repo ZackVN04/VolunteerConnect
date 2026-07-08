@@ -139,7 +139,8 @@ const STATUS_MAP: Record<string, Activity['status']> = {
   'ongoing': 'Ongoing',
   'completed': 'Completed',
   'rejected': 'Rejected',
-  'cancelled': 'Cancelled'
+  'cancelled': 'Cancelled',
+  'approved': 'Open'
 };
 
 const mapActivity = (act: any): Activity => {
@@ -237,15 +238,22 @@ export const registrationService = {
 export const organizerService = {
   getMyRequest: async (): Promise<any> => {
     // Backend: GET /api/v1/organizer-requests/my-request
-    const res = await api.get('/organizer-requests/my-request');
-    return res.data;
+    // Returns null if no request found (404 is expected when volunteer has no request)
+    try {
+      const res = await api.get('/organizer-requests/my-request');
+      return res.data;
+    } catch (e: any) {
+      if (e.response?.status === 404) return null;
+      throw e;
+    }
   },
   submitRequest: async (reason: string, experience: string, contactPhone: string): Promise<any> => {
     const formattedPhone = formatPhoneE164(contactPhone);
-    // Backend: POST /api/v1/organizer-requests/request-upgrade, body: { organization_name, documents }
+    // Backend schema: OrganizerRequestCreate { reason, experience, contact_phone }
     const res = await api.post('/organizer-requests/request-upgrade', { 
-      organization_name: reason,
-      documents: [experience, formattedPhone]
+      reason,
+      experience,
+      contact_phone: formattedPhone
     });
     return res.data;
   }
@@ -317,7 +325,8 @@ export const adminService = {
   },
   getActivities: async (): Promise<Activity[]> => {
     const res = await api.get('/admin/activities');
-    return res.data;
+    const acts = res.data?.data?.activities || res.data?.activities || [];
+    return acts.map(mapActivity);
   },
   approveActivity: async (activityId: string, approve: boolean): Promise<Activity> => {
     const res = await api.patch(`/admin/activities/${activityId}/approve`, {

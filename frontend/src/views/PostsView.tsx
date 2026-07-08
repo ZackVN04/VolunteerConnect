@@ -49,7 +49,7 @@ export const PostsView: React.FC = () => {
     showNotification('Đã đăng bài viết thành công!', 'success');
   };
 
-  const handleShare = (postTitle: string) => {
+  const handleShare = (_postTitle: string) => {
     navigator.clipboard.writeText(window.location.href);
     showNotification('Đã sao chép liên kết bài đăng vào clipboard!', 'success');
   };
