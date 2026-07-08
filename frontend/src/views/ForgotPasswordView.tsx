@@ -35,6 +35,12 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBackTo
     if (v && index < 5) {
       otpRefs.current[index + 1]?.focus();
     }
+
+    const code = newDigits.join('');
+    if (code.length === 6) {
+      setErrorMsg('');
+      setStep(2);
+    }
   };
 
   const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -49,6 +55,8 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBackTo
       setOtpDigits(pasted.split(''));
       otpRefs.current[5]?.focus();
       e.preventDefault();
+      setErrorMsg('');
+      setStep(2);
     }
   };
 
@@ -93,16 +101,6 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBackTo
     setLoading(false);
   };
 
-  const handleGoToReset = (e: React.FormEvent) => {
-    e.preventDefault();
-    const code = getOtpCode();
-    if (code.length !== 6) {
-      setErrorMsg('Vui lòng nhập đủ 6 chữ số mã xác nhận.');
-      return;
-    }
-    setErrorMsg('');
-    setStep(2);
-  };
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -157,22 +155,22 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBackTo
 
   return (
     <div className="min-h-screen bg-[#f5f5f5] flex items-center justify-center px-4">
-      <div className="bg-white rounded-2xl shadow-md w-full max-w-sm px-8 py-10 space-y-6">
+      <div className="bg-white rounded-3xl shadow-sm border border-slate-100 w-full max-w-md px-8 py-10 space-y-6">
 
         {/* Logo */}
         <div className="flex items-center justify-center gap-2 mb-2">
-          <div className="w-8 h-8 rounded-lg bg-[#1a6c3a] flex items-center justify-center text-white font-bold text-sm select-none">
-            VC
+          <div className="w-8 h-8 rounded-lg bg-[#006d37] flex items-center justify-center text-white font-bold text-sm select-none">
+            vc
           </div>
-          <span className="text-[#1a6c3a] font-bold text-lg tracking-tight">Volunteer Connect</span>
+          <span className="text-[#006d37] font-bold text-lg tracking-tight font-headline-md">Volunteer Connect</span>
         </div>
 
         {step === 1 ? (
           <>
             {/* Step 1: Enter email + OTP boxes */}
             <div className="text-center space-y-1">
-              <h1 className="text-2xl font-bold text-gray-900">Khôi phục mật khẩu</h1>
-              <p className="text-sm text-gray-500">Nhập địa chỉ Email đã đăng ký để nhận mã OTP</p>
+              <h1 className="text-2xl font-bold text-gray-900 font-headline-md">Khôi phục mật khẩu</h1>
+              <p className="text-sm text-gray-500 font-medium">Nhập địa chỉ Email đã đăng ký để nhận mã OTP</p>
             </div>
 
             {errorMsg && (
@@ -186,9 +184,9 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBackTo
               </div>
             )}
 
-            <form className="space-y-4" onSubmit={handleRequestReset}>
-              <div className="space-y-1">
-                <label className="block text-sm font-medium text-gray-700" htmlFor="forgot-email">Email</label>
+            <form className="space-y-5" onSubmit={handleRequestReset}>
+              <div className="space-y-1 text-left">
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider" htmlFor="forgot-email">Email</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
                     <span className="material-symbols-outlined text-gray-400" style={{ fontSize: 18 }}>mail</span>
@@ -201,23 +199,25 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBackTo
                     placeholder="nguyenvana@gmail.com"
                     required
                     disabled={loading}
-                    className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#1a6c3a] placeholder-gray-400"
+                    className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/20 placeholder-gray-400 transition-all font-semibold"
                   />
                 </div>
               </div>
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-[#1a6c3a] hover:bg-[#155c30] text-white font-semibold rounded-full py-2.5 text-sm transition-all disabled:opacity-50"
-              >
-                {loading ? 'Đang gửi...' : 'Gửi mã xác nhận'}
-              </button>
+              <div className="flex justify-center">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="bg-[#006d37] hover:bg-[#005027] text-white font-semibold rounded-full px-8 py-2.5 text-sm transition-all disabled:opacity-50 cursor-pointer shadow-sm"
+                >
+                  {loading ? 'Đang gửi...' : 'Gửi mã xác nhận'}
+                </button>
+              </div>
             </form>
 
             {/* OTP Boxes */}
-            <form className="space-y-3" onSubmit={handleGoToReset}>
-              <label className="block text-sm font-medium text-gray-700">Mã xác minh</label>
+            <form className="space-y-3 text-left" onSubmit={e => e.preventDefault()}>
+              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">Mã xác minh</label>
               <div className="flex gap-2 justify-between">
                 {otpDigits.map((digit, i) => (
                   <input
@@ -230,26 +230,17 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBackTo
                     onChange={e => handleOtpChange(i, e.target.value)}
                     onKeyDown={e => handleOtpKeyDown(i, e)}
                     onPaste={i === 0 ? handleOtpPaste : undefined}
-                    className="w-10 h-12 text-center text-lg font-bold border border-gray-300 rounded-lg focus:outline-none focus:border-[#1a6c3a] bg-white"
+                    className="w-12 h-12 text-center text-lg font-bold border border-gray-300 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/20 bg-white transition-all"
                     disabled={loading}
                   />
                 ))}
               </div>
-              {successMsg && (
-                <button
-                  type="submit"
-                  disabled={loading || getOtpCode().length !== 6}
-                  className="w-full bg-[#1a6c3a] hover:bg-[#155c30] text-white font-semibold rounded-full py-2.5 text-sm transition-all disabled:opacity-50 mt-1"
-                >
-                  Xác nhận mã OTP
-                </button>
-              )}
             </form>
 
-            <div className="text-center pt-1">
+            <div className="text-center pt-2">
               <button
                 onClick={onBackToLogin}
-                className="text-sm text-[#1a6c3a] hover:underline font-medium"
+                className="text-xs text-[#006d37] hover:underline font-bold transition-all cursor-pointer"
               >
                 ← Quay lại đăng nhập
               </button>
@@ -259,8 +250,8 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBackTo
           <>
             {/* Step 2: Set new password */}
             <div className="text-center space-y-1">
-              <h1 className="text-2xl font-bold text-gray-900">Đặt lại mật khẩu</h1>
-              <p className="text-sm text-gray-500">Nhập mật khẩu mới để tiếp tục đăng nhập</p>
+              <h1 className="text-2xl font-bold text-gray-900 font-headline-md">Đặt lại mật khẩu</h1>
+              <p className="text-sm text-gray-500 font-medium">Nhập mật khẩu mới để tiếp tục đăng nhập</p>
             </div>
 
             {errorMsg && (
@@ -274,10 +265,10 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBackTo
               </div>
             )}
 
-            <form className="space-y-4" onSubmit={handleResetPassword}>
+            <form className="space-y-5" onSubmit={handleResetPassword}>
               {/* New Password */}
-              <div className="space-y-1">
-                <label className="block text-sm font-medium text-gray-700" htmlFor="new-password">Mật khẩu mới</label>
+              <div className="space-y-1 text-left">
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider" htmlFor="new-password">Mật khẩu mới</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
                     <span className="material-symbols-outlined text-gray-400" style={{ fontSize: 18 }}>lock</span>
@@ -290,7 +281,7 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBackTo
                     placeholder="••••••••"
                     required
                     disabled={loading}
-                    className="w-full pl-9 pr-10 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#1a6c3a] placeholder-gray-400"
+                    className="w-full pl-9 pr-10 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/20 placeholder-gray-400 transition-all font-semibold"
                   />
                   <button
                     type="button"
@@ -306,8 +297,8 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBackTo
               </div>
 
               {/* Confirm Password */}
-              <div className="space-y-1">
-                <label className="block text-sm font-medium text-gray-700" htmlFor="confirm-password">Nhập lại mật khẩu</label>
+              <div className="space-y-1 text-left">
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider" htmlFor="confirm-password">Nhập lại mật khẩu</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
                     <span className="material-symbols-outlined text-gray-400" style={{ fontSize: 18 }}>lock</span>
@@ -320,7 +311,7 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBackTo
                     placeholder="••••••••"
                     required
                     disabled={loading}
-                    className="w-full pl-9 pr-10 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-[#1a6c3a] placeholder-gray-400"
+                    className="w-full pl-9 pr-10 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/20 placeholder-gray-400 transition-all font-semibold"
                   />
                   <button
                     type="button"
@@ -335,19 +326,21 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBackTo
                 </div>
               </div>
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-[#1a6c3a] hover:bg-[#155c30] text-white font-semibold rounded-full py-2.5 text-sm transition-all disabled:opacity-50"
-              >
-                {loading ? 'Đang cập nhật...' : 'Đặt lại mật khẩu'}
-              </button>
+              <div className="flex justify-center pt-2">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="bg-[#006d37] hover:bg-[#005027] text-white font-semibold rounded-full px-8 py-2.5 text-sm transition-all disabled:opacity-50 cursor-pointer shadow-sm"
+                >
+                  {loading ? 'Đang cập nhật...' : 'Đặt lại mật khẩu'}
+                </button>
+              </div>
             </form>
 
-            <div className="text-center pt-1">
+            <div className="text-center pt-2">
               <button
                 onClick={onBackToLogin}
-                className="text-sm text-[#1a6c3a] hover:underline font-medium"
+                className="text-xs text-[#006d37] hover:underline font-bold transition-all cursor-pointer"
               >
                 ← Quay lại đăng nhập
               </button>

@@ -23,20 +23,20 @@ const LOCATION_DATA: Record<string, string[]> = {
   ]
 };
 
-// Status badge helper
+// Status badge helper matches mockup badge designs
 const ActivityStatusBadge: React.FC<{ status: string }> = ({ status }) => {
   const map: Record<string, { label: string; cls: string }> = {
-    'Draft':          { label: 'Bản nháp',      cls: 'bg-slate-100 text-slate-600' },
-    'Pending Review': { label: 'Chờ duyệt',     cls: 'bg-amber-100 text-amber-800' },
-    'Open':           { label: 'Đang tuyển',    cls: 'bg-emerald-100 text-emerald-800' },
-    'Full':           { label: 'Đã đầy',        cls: 'bg-teal-100 text-teal-800' },
-    'Ongoing':        { label: 'Đang diễn ra',  cls: 'bg-blue-100 text-blue-800' },
-    'Completed':      { label: 'Đã kết thúc',   cls: 'bg-purple-100 text-purple-800' },
-    'Rejected':       { label: 'Bị từ chối',    cls: 'bg-red-100 text-red-700' },
-    'Cancelled':      { label: 'Đã hủy',        cls: 'bg-slate-200 text-slate-600' },
+    'Draft':          { label: 'Bản nháp',      cls: 'bg-slate-100 text-slate-600 border border-slate-200/50' },
+    'Pending Review': { label: 'Chờ duyệt',     cls: 'bg-[#fef7e0] text-[#b06000] border border-[#b06000]/10' },
+    'Open':           { label: 'Đang tuyển',    cls: 'bg-emerald-50 text-[#006d37] border border-emerald-100/50' },
+    'Full':           { label: 'Đã đầy',        cls: 'bg-teal-50 text-teal-800 border border-teal-100/50' },
+    'Ongoing':        { label: 'Đang diễn ra',  cls: 'bg-blue-50 text-blue-800 border border-blue-100/50' },
+    'Completed':      { label: 'Đã kết thúc',   cls: 'bg-slate-100 text-slate-600 border border-slate-200/50' }, // gray background matches mockup
+    'Rejected':       { label: 'Bị từ chối',    cls: 'bg-red-50 text-red-700 border border-red-200/50' },
+    'Cancelled':      { label: 'Đã hủy',        cls: 'bg-slate-50 text-slate-500 border border-slate-100/50' },
   };
   const s = map[status] || { label: status, cls: 'bg-slate-100 text-slate-600' };
-  return <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${s.cls}`}>{s.label}</span>;
+  return <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide border ${s.cls}`}>{s.label}</span>;
 };
 
 export const OrganizerDashboard: React.FC = () => {
@@ -44,7 +44,7 @@ export const OrganizerDashboard: React.FC = () => {
     currentUser, activities, registrations,
     createActivity, editActivity,
     approveRegistration, cancelOrRejectRegistration, updateParticipation,
-    showNotification, showPrompt
+    showNotification, showPrompt, showConfirm
   } = useApp();
 
   // Tabs theo mockup: Tổng quan | Hoạt động | Đăng ký | Điểm danh
@@ -182,6 +182,21 @@ export const OrganizerDashboard: React.FC = () => {
     setActiveTab('activities');
   };
 
+  const handleEndActivity = (activityId: string) => {
+    showConfirm(
+      'Bạn có chắc chắn muốn kết thúc chiến dịch này? Trạng thái sẽ được chuyển sang Đã kết thúc và tình nguyện viên có thể tiến hành điểm danh.',
+      async () => {
+        const res = await editActivity(activityId, { status: 'Completed' });
+        if (res.success) {
+          showNotification('Đã kết thúc chiến dịch thành công!', 'success');
+        } else {
+          showNotification(res.error || 'Có lỗi xảy ra khi kết thúc chiến dịch.', 'error');
+        }
+      },
+      'Kết thúc hoạt động'
+    );
+  };
+
   const handleSubmitActivity = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -256,36 +271,36 @@ export const OrganizerDashboard: React.FC = () => {
     showNotification(`Đã điểm danh: ${status === 'Completed' ? 'Có mặt' : 'Vắng mặt'}`, 'success');
   };
 
-  // Tab button style helper
+  // Tab button style helper (Matches mockup style)
   const tabCls = (tab: string) =>
-    `pb-3 px-1 font-semibold text-sm transition-all border-b-2 whitespace-nowrap ${
+    `pb-3 px-1 font-bold text-sm transition-all border-b-2 whitespace-nowrap cursor-pointer ${
       activeTab === tab
-        ? 'border-[#1a6c3a] text-[#1a6c3a]'
+        ? 'border-[#006d37] text-[#006d37]'
         : 'border-transparent text-gray-500 hover:text-gray-800'
     }`;
 
   return (
-    <div className="w-full bg-[#f5f5f5] min-h-screen pb-16">
+    <div className="w-full bg-[#f8f9fa] min-h-screen pb-16">
       <div className="max-w-[1280px] mx-auto px-4 md:px-8 py-8 space-y-6 text-left">
 
         {/* Page Title */}
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Quản lý tổ chức</h1>
-          <p className="text-gray-500 text-sm mt-1">Không gian làm việc dành riêng cho ban tổ chức</p>
+          <h1 className="text-3xl font-extrabold text-gray-900 font-headline-md">Quản lý tổ chức</h1>
+          <p className="text-gray-500 text-sm mt-1 font-semibold">Không gian làm việc dành riêng cho ban tổ chức</p>
         </div>
 
         {/* Back button */}
         <div>
           <a
             href="#/profile"
-            className="inline-flex items-center gap-1.5 border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 font-medium text-sm px-4 py-2 rounded-lg transition-all"
+            className="inline-flex items-center gap-1.5 border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 font-bold text-xs px-4 py-2 rounded-xl transition-all shadow-sm"
           >
             ← Quay lại Hồ sơ cá nhân
           </a>
         </div>
 
         {/* Tabs + Create button */}
-        <div className="flex items-end justify-between border-b border-gray-200">
+        <div className="flex items-end justify-between border-b border-gray-200 pb-px">
           <div className="flex gap-6">
             <button onClick={() => setActiveTab('overview')} className={tabCls('overview')}>Tổng quan</button>
             <button onClick={() => { setActiveTab('activities'); setShowForm(false); }} className={tabCls('activities')}>Hoạt động</button>
@@ -299,7 +314,7 @@ export const OrganizerDashboard: React.FC = () => {
               setEditMode(false);
               resetForm();
             }}
-            className="mb-3 bg-[#1a6c3a] hover:bg-[#155c30] text-white font-semibold text-sm px-5 py-2.5 rounded-lg transition-all shadow-sm"
+            className="mb-3 bg-[#006d37] hover:bg-[#005027] text-white font-bold text-xs px-5 py-2.5 rounded-full transition-all shadow-sm cursor-pointer"
           >
             + Tạo hoạt động
           </button>
@@ -309,41 +324,41 @@ export const OrganizerDashboard: React.FC = () => {
         {activeTab === 'overview' && (
           <div className="space-y-6">
             {/* Stats row */}
-            <div className="bg-[#e8f5e9] rounded-2xl p-6 grid grid-cols-3 gap-4">
+            <div className="bg-[#e8f5e9]/70 rounded-2xl p-6 grid grid-cols-3 gap-4 border border-emerald-100/50">
               <div className="text-center">
-                <p className="text-3xl font-bold text-[#1a6c3a]">{openCampaigns}</p>
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mt-1">Chiến dịch mở</p>
+                <p className="text-4xl font-extrabold text-[#006d37] font-headline-md">{openCampaigns}</p>
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mt-1.5">CHIẾN DỊCH MỞ</p>
               </div>
-              <div className="text-center border-l border-r border-[#1a6c3a]/20">
-                <p className="text-3xl font-bold text-[#1a6c3a]">{pendingApprovalCount}</p>
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mt-1">Đăng ký chờ duyệt</p>
+              <div className="text-center border-l border-r border-[#006d37]/15">
+                <p className="text-4xl font-extrabold text-[#006d37] font-headline-md">{pendingApprovalCount}</p>
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mt-1.5">ĐĂNG KÝ CHỜ DUYỆT</p>
               </div>
               <div className="text-center">
-                <p className="text-3xl font-bold text-[#1a6c3a]">{totalVolunteers}</p>
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mt-1">Tình nguyện viên</p>
+                <p className="text-4xl font-extrabold text-[#006d37] font-headline-md">{totalVolunteers}</p>
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mt-1.5">TÌNH NGUYỆN VIÊN</p>
               </div>
             </div>
 
             {/* Two-column cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Việc cần xử lý ngay */}
-              <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
-                <h3 className="font-bold text-gray-900 text-base mb-4">Việc cần xử lý ngay</h3>
+              <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm">
+                <h3 className="font-bold text-gray-900 text-sm pb-3 border-b border-slate-100 font-headline-md">Việc cần xử lý ngay</h3>
                 {pendingApprovalCount === 0 ? (
-                  <p className="text-sm text-gray-400 text-center py-8">Không có việc cần xử lý ngay.</p>
+                  <p className="text-xs text-gray-400 text-center py-10 font-semibold">Không có việc cần xử lý ngay.</p>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="space-y-3 pt-4">
                     {organizerRegs.filter(r => r.status === 'Pending').slice(0, 5).map(reg => {
                       const act = activities.find(a => a._id === reg.activity_id);
                       return (
-                        <div key={reg._id} className="flex items-center justify-between p-3 bg-amber-50 rounded-xl border border-amber-100">
+                        <div key={reg._id} className="flex items-center justify-between p-3 bg-amber-50/50 rounded-xl border border-amber-100/50 animate-fadeIn">
                           <div>
-                            <p className="font-semibold text-sm text-gray-800">{reg.denormalized_volunteer.name}</p>
-                            <p className="text-xs text-gray-500">{act?.title || 'Hoạt động'}</p>
+                            <p className="font-bold text-xs text-gray-800">{reg.denormalized_volunteer.name}</p>
+                            <p className="text-[10px] text-gray-500 font-medium">{act?.title || 'Hoạt động'}</p>
                           </div>
                           <button
                             onClick={() => handleApprove(reg._id)}
-                            className="text-xs font-bold text-[#1a6c3a] hover:underline"
+                            className="text-xs font-bold text-[#006d37] hover:underline cursor-pointer"
                           >
                             Duyệt ngay
                           </button>
@@ -355,24 +370,24 @@ export const OrganizerDashboard: React.FC = () => {
               </div>
 
               {/* Hoạt động gần đây */}
-              <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="font-bold text-gray-900 text-base">Hoạt động gần đây</h3>
+              <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm">
+                <div className="flex justify-between items-center pb-3 border-b border-slate-100">
+                  <h3 className="font-bold text-gray-900 text-sm font-headline-md">Hoạt động gần đây</h3>
                   <button
                     onClick={() => setActiveTab('activities')}
-                    className="text-sm text-[#1a6c3a] hover:underline font-medium"
+                    className="text-xs text-[#006d37] hover:underline font-bold cursor-pointer"
                   >
                     Xem tất cả →
                   </button>
                 </div>
                 {myCampaigns.length === 0 ? (
-                  <p className="text-sm text-gray-400 text-center py-8">Chưa có hoạt động nào.</p>
+                  <p className="text-xs text-gray-400 text-center py-10 font-semibold">Chưa có hoạt động nào.</p>
                 ) : (
-                  <div className="divide-y divide-gray-100">
+                  <div className="divide-y divide-slate-100 pt-1">
                     {myCampaigns.slice(0, 4).map(act => (
-                      <div key={act._id} className="py-3">
-                        <p className="font-semibold text-sm text-gray-900">{act.title}</p>
-                        <p className="text-xs text-gray-500 mt-0.5">
+                      <div key={act._id} className="py-3 flex flex-col gap-0.5 animate-fadeIn">
+                        <p className="font-bold text-xs text-gray-900">{act.title}</p>
+                        <p className="text-[10px] text-slate-500 font-semibold mt-0.5">
                           Ngày bắt đầu: {new Date(act.start_date).toLocaleDateString('vi-VN')} | Trạng thái: {act.status}
                         </p>
                       </div>
@@ -389,8 +404,8 @@ export const OrganizerDashboard: React.FC = () => {
           <div className="space-y-6">
             {/* Create/Edit Form */}
             {showForm ? (
-              <div className="bg-white border border-gray-200 rounded-2xl p-6 md:p-8 max-w-[800px] mx-auto shadow-sm">
-                <h2 className="text-xl font-bold text-gray-900 mb-6 border-b border-gray-100 pb-3">
+              <div className="bg-white border border-slate-200/80 rounded-2xl p-6 md:p-8 max-w-[800px] mx-auto shadow-sm">
+                <h2 className="text-xl font-bold text-gray-900 mb-6 border-b border-slate-100 pb-3 font-headline-md">
                   {editMode ? 'Chỉnh sửa hoạt động' : 'Tạo hoạt động mới'}
                 </h2>
 
@@ -400,7 +415,7 @@ export const OrganizerDashboard: React.FC = () => {
                     <input
                       type="text" value={title} onChange={e => setTitle(e.target.value)} required
                       placeholder="Ví dụ: Chiến dịch dọn rác bờ biển Cần Giờ 2026..."
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1a6c3a] text-sm"
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/20 text-sm font-semibold"
                     />
                   </div>
 
@@ -408,7 +423,7 @@ export const OrganizerDashboard: React.FC = () => {
                     <div className="flex flex-col gap-1.5">
                       <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">Lĩnh vực *</label>
                       <select value={category} onChange={e => setCategory(e.target.value)}
-                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1a6c3a] text-sm bg-white">
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:border-[#006d37] text-sm font-semibold bg-white cursor-pointer">
                         <option value="Môi trường">Môi trường</option>
                         <option value="Giáo dục">Giáo dục</option>
                         <option value="Y tế">Y tế</option>
@@ -421,7 +436,7 @@ export const OrganizerDashboard: React.FC = () => {
                       <input type="number" value={limitVolunteers}
                         onChange={e => setLimitVolunteers(e.target.value === '' ? '' : Number(e.target.value))}
                         required min={1}
-                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1a6c3a] text-sm" />
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/20 text-sm font-semibold" />
                     </div>
                   </div>
 
@@ -429,12 +444,12 @@ export const OrganizerDashboard: React.FC = () => {
                     <div className="flex flex-col gap-1.5">
                       <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">Thời gian bắt đầu *</label>
                       <input type="datetime-local" value={startDate} onChange={e => setStartDate(e.target.value)} required
-                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1a6c3a] text-sm" />
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/20 text-sm font-semibold cursor-pointer" />
                     </div>
                     <div className="flex flex-col gap-1.5">
                       <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">Thời gian kết thúc *</label>
                       <input type="datetime-local" value={endDate} onChange={e => setEndDate(e.target.value)} required
-                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1a6c3a] text-sm" />
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/20 text-sm font-semibold cursor-pointer" />
                     </div>
                   </div>
 
@@ -442,14 +457,14 @@ export const OrganizerDashboard: React.FC = () => {
                     <div className="flex flex-col gap-1.5">
                       <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">Tỉnh / Thành phố *</label>
                       <select value={province} onChange={e => { const p = e.target.value; setProvince(p); setDistrict(LOCATION_DATA[p]?.[0] || ''); }} required
-                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1a6c3a] text-sm bg-white">
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:border-[#006d37] text-sm font-semibold bg-white cursor-pointer">
                         {Object.keys(LOCATION_DATA).map(p => <option key={p} value={p}>{p}</option>)}
                       </select>
                     </div>
                     <div className="flex flex-col gap-1.5">
                       <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">Quận / Huyện *</label>
                       <select value={district} onChange={e => setDistrict(e.target.value)} required
-                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1a6c3a] text-sm bg-white">
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:border-[#006d37] text-sm font-semibold bg-white cursor-pointer">
                         {(LOCATION_DATA[province] || []).map(d => <option key={d} value={d}>{d}</option>)}
                       </select>
                     </div>
@@ -457,7 +472,7 @@ export const OrganizerDashboard: React.FC = () => {
                       <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">Địa chỉ chi tiết *</label>
                       <input type="text" value={addressDetail} onChange={e => setAddressDetail(e.target.value)} required
                         placeholder="Ví dụ: Bãi biển 30/4"
-                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1a6c3a] text-sm" />
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/20 text-sm font-semibold" />
                     </div>
                   </div>
 
@@ -465,35 +480,35 @@ export const OrganizerDashboard: React.FC = () => {
                     <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">Mô tả chi tiết *</label>
                     <textarea rows={5} value={description} onChange={e => setDescription(e.target.value)} required
                       placeholder="Mô tả nội dung, hành trình, lợi ích và đóng góp..."
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1a6c3a] text-sm" />
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/20 text-sm font-semibold" />
                   </div>
 
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">Yêu cầu & Ghi chú</label>
                     <textarea rows={3} value={requirements} onChange={e => setRequirements(e.target.value)}
                       placeholder="Độ tuổi tối thiểu, trang phục yêu cầu, sức khỏe..."
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1a6c3a] text-sm" />
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/20 text-sm font-semibold" />
                   </div>
 
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-2 text-left">
                     <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">Hình ảnh minh họa</label>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-4 pt-1">
                       {imageUrl ? (
-                        <div className="relative w-36 h-24 rounded-xl overflow-hidden border border-gray-200 shrink-0">
+                        <div className="relative w-36 h-24 rounded-xl overflow-hidden border border-gray-200 shrink-0 shadow-sm">
                           <img src={imageUrl} alt="preview" className="w-full h-full object-cover" />
                           <button type="button" onClick={() => setImageUrl('')}
-                            className="absolute top-1 right-1 bg-red-600 text-white rounded-full p-0.5 shadow">
+                            className="absolute top-1.5 right-1.5 bg-red-600 hover:bg-red-700 text-white rounded-full p-0.5 shadow transition-all cursor-pointer">
                             <span className="material-symbols-outlined text-[13px]">close</span>
                           </button>
                         </div>
                       ) : (
-                        <div className="w-36 h-24 rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400 shrink-0 text-xs">
+                        <div className="w-36 h-24 rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400 shrink-0 text-xs font-semibold">
                           <span className="material-symbols-outlined text-xl mb-1">image</span>
                           Chưa chọn ảnh
                         </div>
                       )}
-                      <label className="inline-flex items-center gap-1.5 px-4 py-2 border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-lg text-xs font-bold cursor-pointer">
-                        <span className="material-symbols-outlined text-sm">upload</span>
+                      <label className="inline-flex items-center gap-1.5 px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold cursor-pointer transition-all shadow-sm">
+                        <span className="material-symbols-outlined text-sm text-slate-500">upload</span>
                         Tải ảnh lên
                         <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
                       </label>
@@ -502,32 +517,32 @@ export const OrganizerDashboard: React.FC = () => {
 
                   <div className="flex justify-end gap-3 border-t border-gray-100 pt-5">
                     <button type="button" onClick={() => { resetForm(); setShowForm(false); }}
-                      className="px-5 py-2.5 border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 text-sm font-semibold">
+                      className="px-5 py-2.5 border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 text-sm font-bold cursor-pointer transition-all">
                       Hủy
                     </button>
                     <button type="submit"
-                      className="px-5 py-2.5 bg-[#1a6c3a] hover:bg-[#155c30] text-white rounded-lg text-sm font-bold shadow-sm">
+                      className="px-5 py-2.5 bg-[#006d37] hover:bg-[#005027] text-white rounded-xl text-sm font-bold shadow-sm cursor-pointer transition-all">
                       {editMode ? 'Cập nhật hoạt động' : 'Tạo hoạt động mới'}
                     </button>
                   </div>
                 </form>
               </div>
             ) : (
-              /* Activity List */
-              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm">
+              /* Activity List matching mockup */
+              <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm">
                 {/* List header */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between p-5 border-b border-gray-100 gap-3">
-                  <h3 className="font-bold text-gray-900 text-base">Danh sách hoạt động đã tạo</h3>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between p-5 border-b border-slate-100 gap-3">
+                  <h3 className="font-bold text-gray-900 text-sm font-headline-md">Danh sách hoạt động đã tạo</h3>
                   <div className="flex items-center gap-3">
                     <input
                       type="text"
                       value={activitySearch}
                       onChange={e => setActivitySearch(e.target.value)}
                       placeholder="Tìm tên hoạt động..."
-                      className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#1a6c3a] w-48"
+                      className="border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-semibold focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/10 w-48 shadow-sm transition-all"
                     />
-                    <button className="flex items-center gap-1.5 border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">
-                      <span className="material-symbols-outlined text-sm">filter_list</span>
+                    <button className="flex items-center gap-1.5 border border-[#006d37] rounded-xl px-4 py-2 text-xs text-[#006d37] hover:bg-emerald-50 transition-all font-bold cursor-pointer shadow-sm">
+                      <span className="material-symbols-outlined text-[15px] font-bold">filter_list</span>
                       Bộ lọc
                     </button>
                   </div>
@@ -536,45 +551,49 @@ export const OrganizerDashboard: React.FC = () => {
                 {filteredCampaigns.length === 0 ? (
                   <div className="p-16 text-center">
                     <span className="material-symbols-outlined text-gray-300 text-5xl">campaign</span>
-                    <p className="text-sm text-gray-400 italic mt-3">
+                    <p className="text-xs text-gray-400 italic mt-3 font-semibold">
                       {activitySearch ? 'Không tìm thấy hoạt động nào.' : 'Bạn chưa tạo hoạt động nào.'}
                     </p>
                   </div>
                 ) : (
-                  <div className="divide-y divide-gray-100">
+                  <div className="divide-y divide-slate-100">
                     {filteredCampaigns.map(act => {
                       const isCompleted = act.status === 'Completed';
-                      const isOpen = act.status === 'Open' || act.status === 'Full';
+                      const isOpen = act.status === 'Open' || act.status === 'Full' || act.status === 'Ongoing';
                       const isPending = act.status === 'Pending Review';
                       const approvedCount = registrations.filter(r => r.activity_id === act._id && (r.status === 'Approved' || r.status === 'Completed')).length;
 
+                      // Format date
+                      const dateObj = new Date(act.start_date);
+                      const formattedDate = `${dateObj.getDate()}/${dateObj.getMonth() + 1}/${dateObj.getFullYear()}`;
+
                       return (
-                        <div key={act._id} className="flex flex-col sm:flex-row sm:items-center justify-between px-5 py-4 gap-3 hover:bg-gray-50 transition-colors">
-                          <div className="space-y-1 flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
+                        <div key={act._id} className="flex flex-col sm:flex-row sm:items-center justify-between px-5 py-5 gap-3 hover:bg-slate-50/50 transition-colors animate-fadeIn">
+                          <div className="space-y-1.5 flex-1 min-w-0">
+                            <div className="flex items-center gap-2.5 flex-wrap">
                               <a href={`#/activity/${act._id}`}
-                                className="font-semibold text-sm text-[#1a6c3a] hover:underline truncate max-w-[300px]">
+                                className="font-bold text-sm text-[#006d37] hover:underline truncate max-w-[420px]">
                                 {act.title}
                               </a>
                               <ActivityStatusBadge status={act.status} />
                             </div>
-                            <div className="flex items-center gap-4 text-xs text-gray-500">
-                              <span className="flex items-center gap-1">
-                                <span className="material-symbols-outlined text-sm">calendar_month</span>
-                                {new Date(act.start_date).toLocaleDateString('vi-VN')}
+                            <div className="flex items-center gap-4 text-xs text-slate-500 font-semibold">
+                              <span className="flex items-center gap-1.5">
+                                <span className="material-symbols-outlined text-sm text-slate-400">calendar_month</span>
+                                <span>{formattedDate}</span>
                               </span>
-                              <span className="flex items-center gap-1">
-                                <span className="material-symbols-outlined text-sm">group</span>
-                                {approvedCount}/{act.limit_volunteers}
+                              <span className="flex items-center gap-1.5">
+                                <span className="material-symbols-outlined text-sm text-slate-400">group</span>
+                                <span>{approvedCount}/{act.limit_volunteers}</span>
                               </span>
                             </div>
                           </div>
 
-                          {/* Action buttons per status */}
+                          {/* Action buttons per status matching mockup designs */}
                           <div className="flex items-center gap-2 shrink-0">
                             {isPending && (
                               <button onClick={() => handleEditCampaignClick(act)}
-                                className="border border-gray-300 text-gray-700 hover:bg-gray-100 px-3 py-1.5 rounded-lg text-xs font-semibold">
+                                className="border border-slate-200 text-slate-700 hover:bg-slate-50 px-4 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer">
                                 Sửa
                               </button>
                             )}
@@ -582,19 +601,23 @@ export const OrganizerDashboard: React.FC = () => {
                               <>
                                 <button
                                   onClick={() => { setActiveTab('registrations'); setRegSubTab('pending'); }}
-                                  className="bg-[#1a6c3a] hover:bg-[#155c30] text-white px-3 py-1.5 rounded-lg text-xs font-semibold">
+                                  className="bg-[#006d37] hover:bg-[#005027] text-white px-4 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer">
                                   Duyệt đơn
                                 </button>
                                 <button onClick={() => handleEditCampaignClick(act)}
-                                  className="border border-gray-300 text-gray-700 hover:bg-gray-100 px-3 py-1.5 rounded-lg text-xs font-semibold">
+                                  className="border border-slate-200 text-slate-700 hover:bg-slate-50 px-4 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer">
                                   Sửa
+                                </button>
+                                <button onClick={() => handleEndActivity(act._id)}
+                                  className="border border-slate-200 text-slate-700 hover:bg-slate-50 px-4 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer">
+                                  Kết thúc
                                 </button>
                               </>
                             )}
                             {isCompleted && (
                               <button
                                 onClick={() => { setActiveTab('attendance'); setSelectedActivityId(act._id); }}
-                                className="bg-[#1a6c3a] hover:bg-[#155c30] text-white px-3 py-1.5 rounded-lg text-xs font-semibold">
+                                className="bg-[#006d37] hover:bg-[#005027] text-white px-4 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer">
                                 Điểm danh
                               </button>
                             )}
@@ -611,61 +634,76 @@ export const OrganizerDashboard: React.FC = () => {
 
         {/* ===================== TAB: ĐĂNG KÝ ===================== */}
         {activeTab === 'registrations' && (
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm">
-            {/* Sub-tabs + Search */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between p-5 border-b border-gray-100 gap-3">
-              <div className="flex items-center gap-1">
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm">
+            {/* Sub-tabs Segmented Control + Search */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between p-5 border-b border-slate-100 gap-3">
+              
+              {/* Segmented style filter buttons matching mockup */}
+              <div className="bg-[#e8f5e9]/50 p-1 rounded-2xl flex gap-1 border border-emerald-100/50">
                 <button
                   onClick={() => setRegSubTab('pending')}
-                  className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all ${regSubTab === 'pending' ? 'bg-[#1a6c3a] text-white' : 'border border-gray-300 text-gray-600 hover:bg-gray-50'}`}
+                  className={`px-5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    regSubTab === 'pending'
+                      ? 'bg-white text-[#006d37] shadow-sm'
+                      : 'text-slate-500 hover:text-slate-700'
+                  }`}
                 >
                   Chờ duyệt ({pendingCount})
                 </button>
                 <button
                   onClick={() => setRegSubTab('approved')}
-                  className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all ${regSubTab === 'approved' ? 'bg-[#1a6c3a] text-white' : 'border border-gray-300 text-gray-600 hover:bg-gray-50'}`}
+                  className={`px-5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    regSubTab === 'approved'
+                      ? 'bg-white text-[#006d37] shadow-sm'
+                      : 'text-slate-500 hover:text-slate-700'
+                  }`}
                 >
                   Đã chấp nhận ({approvedCount})
                 </button>
                 <button
                   onClick={() => setRegSubTab('rejected')}
-                  className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all ${regSubTab === 'rejected' ? 'bg-[#1a6c3a] text-white' : 'border border-gray-300 text-gray-600 hover:bg-gray-50'}`}
+                  className={`px-5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    regSubTab === 'rejected'
+                      ? 'bg-white text-[#006d37] shadow-sm'
+                      : 'text-slate-500 hover:text-slate-700'
+                  }`}
                 >
                   Từ chối ({rejectedCount})
                 </button>
               </div>
+
               <div className="flex items-center gap-3">
                 <input
                   type="text"
                   value={regSearch}
                   onChange={e => setRegSearch(e.target.value)}
                   placeholder="Tìm tên tình nguyện viên..."
-                  className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#1a6c3a] w-52"
+                  className="border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-semibold focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/10 w-48 shadow-sm transition-all"
                 />
-                <button className="flex items-center gap-1.5 border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">
-                  <span className="material-symbols-outlined text-sm">filter_list</span>
+                <button className="flex items-center gap-1.5 border border-[#006d37] rounded-xl px-4 py-2 text-xs text-[#006d37] hover:bg-emerald-50 transition-all font-bold cursor-pointer shadow-sm">
+                  <span className="material-symbols-outlined text-[15px] font-bold">filter_list</span>
                   Bộ lọc
                 </button>
               </div>
             </div>
 
-            {/* Table */}
+            {/* Table with Uppercase headers */}
             <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left">
+              <table className="w-full text-sm text-left border-collapse">
                 <thead>
-                  <tr className="bg-gray-50 border-b border-gray-100 text-xs font-bold uppercase tracking-wider text-gray-500">
-                    <th className="px-5 py-3">Tình nguyện viên</th>
-                    <th className="px-5 py-3">Hoạt động đăng ký</th>
-                    <th className="px-5 py-3">Khu vực</th>
-                    <th className="px-5 py-3">Kỹ năng rút gọn</th>
-                    <th className="px-5 py-3">Hồ sơ</th>
-                    <th className="px-5 py-3">Thao tác</th>
+                  <tr className="bg-slate-50/75 border-b border-slate-100 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                    <th className="px-6 py-4">TÌNH NGUYỆN VIÊN</th>
+                    <th className="px-6 py-4">HOẠT ĐỘNG ĐĂNG KÝ</th>
+                    <th className="px-6 py-4">KHU VỰC</th>
+                    <th className="px-6 py-4">KỸ NĂNG RÚT GỌN</th>
+                    <th className="px-6 py-4">HỒ SƠ</th>
+                    <th className="px-6 py-4">THAO TÁC</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100 text-gray-800">
+                <tbody className="divide-y divide-slate-100 text-slate-750">
                   {allOrgRegs.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-5 py-12 text-center text-sm text-gray-400">
+                      <td colSpan={6} className="px-6 py-12 text-center text-xs text-slate-400 font-semibold">
                         Không có đơn đăng ký nào ở trạng thái này.
                       </td>
                     </tr>
@@ -673,31 +711,31 @@ export const OrganizerDashboard: React.FC = () => {
                     allOrgRegs.map(reg => {
                       const act = activities.find(a => a._id === reg.activity_id);
                       return (
-                        <tr key={reg._id} className="hover:bg-gray-50 transition-colors">
-                          <td className="px-5 py-4 font-semibold">{reg.denormalized_volunteer.name}</td>
-                          <td className="px-5 py-4 text-gray-600 max-w-[200px] truncate">{act?.title || '—'}</td>
-                          <td className="px-5 py-4 text-gray-500">{act?.location?.province || '—'}</td>
-                          <td className="px-5 py-4 text-gray-500">—</td>
-                          <td className="px-5 py-4">
+                        <tr key={reg._id} className="hover:bg-slate-50/50 transition-colors animate-fadeIn">
+                          <td className="px-6 py-4 font-bold text-slate-800">{reg.denormalized_volunteer.name}</td>
+                          <td className="px-6 py-4 text-slate-500 font-medium max-w-[200px] truncate">{act?.title || '—'}</td>
+                          <td className="px-6 py-4 text-slate-500 font-semibold">{act?.location?.province || '—'}</td>
+                          <td className="px-6 py-4 text-slate-400 font-medium">—</td>
+                          <td className="px-6 py-4">
                             <a href={`#/profile?userId=${reg.volunteer_id}`}
-                              className="text-[#1a6c3a] hover:underline text-xs font-semibold">
+                              className="text-[#006d37] hover:underline text-xs font-bold">
                               Xem hồ sơ
                             </a>
                           </td>
-                          <td className="px-5 py-4">
+                          <td className="px-6 py-4">
                             {reg.status === 'Pending' ? (
                               <div className="flex gap-2">
                                 <button onClick={() => handleApprove(reg._id)}
-                                  className="bg-[#1a6c3a] hover:bg-[#155c30] text-white px-3 py-1.5 rounded-lg text-xs font-semibold">
+                                  className="bg-[#006d37] hover:bg-[#005027] text-white px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer">
                                   Duyệt
                                 </button>
                                 <button onClick={() => handleReject(reg._id)}
-                                  className="border border-red-300 text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg text-xs font-semibold">
+                                  className="border border-red-300 text-red-650 hover:bg-red-50 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer">
                                   Từ chối
                                 </button>
                               </div>
                             ) : (
-                              <span className="text-gray-400 text-xs">—</span>
+                              <span className="text-slate-400 text-xs font-semibold">—</span>
                             )}
                           </td>
                         </tr>
@@ -712,15 +750,15 @@ export const OrganizerDashboard: React.FC = () => {
 
         {/* ===================== TAB: ĐIỂM DANH ===================== */}
         {activeTab === 'attendance' && (
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-              <h3 className="font-bold text-gray-900 text-base">Điểm danh tình nguyện viên</h3>
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+              <h3 className="font-bold text-gray-900 text-sm font-headline-md">Điểm danh tình nguyện viên</h3>
               <div className="flex items-center gap-3">
-                <label className="text-sm font-medium text-gray-700 whitespace-nowrap">Chọn chiến dịch:</label>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Chọn chiến dịch:</label>
                 <select
                   value={selectedActivityId}
                   onChange={e => setSelectedActivityId(e.target.value)}
-                  className="flex-grow px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#1a6c3a] text-sm bg-white min-w-[240px]"
+                  className="px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/10 text-xs font-semibold bg-white min-w-[240px] cursor-pointer shadow-sm transition-all"
                 >
                   <option value="">-- Chọn hoạt động để điểm danh --</option>
                   {completedCampaigns.map(act => (
@@ -730,65 +768,68 @@ export const OrganizerDashboard: React.FC = () => {
               </div>
             </div>
 
-            {/* Attendance Table */}
-            <div className="border border-dashed border-gray-300 rounded-xl overflow-hidden">
+            {/* Attendance area */}
+            <div className="rounded-2xl overflow-hidden">
               {!selectedActivityId ? (
-                <p className="py-12 text-center text-sm text-gray-400">
-                  Vui lòng chọn chiến dịch đã kết thúc để tiến hành điểm danh.
-                </p>
+                // Dashed border card container matching mockup
+                <div className="border-2 border-dashed border-slate-200/80 rounded-2xl p-12 text-center bg-slate-50/50">
+                  <p className="text-xs font-bold text-slate-500">
+                    Vui lòng chọn chiến dịch đã kết thúc để tiến hành điểm danh.
+                  </p>
+                </div>
               ) : selectedRegs.filter(r => r.status === 'Approved' || r.status === 'Completed' || r.status === 'Absent').length === 0 ? (
-                <p className="py-12 text-center text-sm text-gray-400">
+                <div className="border border-slate-150 rounded-2xl p-10 text-center text-xs text-slate-400 font-semibold bg-slate-50">
                   Chưa có tình nguyện viên đã được duyệt cho chiến dịch này.
-                </p>
+                </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm text-left">
+                <div className="overflow-x-auto border border-slate-100 rounded-2xl">
+                  <table className="w-full text-sm text-left border-collapse">
                     <thead>
-                      <tr className="bg-gray-50 border-b border-gray-100 text-xs font-bold uppercase tracking-wider text-gray-500">
-                        <th className="px-5 py-3">Họ và tên</th>
-                        <th className="px-5 py-3">Số điện thoại</th>
-                        <th className="px-5 py-3">Trạng thái đăng ký</th>
-                        <th className="px-5 py-3">Điểm danh tham gia</th>
+                      <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                        <th className="px-6 py-4">Họ và tên</th>
+                        <th className="px-6 py-4">Số điện thoại</th>
+                        <th className="px-6 py-4">Trạng thái đăng ký</th>
+                        <th className="px-6 py-4">Điểm danh tham gia</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100 text-gray-800">
+                    <tbody className="divide-y divide-slate-100 text-slate-750">
                       {selectedRegs.filter(r => r.status === 'Approved' || r.status === 'Completed' || r.status === 'Absent').map(reg => {
                         const canCheckIn = reg.status === 'Approved';
                         const isCompleted = reg.status === 'Completed';
                         const isAbsent = reg.status === 'Absent';
                         return (
-                          <tr key={reg._id} className="hover:bg-gray-50 transition-colors">
-                            <td className="px-5 py-4 font-semibold">{reg.denormalized_volunteer.name}</td>
-                            <td className="px-5 py-4 text-gray-500">{reg.denormalized_volunteer.phone || '—'}</td>
-                            <td className="px-5 py-4">
-                              <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                                reg.status === 'Approved' ? 'bg-emerald-100 text-emerald-800' :
-                                reg.status === 'Completed' ? 'bg-blue-100 text-blue-800' :
-                                'bg-red-100 text-red-700'
+                          <tr key={reg._id} className="hover:bg-slate-50/50 transition-colors animate-fadeIn">
+                            <td className="px-6 py-4 font-bold text-slate-800">{reg.denormalized_volunteer.name}</td>
+                            <td className="px-6 py-4 text-slate-500 font-semibold">{reg.denormalized_volunteer.phone || '—'}</td>
+                            <td className="px-6 py-4">
+                              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border ${
+                                reg.status === 'Approved' ? 'bg-emerald-50 text-[#006d37] border-emerald-100/50' :
+                                reg.status === 'Completed' ? 'bg-blue-50 text-blue-800 border-blue-100/50' :
+                                'bg-red-50 text-red-750 border-red-100/50'
                               }`}>
                                 {reg.status === 'Approved' ? 'Đã duyệt' : reg.status === 'Completed' ? 'Đã tham gia' : 'Vắng mặt'}
                               </span>
                             </td>
-                            <td className="px-5 py-4">
+                            <td className="px-6 py-4">
                               {canCheckIn ? (
                                 <div className="flex gap-2">
                                   <button onClick={() => handleCheckIn(reg._id, 'Completed')}
-                                    className="bg-[#1a6c3a] hover:bg-[#155c30] text-white px-3 py-1.5 rounded-lg text-xs font-semibold">
+                                    className="bg-[#006d37] hover:bg-[#005027] text-white px-3.5 py-1.5 rounded-lg text-xs font-bold shadow-sm transition-all cursor-pointer">
                                     Có mặt
                                   </button>
                                   <button onClick={() => handleCheckIn(reg._id, 'Absent')}
-                                    className="border border-red-300 hover:bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-xs font-semibold">
+                                    className="border border-red-300 hover:bg-red-50 text-red-600 px-3.5 py-1.5 rounded-lg text-xs font-bold shadow-sm transition-all cursor-pointer">
                                     Vắng mặt
                                   </button>
                                 </div>
                               ) : isCompleted ? (
-                                <span className="text-[#1a6c3a] font-bold text-xs flex items-center gap-1">
-                                  <span className="material-symbols-outlined text-sm">check_circle</span>
+                                <span className="text-[#006d37] font-bold text-xs flex items-center gap-1.5">
+                                  <span className="material-symbols-outlined text-sm font-bold">check_circle</span>
                                   Có mặt
                                 </span>
                               ) : isAbsent ? (
-                                <span className="text-red-600 font-bold text-xs flex items-center gap-1">
-                                  <span className="material-symbols-outlined text-sm">cancel</span>
+                                <span className="text-red-650 font-bold text-xs flex items-center gap-1.5">
+                                  <span className="material-symbols-outlined text-sm font-bold">cancel</span>
                                   Vắng mặt
                                 </span>
                               ) : (
