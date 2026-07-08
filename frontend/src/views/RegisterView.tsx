@@ -146,7 +146,17 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ onNavigateToLogin, o
       </div>
 
       {/* Right Side: Registration Form */}
-      <div className="w-full md:w-1/2 flex items-center justify-center p-margin-mobile md:p-lg bg-surface h-screen overflow-y-auto">
+      <div className="w-full md:w-1/2 flex items-center justify-center p-margin-mobile md:p-lg bg-surface h-screen overflow-y-auto relative">
+        
+        {/* Back to Homepage Button */}
+        <a 
+          href="#/feed"
+          className="absolute top-8 right-6 md:right-12 flex items-center gap-1 text-on-surface-variant hover:text-primary font-bold text-xs transition-colors py-1.5 px-3 rounded-xl border border-outline-variant/60 hover:bg-slate-50 cursor-pointer shadow-sm"
+        >
+          <span className="material-symbols-outlined text-sm font-bold">arrow_back</span>
+          <span>Quay lại trang chủ</span>
+        </a>
+
         <div className="w-full max-w-[440px] space-y-6">
 
           {/* Brand Logo header */}

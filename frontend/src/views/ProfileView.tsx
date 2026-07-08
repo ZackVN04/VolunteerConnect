@@ -2,21 +2,66 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { mediaService } from '../services/apiService';
 
+// Helper: generate avatar initials placeholder
+const AvatarPlaceholder: React.FC<{ name: string; size?: number }> = ({ name, size = 128 }) => {
+  const initials = name
+    .split(' ')
+    .map(w => w[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+  const colors = ['#006d37', '#0d6efd', '#6f42c1', '#fd7e14', '#20c997', '#e83e8c'];
+  const bg = colors[name.charCodeAt(0) % colors.length];
+  return (
+    <div
+      style={{ width: size, height: size, background: bg, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+      aria-label={`Avatar của ${name}`}
+    >
+      <span style={{ color: '#fff', fontWeight: 700, fontSize: size * 0.35, fontFamily: 'inherit' }}>{initials}</span>
+    </div>
+  );
+};
+
+// Helper: fix wrong dev port in backend-returned image URLs
+const fixImageUrl = (url: string | null | undefined): string | null => {
+  if (!url) return null;
+  return url.replace('http://localhost:3000/', 'http://localhost:8000/');
+};
+
+const InfoItem: React.FC<{ 
+  icon: string; 
+  iconColorClass: string; 
+  bgClass: string; 
+  label: string; 
+  value: React.ReactNode 
+}> = ({ icon, iconColorClass, bgClass, label, value }) => (
+  <div className="flex gap-4 p-4 bg-slate-50 border border-slate-100 rounded-2xl items-center hover:shadow-sm transition-all duration-150">
+    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${bgClass} shrink-0`}>
+      <span className={`material-symbols-outlined text-lg ${iconColorClass}`}>{icon}</span>
+    </div>
+    <div className="space-y-0.5 text-left">
+      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">{label}</span>
+      <span className="text-slate-800 text-sm font-semibold block">{value}</span>
+    </div>
+  </div>
+);
+
 export const ProfileView: React.FC = () => {
-  const { currentUser, organizerRequests, submitOrganizerRequest, updateProfile, showNotification } = useApp();
+  const { currentUser, users, activities, registrations, organizerRequests, submitOrganizerRequest, updateProfile, showNotification, changePassword } = useApp();
   
-  // View mode state: 'details' (default), 'edit', 'upgrade'
-  const [viewMode, setViewMode] = useState<'details' | 'edit' | 'upgrade'>('details');
+  // View mode state: 'details' (default), 'edit', 'upgrade', 'password', 'participated', 'org_management'
+  const [viewMode, setViewMode] = useState<'details' | 'edit' | 'upgrade' | 'password' | 'participated' | 'org_management'>('details');
 
   // Form states for Edit Profile
   const [fullName, setFullName] = useState(currentUser?.profile.full_name || '');
   const [email, setEmail] = useState(currentUser?.email || '');
   const [phone, setPhone] = useState(currentUser?.phone || '');
-  const [areaOfInterest, setAreaOfInterest] = useState(currentUser?.profile.area_of_interest || 'TP. Hồ Chí Minh');
+  const [areaOfInterest, setAreaOfInterest] = useState(currentUser?.profile.area_of_interest || '');
   const [skillsStr, setSkillsStr] = useState(currentUser?.profile.skills?.join(', ') || '');
   const [bio, setBio] = useState(currentUser?.profile.bio || '');
   const [avatarUrl, setAvatarUrl] = useState(currentUser?.profile.avatar_url || '');
-  const [age, setAge] = useState<number | ''>(currentUser?.profile.age !== undefined ? currentUser.profile.age : '');
+  const [age, setAge] = useState<number | ''>(currentUser?.profile.age ?? '');
   const [gender, setGender] = useState(currentUser?.profile.gender || '');
 
   // Form states for Organizer Upgrade
@@ -24,14 +69,29 @@ export const ProfileView: React.FC = () => {
   const [requestOrgDesc, setRequestOrgDesc] = useState('');
   const [requestContact, setRequestContact] = useState(currentUser?.phone || '');
 
+  // Form states for Change Password
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [showOldPassword, setShowOldPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   // Sync state if URL specifies a tab
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash;
       if (hash.includes('tab=upgrade')) {
         setViewMode('upgrade');
+      } else if (hash.includes('tab=password')) {
+        setViewMode('password');
       } else if (hash.includes('tab=edit')) {
         setViewMode('edit');
+      } else if (hash.includes('tab=participated')) {
+        setViewMode('participated');
+      } else if (hash.includes('tab=org_management')) {
+        setViewMode('org_management');
       } else {
         setViewMode('details');
       }
@@ -41,28 +101,49 @@ export const ProfileView: React.FC = () => {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
-  // Update states if currentUser changes
+  const getUserIdFromHash = () => {
+    const hash = window.location.hash;
+    const match = hash.match(/[?&]userId=([^&]+)/);
+    return match ? match[1] : null;
+  };
+
+  const viewedUserId = getUserIdFromHash();
+  const isOwnProfile = !viewedUserId || viewedUserId === currentUser?._id;
+
+  const displayUser = isOwnProfile ? currentUser : users.find(u => u._id === viewedUserId);
+
+  const myRegs = registrations.filter(r => r.volunteer_id === displayUser?._id);
+  const orgActs = activities.filter(a => a.organizer_id === displayUser?._id);
+
   useEffect(() => {
-    if (currentUser) {
+    if (currentUser && isOwnProfile) {
       setFullName(currentUser.profile.full_name || '');
       setEmail(currentUser.email || '');
       setPhone(currentUser.phone || '');
-      setAreaOfInterest(currentUser.profile.area_of_interest || 'TP. Hồ Chí Minh');
+      setAreaOfInterest(currentUser.profile.area_of_interest || '');
       setSkillsStr(currentUser.profile.skills?.join(', ') || '');
       setBio(currentUser.profile.bio || '');
-      setAvatarUrl(currentUser.profile.avatar_url || '');
-      setAge(currentUser.profile.age !== undefined ? currentUser.profile.age : '');
+      setAvatarUrl(fixImageUrl(currentUser.profile.avatar_url) || currentUser.profile.avatar_url || '');
+      setAge(currentUser.profile.age ?? '');
       setGender(currentUser.profile.gender || '');
       setRequestContact(currentUser.phone || '');
     }
-  }, [currentUser]);
+  }, [currentUser, isOwnProfile]);
 
-  if (!currentUser) return null;
+  if (!displayUser) {
+    return (
+      <div className="py-20 text-center space-y-4 max-w-md mx-auto">
+        <span className="material-symbols-outlined text-[#006d37] text-6xl">account_circle</span>
+        <h2 className="font-headline-md text-xl font-bold text-on-surface">Không tìm thấy người dùng</h2>
+        <p className="text-sm text-on-surface-variant">Tài khoản này có thể đã bị xóa hoặc đường dẫn không chính xác.</p>
+        <a href="#/feed" className="inline-block bg-[#006d37] text-white px-6 py-2.5 rounded-xl font-semibold text-xs shadow-sm transition-all active:scale-95">
+          Quay lại trang chủ
+        </a>
+      </div>
+    );
+  }
 
-  // Retrieve current organizer request
-  const userRequest = organizerRequests.find(r => r.volunteer_id === currentUser._id);
-
-  // Sync request states if already submitted
+  const userRequest = currentUser ? organizerRequests.find(r => r.volunteer_id === currentUser._id) : undefined;
   const isPending = userRequest?.status === 'Pending';
   const isApproved = userRequest?.status === 'Approved';
   const isRejected = userRequest?.status === 'Rejected';
@@ -81,7 +162,7 @@ export const ProfileView: React.FC = () => {
       showNotification('Số điện thoại không được để trống.', 'error');
       return;
     }
-    const cleanPhone = phone.trim().replace(/[\s\-\(\)]/g, "");
+    const cleanPhone = phone.trim().replace(/[\s\-()]/g, "");
     if (!/^\+?[0-9]{10,15}$/.test(cleanPhone)) {
       showNotification('Số điện thoại không hợp lệ (phải từ 10-15 chữ số).', 'error');
       return;
@@ -115,14 +196,15 @@ export const ProfileView: React.FC = () => {
   };
 
   const handleCancelEdit = () => {
+    if (!currentUser) return;
     setFullName(currentUser.profile.full_name || '');
     setEmail(currentUser.email || '');
     setPhone(currentUser.phone || '');
-    setAreaOfInterest(currentUser.profile.area_of_interest || 'TP. Hồ Chí Minh');
+    setAreaOfInterest(currentUser.profile.area_of_interest || '');
     setSkillsStr(currentUser.profile.skills?.join(', ') || '');
     setBio(currentUser.profile.bio || '');
     setAvatarUrl(currentUser.profile.avatar_url || '');
-    setAge(currentUser.profile.age !== undefined ? currentUser.profile.age : '');
+    setAge(currentUser.profile.age ?? '');
     setGender(currentUser.profile.gender || '');
     setViewMode('details');
     window.location.hash = '#/profile';
@@ -148,6 +230,7 @@ export const ProfileView: React.FC = () => {
   };
 
   const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!currentUser) return;
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -159,7 +242,7 @@ export const ProfileView: React.FC = () => {
     try {
       showNotification('Đang tải ảnh đại diện lên...', 'info');
       const uploadRes = await mediaService.upload(file);
-      const publicUrl = uploadRes.url;
+      const publicUrl = fixImageUrl(uploadRes.url) || uploadRes.url;
       
       setAvatarUrl(publicUrl);
       updateProfile(
@@ -167,7 +250,9 @@ export const ProfileView: React.FC = () => {
           avatar_url: publicUrl,
           full_name: currentUser.profile.full_name,
           skills: currentUser.profile.skills,
-          bio: currentUser.profile.bio
+          bio: currentUser.profile.bio,
+          age: currentUser.profile.age,
+          gender: currentUser.profile.gender
         }, 
         currentUser.email || '', 
         currentUser.profile.area_of_interest || '',
@@ -180,406 +265,873 @@ export const ProfileView: React.FC = () => {
     }
   };
 
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (passwordLoading) return;
+    if (!oldPassword || !newPassword || !confirmNewPassword) {
+      showNotification('Vui lòng điền đầy đủ tất cả các trường mật khẩu.', 'error');
+      return;
+    }
+    if (newPassword.length < 6) {
+      showNotification('Mật khẩu mới phải có ít nhất 6 ký tự.', 'error');
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      showNotification('Mật khẩu mới và mật khẩu xác nhận không trùng khớp.', 'error');
+      return;
+    }
+
+    setPasswordLoading(true);
+    const res = await changePassword(oldPassword, newPassword);
+    setPasswordLoading(false);
+
+    if (res.success) {
+      showNotification('Đổi mật khẩu thành công!', 'success');
+      setOldPassword('');
+      setNewPassword('');
+      setConfirmNewPassword('');
+      setViewMode('details');
+      window.location.hash = '#/profile';
+    } else {
+      showNotification(res.error || 'Có lỗi xảy ra khi đổi mật khẩu.', 'error');
+    }
+  };
+
   return (
     <div className="w-full bg-[#f8f9fa] min-h-screen pb-16 text-left">
-      <div className="max-w-[800px] mx-auto px-4 md:px-8 py-8 space-y-6">
+      <div className="max-w-[1100px] mx-auto px-4 md:px-8 py-8 space-y-6">
 
-        {/* ------------------------------------------- */}
-        {/* VIEW 1: PROFILE DETAILS VIEW (DEFAULT) */}
-        {viewMode === 'details' && (
+        {/* Header Breadcrumbs and Navigation */}
+        <div className="flex justify-between items-center border-b border-slate-200/60 pb-5">
+          <div>
+            <h1 className="text-3xl font-extrabold tracking-tight text-slate-800 font-headline-md">
+              {isOwnProfile ? 'Hồ sơ cá nhân' : 'Hồ sơ đối tác'}
+            </h1>
+            <p className="text-slate-500 text-sm mt-1.5 font-medium">
+              {isOwnProfile 
+                ? 'Quản lý tài khoản và lịch sử đóng góp xã hội' 
+                : 'Thông tin liên hệ, giới thiệu và lịch sử cống hiến của thành viên.'
+              }
+            </p>
+          </div>
+          {!isOwnProfile && (
+            <button
+              onClick={() => window.history.back()}
+              className="flex items-center gap-2 border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold px-4 py-2 rounded-xl transition-all text-sm shadow-sm cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-lg">arrow_back</span>
+              Quay lại
+            </button>
+          )}
+        </div>
+
+        {isOwnProfile && (
+          <div className="bg-slate-100/80 p-1.5 rounded-2xl flex gap-1.5 w-fit border border-slate-200/50">
+            <button
+              onClick={() => { setViewMode('details'); window.location.hash = '#/profile'; }}
+              className={`px-6 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
+                viewMode === 'details' || viewMode === 'edit' || viewMode === 'password' || viewMode === 'upgrade'
+                  ? 'bg-white text-[#006d37] shadow-sm font-bold'
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              Thông tin cá nhân
+            </button>
+            {displayUser.role === 'Volunteer' && (
+              <button
+                onClick={() => { setViewMode('participated'); window.location.hash = '#/profile?tab=participated'; }}
+                className={`px-6 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
+                  viewMode === 'participated'
+                    ? 'bg-white text-[#006d37] shadow-sm font-bold'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                Hoạt động tham gia
+              </button>
+            )}
+            {displayUser.role === 'Organizer' && (
+              <button
+                onClick={() => { setViewMode('org_management'); window.location.hash = '#/profile?tab=org_management'; }}
+                className={`px-6 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
+                  viewMode === 'org_management'
+                    ? 'bg-white text-[#006d37] shadow-sm font-bold'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                Quản lý tổ chức
+              </button>
+            )}
+          </div>
+        )}
+
+        {isOwnProfile ? (
+          /* OWN PROFILE: SINGLE-COLUMN LAYOUT */
           <div className="space-y-6">
             
-            {/* Header section with Edit Button */}
-            <div className="flex justify-between items-start gap-4">
-              <div>
-                <h1 className="text-3xl font-bold tracking-tight text-on-surface font-headline-md">
-                  Hồ sơ cá nhân
-                </h1>
-                <p className="text-on-surface-variant text-sm mt-1.5 font-semibold">
-                  Quản lý thông tin tài khoản và xem lịch sử tích lũy hoạt động xã hội
-                </p>
-              </div>
-              <button
-                onClick={() => {
-                  setViewMode('edit');
-                  window.location.hash = '#/profile?tab=edit';
-                }}
-                className="border border-[#006d37] hover:bg-emerald-50 text-[#006d37] font-bold px-6 py-2.5 rounded-xl transition-all text-sm shadow-sm shrink-0"
-              >
-                Chỉnh sửa hồ sơ
-              </button>
-            </div>
-
-            {/* Profile Info Card */}
-            <div className="bg-white border border-surface-variant/40 rounded-3xl shadow-sm p-6 md:p-8 flex flex-col md:flex-row gap-8 items-center md:items-start">
-              
-              {/* Left Column: Avatar image with upload trigger */}
-              <div className="relative group w-36 h-36 rounded-full overflow-hidden border-4 border-[#006d37]/80 shrink-0 bg-slate-50 cursor-pointer">
-                <img 
-                  src={avatarUrl || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=250&h=250&q=80"} 
-                  alt="User Avatar" 
-                  className="w-full h-full object-cover"
-                />
-                <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white text-[10px] font-bold uppercase transition-all duration-200 cursor-pointer">
-                  <span className="material-symbols-outlined text-xl mb-1">photo_camera</span>
-                  Đổi ảnh
-                  <input 
-                    type="file" 
-                    accept="image/*" 
-                    onChange={handleAvatarFileChange} 
-                    className="hidden" 
-                  />
-                </label>
-              </div>
-
-              {/* Right Column: User details list */}
-              <div className="flex-grow space-y-6 w-full text-center md:text-left">
+            {/* VIEW 1: PROFILE DETAILS VIEW */}
+            {(viewMode === 'details' || viewMode === 'edit' || viewMode === 'password' || viewMode === 'upgrade') && (
+              <div className="bg-white border border-slate-200/80 rounded-3xl shadow-sm p-6 md:p-8 space-y-6">
                 
-                {/* Name & Badge */}
-                <div className="space-y-1">
-                  <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
-                    <h2 className="text-2xl font-bold text-on-surface">{currentUser.profile.full_name}</h2>
-                    <span className="bg-[#e8f5e9] text-[#006d37] text-xs px-3 py-1 rounded-full font-bold uppercase">
-                      {currentUser.role === 'Volunteer' ? 'Tình nguyện viên' : currentUser.role}
-                    </span>
+                {/* Profile Header Block inside Card */}
+                {viewMode === 'details' && (
+                  <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 border-b border-slate-100 pb-6">
+                    <div className="relative group w-32 h-32 rounded-full overflow-hidden border-4 border-[#006d37]/85 shrink-0 bg-slate-50 shadow-md">
+                      {avatarUrl ? (
+                        <img 
+                          src={avatarUrl} 
+                          alt="User Avatar" 
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <AvatarPlaceholder name={displayUser.profile.full_name || 'ND'} size={128} />
+                      )}
+                      <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white text-[10px] font-bold uppercase transition-all duration-200 cursor-pointer">
+                        <span className="material-symbols-outlined text-xl mb-1">photo_camera</span>
+                        Đổi ảnh
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          onChange={handleAvatarFileChange} 
+                          className="hidden" 
+                        />
+                      </label>
+                    </div>
+                    <div className="space-y-2 flex-1 text-center sm:text-left">
+                      <div>
+                        <h2 className="text-2xl font-bold text-slate-800">{displayUser.profile.full_name}</h2>
+                        <div className="flex items-center justify-center sm:justify-start gap-1.5 mt-1">
+                          <span className="bg-[#e8f5e9] text-[#006d37] text-xs px-3 py-1 rounded-full font-bold uppercase tracking-wider">
+                            {displayUser.role === 'Volunteer' ? 'Tình nguyện viên' : (displayUser.role === 'Organizer' ? 'Ban tổ chức' : displayUser.role)}
+                          </span>
+                        </div>
+                      </div>
+                      <p className="text-slate-500 text-sm italic leading-relaxed">
+                        {displayUser.profile.bio || "Không có giới thiệu bản thân."}
+                      </p>
+                      
+                      {/* Action buttons inside the header card */}
+                      <div className="flex flex-wrap justify-center sm:justify-start gap-2.5 pt-2">
+                        <button
+                          onClick={() => { setViewMode('edit'); window.location.hash = '#/profile?tab=edit'; }}
+                          className="flex items-center gap-1.5 px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-600 font-bold rounded-xl text-xs transition-all cursor-pointer shadow-sm animate-fadeIn"
+                        >
+                          <span className="material-symbols-outlined text-sm text-slate-500">edit_square</span>
+                          Chỉnh sửa thông tin
+                        </button>
+                        <button
+                          onClick={() => { setViewMode('password'); window.location.hash = '#/profile?tab=password'; }}
+                          className="flex items-center gap-1.5 px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-600 font-bold rounded-xl text-xs transition-all cursor-pointer shadow-sm animate-fadeIn"
+                        >
+                          <span className="material-symbols-outlined text-sm text-slate-500">lock</span>
+                          Đổi mật khẩu
+                        </button>
+                        {displayUser.role === 'Volunteer' && (
+                          <button
+                            onClick={() => { setViewMode('upgrade'); window.location.hash = '#/profile?tab=upgrade'; }}
+                            className="flex items-center gap-1.5 px-4 py-2 bg-[#006d37] hover:bg-emerald-800 text-white font-bold rounded-xl text-xs transition-all cursor-pointer shadow-sm animate-fadeIn"
+                          >
+                            <span className="material-symbols-outlined text-sm">verified_user</span>
+                            Nâng cấp quyền Organizer
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <p className="text-on-surface-variant text-sm mt-1 font-semibold italic text-slate-500">
-                    {bio || "Không có giới thiệu bản thân."}
-                  </p>
-                </div>
+                )}
 
-                {/* 2-Column Info Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 text-sm text-left">
-                  <div className="space-y-1">
-                    <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider block">Địa chỉ Email</span>
-                    <span className="text-on-surface font-semibold block break-all">{currentUser.email || "Chưa cập nhật"}</span>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider block">Số điện thoại</span>
-                    <span className="text-on-surface font-semibold block">{currentUser.phone || "Chưa cập nhật"}</span>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider block">Khu vực hoạt động</span>
-                    <span className="text-on-surface font-semibold block">{areaOfInterest || "TP. Hồ Chí Minh"}</span>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider block">Kỹ năng nổi bật</span>
-                    <span className="text-on-surface font-semibold block">{skillsStr || "Chưa cập nhật kỹ năng"}</span>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider block">Tuổi</span>
-                    <span className="text-on-surface font-semibold block">{currentUser.profile.age !== undefined ? currentUser.profile.age : "Chưa cập nhật"}</span>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider block">Giới tính</span>
-                    <span className="text-on-surface font-semibold block">{currentUser.profile.gender || "Chưa cập nhật"}</span>
-                  </div>
-                </div>
+                {/* Sub View: Details Grid */}
+                {viewMode === 'details' && (
+                  <div className="space-y-6 pt-2">
+                    {/* 2-Column Info Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <InfoItem 
+                        icon="mail" 
+                        iconColorClass="text-blue-600" 
+                        bgClass="bg-blue-50" 
+                        label="Địa chỉ Email" 
+                        value={displayUser.email || "Chưa cập nhật"} 
+                      />
+                      <InfoItem 
+                        icon="call" 
+                        iconColorClass="text-emerald-600" 
+                        bgClass="bg-emerald-50" 
+                        label="Số điện thoại" 
+                        value={displayUser.phone || "Chưa cập nhật"} 
+                      />
+                      <InfoItem 
+                        icon="location_on" 
+                        iconColorClass="text-rose-600" 
+                        bgClass="bg-rose-50" 
+                        label="Khu vực hoạt động" 
+                        value={areaOfInterest || "Chưa cập nhật"} 
+                      />
+                      <InfoItem 
+                        icon="cake" 
+                        iconColorClass="text-amber-600" 
+                        bgClass="bg-amber-50" 
+                        label="Tuổi" 
+                        value={age !== '' && age !== null && age !== undefined ? `${age} tuổi` : "Chưa cập nhật"} 
+                      />
+                      <InfoItem 
+                        icon="wc" 
+                        iconColorClass="text-purple-600" 
+                        bgClass="bg-purple-50" 
+                        label="Giới tính" 
+                        value={gender || "Chưa cập nhật"} 
+                      />
+                    </div>
 
-                {/* Stats highlight box */}
-                <div className="inline-flex items-center gap-3 bg-[#e8f5e9]/40 border border-[#006d37]/10 p-4 rounded-2xl w-full max-w-[320px] text-left">
-                  <span className="material-symbols-outlined text-[#e3a008] text-3xl font-bold">star</span>
-                  <div>
-                    <span className="text-xs text-on-surface-variant font-bold block">Số hoạt động đã tham gia</span>
-                    <span className="text-lg font-bold text-[#006d37]">{currentUser.profile.joined_activity_count || 0} hoạt động</span>
+                    {/* Kỹ năng nổi bật */}
+                    <div className="bg-slate-50 border border-slate-100 rounded-2xl p-5 space-y-2 text-left">
+                      <div className="flex items-center gap-2 text-slate-500 font-bold text-xs uppercase tracking-wider">
+                        <span className="material-symbols-outlined text-lg text-teal-600">psychology</span>
+                        Kỹ năng nổi bật
+                      </div>
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        {skillsStr ? (
+                          skillsStr.split(',').map(s => s.trim()).filter(s => s.length > 0).map((skill, index) => (
+                            <span key={index} className="bg-teal-50 text-teal-800 border border-teal-100 px-3 py-1 rounded-lg text-xs font-semibold">
+                              {skill}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-slate-400 text-xs italic font-medium">Chưa cập nhật danh sách kỹ năng nổi bật.</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Stats Box */}
+                    <div className="bg-[#e8f5e9]/40 border border-[#006d37]/15 p-5 rounded-2xl flex items-center gap-4 text-left">
+                      <div className="w-12 h-12 rounded-xl bg-[#e8f5e9] flex items-center justify-center shrink-0">
+                        <span className="material-symbols-outlined text-[#e3a008] text-2xl font-bold">star</span>
+                      </div>
+                      <div>
+                        <span className="text-xs text-slate-400 font-bold uppercase tracking-wider block">Thống kê cống hiến</span>
+                        <span className="text-slate-800 text-sm font-bold block mt-0.5">
+                          Đã tham gia <span className="text-[#006d37] text-base">{displayUser.profile.joined_activity_count || 0}</span> chiến dịch tình nguyện
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Organizer upgrade banner if Volunteer */}
+                    {displayUser.role === 'Volunteer' && (userRequest ? (
+                      <div className={`p-4 rounded-xl border text-sm text-left ${
+                        isPending ? 'bg-[#fef7e0] border-[#b06000]/30 text-[#b06000]' :
+                        isApproved ? 'bg-[#e8f5e9] border-[#006d37]/30 text-[#006d37]' :
+                        'bg-red-50 border-red-200 text-red-700'
+                      }`}>
+                        <div className="font-bold flex items-center gap-1.5">
+                          <span className="material-symbols-outlined text-lg">
+                            {isPending ? 'hourglass_empty' : isApproved ? 'verified' : 'cancel'}
+                          </span>
+                          Trạng thái đơn nâng quyền: {
+                            isPending ? 'Đang chờ Admin duyệt' :
+                            isApproved ? 'Đã duyệt thành công' : 'Bị từ chối'
+                          }
+                        </div>
+                        <p className="mt-1 text-xs opacity-90">Gửi ngày: {new Date(userRequest.created_at).toLocaleDateString('vi-VN')}</p>
+                        {userRequest.admin_feedback && (
+                          <p className="mt-2.5 p-3 bg-white/60 border border-current/20 rounded-lg text-xs font-semibold leading-relaxed">
+                            <strong>Phản hồi từ Admin:</strong> {userRequest.admin_feedback}
+                          </p>
+                        )}
+                        {isRejected && (
+                          <button
+                            onClick={() => {
+                              setViewMode('upgrade');
+                              window.location.hash = '#/profile?tab=upgrade';
+                            }}
+                            className="mt-3 w-full bg-[#006d37] hover:bg-emerald-800 text-white py-2 rounded-xl font-bold text-xs shadow-sm transition-all"
+                          >
+                            Gửi lại yêu cầu nâng quyền khác
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="bg-[#e8f5e9]/30 border border-[#006d37]/15 rounded-2xl p-5 flex flex-col sm:flex-row justify-between items-center gap-4 text-left">
+                        <div className="space-y-1">
+                          <h4 className="text-sm font-bold text-slate-800">Trở thành Nhà tổ chức (Organizer)</h4>
+                          <p className="text-slate-500 text-xs leading-relaxed max-w-[420px]">
+                            Bạn muốn tự đăng bài và quản lý chiến dịch cộng đồng của riêng mình? Đăng ký nâng cấp tài khoản ngay.
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setViewMode('upgrade');
+                            window.location.hash = '#/profile?tab=upgrade';
+                          }}
+                          className="bg-[#006d37] hover:bg-emerald-800 text-white font-bold px-4 py-2.5 rounded-xl transition-all text-xs shadow-sm whitespace-nowrap cursor-pointer shrink-0 animate-pulse hover:animate-none"
+                        >
+                          Đăng ký nâng quyền
+                        </button>
+                      </div>
+                    ))}
                   </div>
-                </div>
+                )}
+
+                {/* VIEW 2: EDIT PROFILE FORM */}
+                {viewMode === 'edit' && (
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="text-xl font-bold text-slate-800">Cập nhật thông tin cá nhân</h3>
+                      <p className="text-slate-400 text-xs mt-1">Thay đổi họ tên, số điện thoại liên lạc, giới tính và khu vực hoạt động.</p>
+                    </div>
+
+                    <form onSubmit={handleSaveProfile} className="space-y-5 text-left">
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Họ và tên</label>
+                        <input 
+                          type="text" 
+                          value={fullName}
+                          onChange={(e) => setFullName(e.target.value)}
+                          required
+                          placeholder="Nguyễn Văn A"
+                          className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/20 text-sm font-semibold text-slate-800 bg-white transition-all shadow-sm"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Địa chỉ Email</label>
+                          <input 
+                            type="email" 
+                            value={email}
+                            disabled
+                            className="w-full px-4 py-2.5 border border-slate-100 rounded-xl text-sm bg-slate-50 text-slate-400 cursor-not-allowed focus:outline-none font-semibold"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Số điện thoại</label>
+                          <input 
+                            type="text" 
+                            value={phone}
+                            onChange={(e) => setPhone(e.target.value)}
+                            required
+                            placeholder="Nhập số điện thoại..."
+                            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/20 text-sm font-semibold text-slate-800 bg-white transition-all shadow-sm"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Khu vực hoạt động</label>
+                          <select
+                            value={areaOfInterest}
+                            onChange={(e) => setAreaOfInterest(e.target.value)}
+                            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/20 text-sm font-semibold text-slate-800 bg-white transition-all shadow-sm cursor-pointer"
+                          >
+                            <option value="TP. Hồ Chí Minh">TP. Hồ Chí Minh</option>
+                            <option value="Hà Nội">Hà Nội</option>
+                            <option value="Đà Nẵng">Đà Nẵng</option>
+                            <option value="Cần Thơ">Cần Thơ</option>
+                            <option value="Hải Phòng">Hải Phòng</option>
+                          </select>
+                        </div>
+
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Tuổi</label>
+                          <input 
+                            type="number" 
+                            value={age}
+                            onChange={(e) => setAge(e.target.value === '' ? '' : Number(e.target.value))}
+                            placeholder="Nhập tuổi..."
+                            min={0}
+                            max={120}
+                            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/20 text-sm font-semibold text-slate-800 bg-white transition-all shadow-sm"
+                          />
+                        </div>
+
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Giới tính</label>
+                          <select
+                            value={gender}
+                            onChange={(e) => setGender(e.target.value)}
+                            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/20 text-sm font-semibold text-slate-800 bg-white transition-all shadow-sm cursor-pointer"
+                          >
+                            <option value="">Chưa chọn</option>
+                            <option value="Nam">Nam</option>
+                            <option value="Nữ">Nữ</option>
+                            <option value="Khác">Khác</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Kỹ năng nổi bật (Cách nhau bằng dấu phẩy)</label>
+                        <input 
+                          type="text" 
+                          value={skillsStr}
+                          onChange={(e) => setSkillsStr(e.target.value)}
+                          placeholder="Giao tiếp tiếng Anh, Dạy học, Vẽ tranh"
+                          className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/20 text-sm font-semibold text-slate-800 bg-white transition-all shadow-sm"
+                        />
+                      </div>
+
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Giới thiệu bản thân</label>
+                        <textarea 
+                          rows={3}
+                          value={bio}
+                          onChange={(e) => setBio(e.target.value)}
+                          placeholder="Nhập một vài dòng giới thiệu ngắn về bản thân..."
+                          className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/20 text-sm font-semibold text-slate-800 bg-white transition-all shadow-sm"
+                        />
+                      </div>
+
+                      <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+                        <button 
+                          type="button" 
+                          onClick={handleCancelEdit}
+                          className="px-5 py-2.5 border border-slate-200 text-slate-500 rounded-xl hover:bg-slate-50 transition-colors text-sm font-bold cursor-pointer"
+                        >
+                          Hủy
+                        </button>
+                        <button 
+                          type="submit"
+                          className="px-5 py-2.5 bg-[#006d37] hover:bg-emerald-800 text-white rounded-xl transition-colors text-sm font-bold shadow-sm cursor-pointer"
+                        >
+                          Lưu thay đổi
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                )}
+
+                {/* VIEW 3: ORGANIZER UPGRADE REQUEST FORM */}
+                {viewMode === 'upgrade' && (
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="text-xl font-bold text-slate-800">Đăng ký tài khoản Organizer</h3>
+                      <p className="text-slate-400 text-xs mt-1">Cung cấp lý lịch hoạt động để Admin kiểm duyệt vai trò nhà tổ chức chiến dịch.</p>
+                    </div>
+
+                    <form onSubmit={handleSendRequest} className="space-y-5 text-left">
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Số điện thoại liên hệ khẩn cấp</label>
+                        <input 
+                          type="text" 
+                          value={requestContact}
+                          onChange={(e) => setRequestContact(e.target.value)}
+                          required
+                          placeholder="Nhập số điện thoại..."
+                          className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/20 text-sm font-semibold text-slate-800 bg-white transition-all shadow-sm"
+                        />
+                      </div>
+
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Kinh nghiệm hoạt động / Tổ chức đại diện</label>
+                        <textarea 
+                          rows={3}
+                          value={requestOrgName}
+                          onChange={(e) => setRequestOrgName(e.target.value)}
+                          required
+                          placeholder="Mô tả kinh nghiệm tình nguyện của bạn hoặc ghi tên câu lạc bộ/đội nhóm bạn làm đại diện..."
+                          className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/20 text-sm font-semibold text-slate-800 bg-white transition-all shadow-sm"
+                        />
+                      </div>
+
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Mục đích/Lý do nâng cấp quyền tổ chức</label>
+                        <textarea 
+                          rows={3}
+                          value={requestOrgDesc}
+                          onChange={(e) => setRequestOrgDesc(e.target.value)}
+                          required
+                          placeholder="Lý do và kế hoạch các hoạt động tình nguyện bạn dự định tạo lập trên hệ thống..."
+                          className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/20 text-sm font-semibold text-slate-800 bg-white transition-all shadow-sm"
+                        />
+                      </div>
+
+                      <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+                        <button 
+                          type="button" 
+                          onClick={() => setViewMode('details')}
+                          className="px-5 py-2.5 border border-slate-200 text-slate-500 rounded-xl hover:bg-slate-50 transition-colors text-sm font-bold cursor-pointer"
+                        >
+                          Hủy bỏ
+                        </button>
+                        <button 
+                          type="submit"
+                          className="px-5 py-2.5 bg-[#006d37] hover:bg-emerald-800 text-white rounded-xl transition-colors text-sm font-bold shadow-sm cursor-pointer"
+                        >
+                          Gửi yêu cầu duyệt
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                )}
+
+                {/* VIEW 4: CHANGE PASSWORD */}
+                {viewMode === 'password' && (
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="text-xl font-bold text-slate-800">Thay đổi mật khẩu</h3>
+                      <p className="text-slate-400 text-xs mt-1">Cập nhật mật khẩu định kỳ để nâng cao bảo mật tài khoản cá nhân.</p>
+                    </div>
+
+                    <form onSubmit={handleChangePassword} className="space-y-5 text-left">
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Mật khẩu hiện tại</label>
+                        <div className="relative">
+                          <input 
+                            type={showOldPassword ? "text" : "password"} 
+                            value={oldPassword}
+                            onChange={(e) => setOldPassword(e.target.value)}
+                            required
+                            placeholder="••••••••"
+                            className="w-full pl-4 pr-12 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/20 text-sm font-semibold text-slate-800 bg-white transition-all shadow-sm"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowOldPassword(!showOldPassword)}
+                            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors flex items-center justify-center p-1 cursor-pointer"
+                          >
+                            <span className="material-symbols-outlined text-[20px]">
+                              {showOldPassword ? 'visibility_off' : 'visibility'}
+                            </span>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Mật khẩu mới (Tối thiểu 6 ký tự)</label>
+                        <div className="relative">
+                          <input 
+                            type={showNewPassword ? "text" : "password"} 
+                            value={newPassword}
+                            onChange={(e) => setNewPassword(e.target.value)}
+                            required
+                            placeholder="••••••••"
+                            className="w-full pl-4 pr-12 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/20 text-sm font-semibold text-slate-800 bg-white transition-all shadow-sm"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowNewPassword(!showNewPassword)}
+                            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors flex items-center justify-center p-1 cursor-pointer"
+                          >
+                            <span className="material-symbols-outlined text-[20px]">
+                              {showNewPassword ? 'visibility_off' : 'visibility'}
+                            </span>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Xác nhận mật khẩu mới</label>
+                        <div className="relative">
+                          <input 
+                            type={showConfirmPassword ? "text" : "password"} 
+                            value={confirmNewPassword}
+                            onChange={(e) => setConfirmNewPassword(e.target.value)}
+                            required
+                            placeholder="••••••••"
+                            className="w-full pl-4 pr-12 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/20 text-sm font-semibold text-slate-800 bg-white transition-all shadow-sm"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors flex items-center justify-center p-1 cursor-pointer"
+                          >
+                            <span className="material-symbols-outlined text-[20px]">
+                              {showConfirmPassword ? 'visibility_off' : 'visibility'}
+                            </span>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+                        <button 
+                          type="button" 
+                          onClick={() => setViewMode('details')}
+                          className="px-5 py-2.5 border border-slate-200 text-slate-500 rounded-xl hover:bg-slate-50 transition-colors text-sm font-bold cursor-pointer"
+                        >
+                          Hủy bỏ
+                        </button>
+                        <button 
+                          type="submit"
+                          disabled={passwordLoading}
+                          className="px-5 py-2.5 bg-[#006d37] hover:bg-emerald-800 text-white rounded-xl transition-colors text-sm font-bold shadow-sm cursor-pointer disabled:opacity-50"
+                        >
+                          {passwordLoading ? 'Đang thực hiện...' : 'Cập nhật mật khẩu'}
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                )}
 
               </div>
+            )}
 
-            </div>
+            {/* VIEW: PARTICIPATED CAMPAIGNS (Matches mockup table layout) */}
+            {viewMode === 'participated' && (
+              <div className="bg-white border border-slate-200/80 rounded-3xl shadow-sm p-6 md:p-8 space-y-6">
+                <div>
+                  <h3 className="text-xl font-bold text-slate-800 font-headline-md">Lịch sử tham gia hoạt động</h3>
+                </div>
 
-            {/* Request upgrade panel or request status */}
-            {currentUser.role === 'Volunteer' && (
-              userRequest ? (
-                /* Display upgrade request status if already submitted */
-                <div className="bg-white border border-surface-variant/40 rounded-3xl p-6 md:p-8 space-y-4">
-                  <div className={`p-4 rounded-xl border text-sm ${
-                    isPending ? 'bg-[#fef7e0] border-[#b06000]/30 text-[#b06000]' :
-                    isApproved ? 'bg-[#e8f5e9] border-[#006d37]/30 text-[#006d37]' :
-                    'bg-red-50 border-red-200 text-red-700'
-                  }`}>
-                    <div className="font-bold flex items-center gap-1.5">
-                      <span className="material-symbols-outlined text-lg">
-                        {isPending ? 'hourglass_empty' : isApproved ? 'verified' : 'cancel'}
-                      </span>
-                      Trạng thái yêu cầu nâng quyền: {
-                        isPending ? 'Đang chờ duyệt' :
-                        isApproved ? 'Đã duyệt thành công' : 'Bị từ chối'
-                      }
-                    </div>
-                    <p className="mt-2 text-xs opacity-90">Ngày gửi: {new Date(userRequest.created_at).toLocaleDateString('vi-VN')}</p>
-                    
-                    {userRequest.admin_feedback && (
-                      <p className="mt-3 p-3 bg-white/60 border border-current/20 rounded-lg text-xs leading-relaxed font-semibold">
-                        <strong>Lý do phản hồi:</strong> {userRequest.admin_feedback}
-                      </p>
-                    )}
+                {myRegs.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-center space-y-3 bg-slate-50 border border-slate-100 rounded-2xl">
+                    <span className="material-symbols-outlined text-4xl text-slate-300">volunteer_activism</span>
+                    <p className="text-slate-500 font-semibold text-sm">Chưa có hoạt động tham gia nào.</p>
+                    <a href="#/activities" className="text-[#006d37] hover:underline font-bold text-xs">Khám phá hoạt động ngay</a>
                   </div>
+                ) : (
+                  <div className="overflow-x-auto border border-slate-100 rounded-2xl">
+                    <table className="w-full text-sm text-left border-collapse">
+                      <thead>
+                        <tr className="bg-slate-50/75 border-b border-slate-100 text-xs font-bold uppercase tracking-wider text-slate-400">
+                          <th className="px-6 py-4">HOẠT ĐỘNG</th>
+                          <th className="px-6 py-4">THỜI GIAN DIỄN RA</th>
+                          <th className="px-6 py-4">TRẠNG THÁI DUYỆT</th>
+                          <th className="px-6 py-4">KẾT QUẢ THAM GIA</th>
+                          <th className="px-6 py-4">THAO TÁC</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 text-slate-700">
+                        {myRegs.map(reg => {
+                          const act = activities.find(a => a._id === reg.activity_id);
+                          if (!act) return null;
+                          
+                          // Format date to D/M/YYYY
+                          const dateObj = new Date(act.start_date);
+                          const formattedDate = `${dateObj.getDate()}/${dateObj.getMonth() + 1}/${dateObj.getFullYear()}`;
 
-                  {isRejected && (
-                    <button
-                      onClick={() => setViewMode('upgrade')}
-                      className="w-full bg-[#006d37] hover:bg-emerald-800 text-white py-3 rounded-xl font-bold text-sm shadow transition-all"
-                    >
-                      Gửi lại yêu cầu nâng quyền khác
-                    </button>
+                          const statusConfig: Record<string, { label: string; class: string }> = {
+                            'Pending': { label: 'Chờ duyệt', class: 'bg-amber-50 text-amber-800 border-amber-100/50' },
+                            'Approved': { label: 'Đã duyệt', class: 'bg-emerald-50 text-[#006d37] border-emerald-100/50' },
+                            'Rejected': { label: 'Từ chối', class: 'bg-rose-50 text-rose-800 border-rose-100/50' },
+                            'Completed': { label: 'Completed', class: 'bg-slate-100 text-slate-600 border border-slate-200/50' },
+                            'Absent': { label: 'Vắng mặt', class: 'bg-slate-100 text-slate-600 border-slate-200/50' },
+                            'Cancelled': { label: 'Đã hủy', class: 'bg-slate-50 text-slate-500 border-slate-100/50' }
+                          };
+                          const badge = statusConfig[reg.status] || { label: reg.status, class: 'bg-slate-50 text-slate-600' };
+
+                          // Participation Result logic
+                          let resultNode = <span className="text-slate-500 text-xs font-semibold">Chưa diễn ra</span>;
+                          if (reg.status === 'Completed') {
+                            resultNode = (
+                              <span className="bg-emerald-50 text-[#006d37] border border-emerald-100/50 px-2.5 py-0.5 rounded-lg text-xs font-bold whitespace-nowrap">
+                                Hoàn thành (+1)
+                              </span>
+                            );
+                          } else if (reg.status === 'Absent') {
+                            resultNode = <span className="text-red-500 text-xs font-bold">Vắng mặt</span>;
+                          } else if (reg.status === 'Cancelled') {
+                            resultNode = <span className="text-slate-400 text-xs font-semibold">Đã hủy</span>;
+                          }
+
+                          return (
+                            <tr key={reg._id} className="hover:bg-slate-50/50 transition-colors">
+                              <td className="px-6 py-4 font-bold text-slate-800 max-w-[280px]">
+                                <a 
+                                  href={`#/activity/${act._id}`} 
+                                  className="text-[#006d37] hover:underline whitespace-normal break-words line-clamp-2 leading-relaxed"
+                                >
+                                  {act.title}
+                                </a>
+                              </td>
+                              <td className="px-6 py-4 text-xs font-semibold text-slate-500 whitespace-nowrap">
+                                {formattedDate}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <span className={`text-[11px] px-2.5 py-1 rounded-full font-bold uppercase border ${badge.class}`}>
+                                  {badge.label}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                {resultNode}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <a 
+                                  href={`#/activity/${act._id}`} 
+                                  className="text-xs font-bold text-[#006d37] hover:underline"
+                                >
+                                  Chi tiết →
+                                </a>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* VIEW: ORGANIZER MANAGEMENT */}
+            {viewMode === 'org_management' && (
+              <div className="bg-white border border-slate-200/80 rounded-3xl shadow-sm p-6 md:p-8 space-y-6">
+                <div>
+                  <h3 className="text-xl font-bold text-slate-800">Quản lý tổ chức</h3>
+                  <p className="text-slate-400 text-xs mt-1">Thông tin chiến dịch và hoạt động quản trị của đơn vị tổ chức.</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-center">
+                    <h4 className="text-3xl font-extrabold text-[#006d37]">{orgActs.length}</h4>
+                    <p className="text-slate-500 text-xs font-semibold mt-1">Tổng chiến dịch</p>
+                  </div>
+                  <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-center">
+                    <h4 className="text-3xl font-extrabold text-[#006d37]">
+                      {orgActs.filter(a => a.status === 'Open').length}
+                    </h4>
+                    <p className="text-slate-500 text-xs font-semibold mt-1">Chiến dịch đang mở</p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h4 className="font-bold text-xs text-slate-500 uppercase tracking-wider">Danh sách chiến dịch đã tạo</h4>
+                  {orgActs.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-10 text-center space-y-3 bg-slate-50 border border-slate-100 rounded-2xl">
+                      <span className="material-symbols-outlined text-4xl text-slate-300">campaign</span>
+                      <p className="text-slate-500 font-semibold text-sm">Chưa tạo chiến dịch nào.</p>
+                      {isOwnProfile && (
+                        <a href="#/organizer/dashboard" className="text-[#006d37] hover:underline font-bold text-xs">Tạo chiến dịch đầu tiên</a>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-slate-100 border border-slate-100 rounded-2xl overflow-hidden bg-slate-50">
+                      {orgActs.map(act => {
+                        const statusConfig: Record<string, { label: string; class: string }> = {
+                          'Draft': { label: 'Bản nháp', class: 'bg-slate-100 text-slate-600' },
+                          'Pending Review': { label: 'Chờ duyệt', class: 'bg-amber-100 text-amber-800' },
+                          'Open': { label: 'Đang mở', class: 'bg-emerald-100 text-emerald-800' },
+                          'Full': { label: 'Đã đầy', class: 'bg-teal-100 text-teal-800' },
+                          'Ongoing': { label: 'Đang diễn ra', class: 'bg-blue-100 text-blue-800' },
+                          'Completed': { label: 'Đã kết thúc', class: 'bg-[#bbcbbb] text-slate-700' },
+                          'Rejected': { label: 'Từ chối', class: 'bg-rose-100 text-rose-800' },
+                          'Cancelled': { label: 'Đã hủy', class: 'bg-slate-200 text-slate-700' }
+                        };
+                        const badge = statusConfig[act.status] || { label: act.status, class: 'bg-slate-100 text-slate-600' };
+
+                        return (
+                          <div key={act._id} className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 hover:bg-white transition-colors">
+                            <div className="space-y-1">
+                              <h5 className="font-bold text-sm text-slate-800">{act.title}</h5>
+                              <p className="text-xs text-slate-500 font-medium">Bắt đầu: {new Date(act.start_date).toLocaleDateString('vi-VN')}</p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase ${badge.class}`}>
+                                {badge.label}
+                              </span>
+                              <a 
+                                href={`#/activity/${act._id}`} 
+                                className="bg-white hover:bg-slate-50 border border-slate-200 text-[#006d37] font-bold px-3 py-1.5 rounded-lg text-[11px] transition-colors"
+                              >
+                                Xem chi tiết
+                              </a>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   )}
                 </div>
-              ) : (
-                /* Bottom Upgrade Banner matching figma design card */
-                <div className="bg-[#e8f5e9]/30 border border-[#006d37]/20 rounded-3xl p-6 md:p-8 flex flex-col md:flex-row justify-between items-center gap-6">
-                  <div className="space-y-1.5">
-                    <h3 className="text-lg font-bold text-on-surface">Trở thành Nhà tổ chức hoạt động</h3>
-                    <p className="text-on-surface-variant text-sm leading-relaxed max-w-[500px]">
-                      Bạn là đại diện câu lạc bộ, doanh nghiệp xã hội hoặc mong muốn tự tổ chức hoạt động vì cộng đồng? Hãy nâng cấp tài khoản lên vai trò Organizer.
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => {
-                      setViewMode('upgrade');
-                      window.location.hash = '#/profile?tab=upgrade';
-                    }}
-                    className="bg-[#006d37] hover:bg-emerald-800 text-white font-bold px-6 py-3 rounded-xl transition-all text-sm shadow-sm whitespace-nowrap"
-                  >
-                    Yêu cầu nâng cấp &rarr;
-                  </button>
-                </div>
-              )
+              </div>
             )}
 
           </div>
-        )}
-
-        {/* ------------------------------------------- */}
-        {/* VIEW 2: EDIT PROFILE FORM */}
-        {viewMode === 'edit' && (
-          <div className="space-y-4">
-            {/* Top link navigation */}
-            <button
-              onClick={handleCancelEdit}
-              className="text-[#006d37] hover:underline font-bold text-sm flex items-center gap-1"
-            >
-              &larr; Hủy & Quay lại hồ sơ
-            </button>
-
-            {/* Edit Card Form */}
-            <div className="bg-white border border-surface-variant/40 rounded-3xl shadow-sm p-6 md:p-8">
-              <h2 className="text-2xl font-bold text-on-surface mb-6">
-                Cập nhật thông tin cá nhân
-              </h2>
-
-              <form onSubmit={handleSaveProfile} className="space-y-6">
-                {/* Họ và tên */}
-                <div className="flex flex-col gap-2">
-                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Họ và tên</label>
-                  <input 
-                    type="text" 
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    required
-                    placeholder="Lê Minh Thư"
-                    className="w-full px-4 py-2.5 border border-surface-variant rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm"
-                  />
-                </div>
-
-                {/* Email & Phone Row */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <div className="flex flex-col gap-2">
-                    <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Địa chỉ Email</label>
-                    <input 
-                      type="email" 
-                      value={email}
-                      disabled
-                      placeholder="minhthu.le@gmail.com"
-                      className="w-full px-4 py-2.5 border border-surface-variant rounded-xl text-sm bg-slate-100 text-slate-500 cursor-not-allowed focus:outline-none"
-                    />
-                  </div>
-                  
-                  {/* Phone input without country code prefix box */}
-                  <div className="flex flex-col gap-2">
-                    <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Số điện thoại</label>
-                    <input 
-                      type="text" 
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      required
-                      placeholder="Nhập số điện thoại..."
-                      className="w-full px-4 py-2.5 border border-surface-variant rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm"
-                    />
-                  </div>
-                </div>
-
-                {/* Area of Interest & Skills Row */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <div className="flex flex-col gap-2">
-                    <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Khu vực hoạt động</label>
-                    <select
-                      value={areaOfInterest}
-                      onChange={(e) => setAreaOfInterest(e.target.value)}
-                      className="w-full px-4 py-2.5 border border-surface-variant rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm bg-white cursor-pointer"
-                    >
-                      <option value="TP. Hồ Chí Minh">TP. Hồ Chí Minh</option>
-                      <option value="Hà Nội">Hà Nội</option>
-                      <option value="Đà Nẵng">Đà Nẵng</option>
-                      <option value="Cần Thơ">Cần Thơ</option>
-                      <option value="Hải Phòng">Hải Phòng</option>
-                    </select>
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Kỹ năng nổi bật</label>
-                    <input 
-                      type="text" 
-                      value={skillsStr}
-                      onChange={(e) => setSkillsStr(e.target.value)}
-                      placeholder="Giao tiếp tiếng Anh, Dạy học, Vẽ tranh"
-                      className="w-full px-4 py-2.5 border border-surface-variant rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm"
-                    />
-                  </div>
-                </div>
-
-                {/* Bio Description */}
-                <div className="flex flex-col gap-2">
-                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Giới thiệu ngắn bản thân</label>
-                  <textarea 
-                    rows={4}
-                    value={bio}
-                    onChange={(e) => setBio(e.target.value)}
-                    placeholder="Sinh viên Đại học Sư Phạm TP.HCM, đam mê các hoạt động giáo dục trẻ em."
-                    className="w-full px-4 py-2.5 border border-surface-variant rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm"
-                  />
-                </div>
-
-                {/* Age & Gender Row */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <div className="flex flex-col gap-2">
-                    <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Tuổi</label>
-                    <input 
-                      type="number" 
-                      value={age}
-                      onChange={(e) => setAge(e.target.value === '' ? '' : Number(e.target.value))}
-                      placeholder="Nhập tuổi..."
-                      min={0}
-                      max={120}
-                      className="w-full px-4 py-2.5 border border-surface-variant rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Giới tính</label>
-                    <select
-                      value={gender}
-                      onChange={(e) => setGender(e.target.value)}
-                      className="w-full px-4 py-2.5 border border-surface-variant rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm bg-white cursor-pointer"
-                    >
-                      <option value="">Chưa chọn</option>
-                      <option value="Nam">Nam</option>
-                      <option value="Nữ">Nữ</option>
-                      <option value="Khác">Khác</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex justify-end gap-4 border-t border-surface-variant/40 pt-6">
-                  <button 
-                    type="button" 
-                    onClick={handleCancelEdit}
-                    className="px-6 py-2.5 border border-surface-variant text-on-surface-variant rounded-xl hover:bg-slate-50 transition-colors text-sm font-semibold"
-                  >
-                    Hủy
-                  </button>
-                  <button 
-                    type="submit"
-                    className="px-6 py-2.5 bg-[#006d37] hover:bg-emerald-800 text-white rounded-xl transition-colors text-sm font-bold shadow-sm"
-                  >
-                    Lưu thay đổi
-                  </button>
-                </div>
-              </form>
+        ) : (
+          /* PARTNER PROFILE VIEW (isOwnProfile === false) */
+          <div className="bg-white border border-slate-200/80 rounded-3xl shadow-sm p-6 md:p-8 flex flex-col md:flex-row gap-8 items-center md:items-start">
+            {/* Avatar Column */}
+            <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-[#006d37]/80 shrink-0 bg-slate-50 shadow-md">
+              {displayUser.profile.avatar_url ? (
+                <img 
+                  src={displayUser.profile.avatar_url} 
+                  alt="User Avatar" 
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <AvatarPlaceholder name={displayUser.profile.full_name || 'ND'} size={128} />
+              )}
             </div>
-          </div>
-        )}
 
-        {/* ------------------------------------------- */}
-        {/* VIEW 3: ORGANIZER UPGRADE REQUEST */}
-        {viewMode === 'upgrade' && (
-          <div className="space-y-4">
-            {/* Top link navigation */}
-            <button
-              onClick={() => setViewMode('details')}
-              className="text-[#006d37] hover:underline font-bold text-sm flex items-center gap-1"
-            >
-              &larr; Hủy & Quay lại hồ sơ
-            </button>
-
-            {/* Upgrade Request Card */}
-            <div className="bg-white border border-surface-variant/40 rounded-3xl shadow-sm p-6 md:p-8">
-              <span className="text-xs text-on-surface-variant block font-semibold mb-2">Hồ sơ cá nhân &gt; Xin quyền tổ chức</span>
-              <h2 className="text-2xl font-bold text-on-surface mb-2">
-                Đăng ký quyền Ban tổ chức (Organizer)
-              </h2>
-              <p className="text-on-surface-variant text-sm leading-relaxed mb-6 font-semibold">
-                Vui lòng cung cấp đầy đủ thông tin để Ban quản trị (Admin) kiểm duyệt năng lực tổ chức của bạn. Sau khi phê duyệt, vai trò tài khoản của bạn sẽ đổi thành Organizer và mở khóa chức năng tự tạo hoạt động.
-              </p>
-
-              <form onSubmit={handleSendRequest} className="space-y-6">
-                
-                {/* Emergency Contact Phone input */}
-                <div className="flex flex-col gap-2">
-                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Số điện thoại liên hệ khẩn cấp</label>
-                  <input 
-                    type="text" 
-                    value={requestContact}
-                    onChange={(e) => setRequestContact(e.target.value)}
-                    required
-                    placeholder="Nhập số điện thoại..."
-                    className="w-full px-4 py-2.5 border border-surface-variant rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm"
-                  />
+            {/* Info Column */}
+            <div className="flex-grow space-y-6 w-full text-center md:text-left">
+              {/* Name & Role Badge */}
+              <div className="space-y-1">
+                <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
+                  <h2 className="text-2xl font-bold text-slate-800">{displayUser.profile.full_name}</h2>
+                  <span className="bg-[#e8f5e9] text-[#006d37] text-xs px-3 py-1 rounded-full font-bold uppercase tracking-wider">
+                    {displayUser.role === 'Volunteer' ? 'Tình nguyện viên' : (displayUser.role === 'Organizer' ? 'Ban tổ chức' : displayUser.role)}
+                  </span>
                 </div>
+                <p className="text-slate-500 text-sm mt-1 font-semibold italic">
+                  {displayUser.profile.bio || "Không có giới thiệu bản thân."}
+                </p>
+              </div>
 
-                {/* Kinh nghiệm hoạt động */}
-                <div className="flex flex-col gap-2">
-                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Kinh nghiệm hoạt động / Tên tổ chức đại diện</label>
-                  <textarea 
-                    rows={4}
-                    value={requestOrgName}
-                    onChange={(e) => setRequestOrgName(e.target.value)}
-                    required
-                    placeholder="Nêu rõ kinh nghiệm làm tình nguyện của bạn hoặc ghi tên câu lạc bộ/nhóm tình nguyện mà bạn đang đại diện..."
-                    className="w-full px-4 py-2.5 border border-surface-variant rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm"
-                  />
-                </div>
+              {/* Details grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <InfoItem 
+                  icon="mail" 
+                  iconColorClass="text-blue-600" 
+                  bgClass="bg-blue-50" 
+                  label="Địa chỉ Email" 
+                  value={displayUser.email || "Chưa cập nhật"} 
+                />
+                <InfoItem 
+                  icon="call" 
+                  iconColorClass="text-emerald-600" 
+                  bgClass="bg-emerald-50" 
+                  label="Số điện thoại" 
+                  value={displayUser.phone || "Chưa cập nhật"} 
+                />
+                <InfoItem 
+                  icon="location_on" 
+                  iconColorClass="text-rose-600" 
+                  bgClass="bg-rose-50" 
+                  label="Khu vực hoạt động" 
+                  value={displayUser.profile.area_of_interest || "TP. Hồ Chí Minh"} 
+                />
+                <InfoItem 
+                  icon="cake" 
+                  iconColorClass="text-amber-600" 
+                  bgClass="bg-amber-50" 
+                  label="Tuổi" 
+                  value={displayUser.profile.age !== undefined && displayUser.profile.age !== null ? `${displayUser.profile.age} tuổi` : "Chưa cập nhật"} 
+                />
+                <InfoItem 
+                  icon="wc" 
+                  iconColorClass="text-purple-600" 
+                  bgClass="bg-purple-50" 
+                  label="Giới tính" 
+                  value={displayUser.profile.gender || "Chưa cập nhật"} 
+                />
+              </div>
 
-                {/* Lý do muốn trở thành nhà tổ chức */}
-                <div className="flex flex-col gap-2">
-                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Lý do muốn trở thành Nhà tổ chức</label>
-                  <textarea 
-                    rows={4}
-                    value={requestOrgDesc}
-                    onChange={(e) => setRequestOrgDesc(e.target.value)}
-                    required
-                    placeholder="Chia sẻ mục đích của bạn (ví dụ: Muốn tổ chức gom pin cũ định kỳ hàng tuần, Muốn liên kết các bữa ăn thiện nguyện tại các mái ấm...)"
-                    className="w-full px-4 py-2.5 border border-surface-variant rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm"
-                  />
+              {/* Skills list */}
+              {displayUser.profile.skills && displayUser.profile.skills.length > 0 && (
+                <div className="bg-slate-50 border border-slate-100 rounded-2xl p-5 space-y-2 text-left">
+                  <div className="flex items-center gap-2 text-slate-500 font-bold text-xs uppercase tracking-wider">
+                    <span className="material-symbols-outlined text-lg text-teal-600">psychology</span>
+                    Kỹ năng nổi bật
+                  </div>
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {displayUser.profile.skills.map((skill, index) => (
+                      <span key={index} className="bg-teal-50 text-teal-800 border border-teal-100 px-3 py-1 rounded-lg text-xs font-semibold">
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
                 </div>
+              )}
 
-                {/* Action Buttons */}
-                <div className="flex justify-end gap-4 border-t border-surface-variant/40 pt-6">
-                  <button 
-                    type="button"
-                    onClick={() => setViewMode('details')}
-                    className="px-6 py-2.5 border border-surface-variant text-on-surface-variant rounded-xl hover:bg-slate-50 transition-colors text-sm font-semibold"
-                  >
-                    Hủy bỏ
-                  </button>
-                  <button 
-                    type="submit"
-                    className="px-6 py-2.5 bg-[#006d37] hover:bg-emerald-800 text-white rounded-xl transition-colors text-sm font-bold shadow-sm"
-                  >
-                    Gửi yêu cầu duyệt
-                  </button>
+              {/* Stats Box */}
+              <div className="bg-[#e8f5e9]/40 border border-[#006d37]/15 p-5 rounded-2xl inline-flex items-center gap-4 text-left w-full sm:max-w-md">
+                <div className="w-12 h-12 rounded-xl bg-[#e8f5e9] flex items-center justify-center shrink-0">
+                  <span className="material-symbols-outlined text-[#e3a008] text-2xl font-bold">star</span>
                 </div>
-              </form>
+                <div>
+                  <span className="text-xs text-slate-400 font-bold uppercase tracking-wider block">Hoạt động cống hiến</span>
+                  <span className="text-slate-800 text-sm font-bold block mt-0.5">
+                    Đã tham gia <span className="text-[#006d37] text-base">{displayUser.profile.joined_activity_count || 0}</span> chiến dịch tình nguyện
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         )}

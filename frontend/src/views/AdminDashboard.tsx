@@ -1,6 +1,21 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 
+// Helper: inline avatar fallback with initials
+const AdminAvatar: React.FC<{ name: string; src?: string | null }> = ({ name, src }) => {
+  if (src) {
+    return <img alt="Avatar" className="w-full h-full object-cover" src={src} />;
+  }
+  const initials = name.split(' ').map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
+  const colors = ['#006d37', '#0d6efd', '#6f42c1', '#fd7e14', '#20c997'];
+  const bg = colors[name.charCodeAt(0) % colors.length];
+  return (
+    <div style={{ background: bg, width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <span style={{ color: '#fff', fontWeight: 700, fontSize: 14, fontFamily: 'inherit' }}>{initials}</span>
+    </div>
+  );
+};
+
 export const AdminDashboard: React.FC = () => {
   const { 
     currentUser, users, activities, registrations, organizerRequests,
@@ -115,10 +130,9 @@ export const AdminDashboard: React.FC = () => {
               className="flex items-center gap-2.5 pl-2 focus:outline-none cursor-pointer"
             >
               <div className="w-10 h-10 rounded-full border-2 border-primary-container overflow-hidden bg-surface-container-high shrink-0 hover:scale-105 active:scale-95 transition-all">
-                <img 
-                  alt="Avatar" 
-                  className="w-full h-full object-cover" 
-                  src={currentUser.profile.avatar_url || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150&q=80"}
+                <AdminAvatar 
+                  name={currentUser.profile.full_name} 
+                  src={currentUser.profile.avatar_url}
                 />
               </div>
               <div className="flex flex-col text-left">
@@ -159,6 +173,15 @@ export const AdminDashboard: React.FC = () => {
                   >
                     <span className="material-symbols-outlined text-sm text-on-surface-variant">account_circle</span>
                     Hồ sơ cá nhân
+                  </a>
+                  <hr className="border-outline-variant/30 my-1" />
+                  <a 
+                    href="#/profile?tab=password" 
+                    onClick={() => setProfileDropdownOpen(false)}
+                    className="flex items-center gap-2.5 px-4 py-2.5 text-on-surface hover:bg-slate-50 transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-sm text-on-surface-variant">vpn_key</span>
+                    Đổi mật khẩu
                   </a>
                   <hr className="border-outline-variant/30 my-1" />
                   <button 
@@ -595,8 +618,8 @@ export const AdminDashboard: React.FC = () => {
                           <span className="col-span-2 text-on-surface font-bold">{pendingActivities[0].categories.join(', ')}</span>
                         </div>
                         <div className="grid grid-cols-3 gap-2">
-                          <span className="text-on-surface-variant">Người đăng</span>
-                          <span className="col-span-2 text-on-surface font-bold">{pendingActivities[0].denormalized_organizer.name}</span>
+                           <span className="text-on-surface-variant">Người đăng</span>
+                           <span className="col-span-2 text-on-surface font-bold">{pendingActivities[0].denormalized_organizer?.name || 'Ban tổ chức'}</span>
                         </div>
                         <div className="grid grid-cols-3 gap-2">
                           <span className="text-on-surface-variant">Thời gian gửi</span>
@@ -732,7 +755,7 @@ export const AdminDashboard: React.FC = () => {
                               {new Date(act.created_at).toLocaleDateString('vi-VN')}
                             </td>
                             <td className="px-6 py-5 text-on-surface-variant">
-                              {act.denormalized_organizer.name}
+                               {act.denormalized_organizer?.name || 'Ban tổ chức'}
                             </td>
                             <td className="px-6 py-5 whitespace-nowrap">
                               <div className="flex gap-3">

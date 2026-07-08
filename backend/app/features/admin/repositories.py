@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from bson.errors import InvalidId
 from pydantic import ValidationError
 from app.features.activities.models import Activity
+from app.features.activities.constants import ActivityStatus
 from beanie import Document
 from pydantic import Field
 from app.shared.enums import RequestStatus
@@ -64,19 +65,25 @@ class AdminRepository:
 
     @staticmethod
     async def approve_activity(activity_id: str, is_approved: bool, reason: Optional[str] = None) -> Optional[Activity]:
+        # BUG FIX: ValueError from the state machine check was previously caught
+        # by the broad `except (InvalidId, ValueError, ValidationError)` block below,
+        # causing the router to receive None and return 404 instead of the correct 400.
+        # Fix: separate the ID validation try/except from the business logic try/except.
         try:
             activity = await Activity.get(activity_id)
-            if not activity:
-                return None
-                
-            if activity.status in ["PUBLISHED", "REJECTED"]:
-                raise ValueError(f"Cannot approve or reject an activity that is already {activity.status}")
-                
-            activity.status = "PUBLISHED" if is_approved else "REJECTED"
-            await activity.save()
-            return activity
-        except (InvalidId, ValueError, ValidationError):
+        except (InvalidId, ValidationError):
             return None
+
+        if not activity:
+            return None
+
+        # State machine guard — raises ValueError intentionally; must NOT be caught here
+        if activity.status in [ActivityStatus.OPEN.value, ActivityStatus.REJECTED.value]:
+            raise ValueError(f"Cannot approve or reject an activity with status '{activity.status}'")
+
+        activity.status = ActivityStatus.OPEN.value if is_approved else ActivityStatus.REJECTED.value
+        await activity.save()
+        return activity
 
     @staticmethod
     async def get_dashboard_counts() -> dict:
@@ -98,7 +105,7 @@ class AdminRepository:
             User.find_all().count(),
             Activity.find_all().count(),
             Post.find_all().count(),
-            OrganizerRequest.find({"status": "PENDING"}).count()
+            OrganizerRequest.find({"status": RequestStatus.PENDING.value}).count()
         )
         
         return {

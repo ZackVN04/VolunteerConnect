@@ -19,11 +19,8 @@ class ActivityRepository:
         query = {
             "status": {
                 "$in": [
-                    ActivityStatus.OPEN,
-                    ActivityStatus.FULL,
-                    ActivityStatus.ONGOING,
-                    ActivityStatus.COMPLETED,
-                    ActivityStatus.CANCELLED
+                    ActivityStatus.OPEN.value,
+                    ActivityStatus.FULL.value
                 ]
             }
         }

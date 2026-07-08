@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
+from beanie import PydanticObjectId
 import jwt
 import random
 import string
@@ -192,6 +193,21 @@ async def refresh_token(request: RefreshTokenRequest):
                 detail="Loại Token không hợp lệ"
             )
             
+        try:
+            obj_id = PydanticObjectId(user_id)
+        except Exception:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Mã định danh Token không hợp lệ"
+            )
+            
+        user = await User.get(obj_id)
+        if user is None or user.status == UserStatus.BANNED:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Tài khoản đã bị khóa hoặc không tồn tại"
+            )
+            
         return TokenResponse(
             access_token=create_access_token(subject=user_id),
             refresh_token=create_refresh_token(subject=user_id),
@@ -211,26 +227,27 @@ async def refresh_token(request: RefreshTokenRequest):
 
 @router.post("/forgot-password", status_code=status.HTTP_200_OK)
 async def forgot_password(request: ForgotPasswordRequest):
+    # SECURITY FIX: Always return a generic 200 OK response regardless of
+    # whether the email exists in the database. This prevents email enumeration
+    # attacks where an attacker could probe which emails are registered.
+    GENERIC_RESPONSE = {"message": "If the email exists in our system, a password recovery code has been sent."}
+
     user = await User.find_one(User.email == request.email)
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Email không tồn tại trong hệ thống"
-        )
-        
+        # Silently return the same generic message — do NOT reveal email existence
+        return GENERIC_RESPONSE
+
     otp_code = generate_otp()
     otp_expiry = datetime.now(timezone.utc) + timedelta(minutes=5)
-    
+
     user.otp_code = otp_code
     user.otp_expiry = otp_expiry
     await user.save()
-    
-    # Gửi email khôi phục mật khẩu (chạy ngầm không block process)
+
+    # Send password recovery email in background (non-blocking)
     await send_reset_password_email(request.email, otp_code)
-    
-    return {
-        "message": "Mã OTP khôi phục mật khẩu đã được gửi tới email của bạn."
-    }
+
+    return GENERIC_RESPONSE
 
 @router.post("/reset-password", status_code=status.HTTP_200_OK)
 async def reset_password(request: ResetPasswordRequest):

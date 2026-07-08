@@ -1,5 +1,5 @@
 from beanie import Document, PydanticObjectId
-from pydantic import Field
+from pydantic import Field, field_validator
 from app.shared.enums import RequestStatus
 from datetime import datetime, timezone
 from typing import List, Optional
@@ -15,6 +15,14 @@ class OrganizerRequest(Document):
     reviewed_at: Optional[datetime] = None
     reviewed_by: Optional[PydanticObjectId] = None
     denormalized_volunteer: Optional[dict] = None
+
+    @field_validator("status", mode="before")
+    @classmethod
+    def normalize_status(cls, v):
+        """Normalize status to lowercase to handle legacy data stored as uppercase (e.g. 'PENDING' → 'pending')."""
+        if isinstance(v, str):
+            return v.lower()
+        return v
 
     class Settings:
         name = "organizer_requests"
