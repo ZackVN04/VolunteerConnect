@@ -63,10 +63,12 @@ export const authService = {
     // Backend: POST /api/v1/auth/login, body: { email, password }
     const res = await api.post('/auth/login', { email, password: password_raw });
     const token = res.data.access_token;
-    
-    // Immediately save token to localStorage for axios interceptor
+    const refreshToken = res.data.refresh_token;
+
+    // Persist both tokens so the response interceptor can silently refresh sessions
     localStorage.setItem('token', token);
-    
+    localStorage.setItem('refresh_token', refreshToken);
+
     // Fetch profile details
     const user = await authService.getCurrentUser();
     return { token, user };

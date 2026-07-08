@@ -17,12 +17,16 @@ async def create_post(post_data: PostCreate, current_user: User = Depends(get_cu
 
 @router.get("/", response_model=PostPaginationResponse)
 async def get_posts(
-    page: int = Query(1, ge=1, description="Page number"),
+    page: int = Query(1, ge=1, le=1000, description="Page number (max 1000 to prevent deep-skip DoS)"),
     limit: int = Query(10, ge=1, le=100, description="Items per page limit"),
     hashtag: Optional[str] = Query(None, description="Filter by hashtag")
 ):
     """
     Retrieve paginated posts with optional hashtag filtering.
+    
+    Security note: `page` is capped at 1000 to prevent Deep Pagination DoS attacks.
+    A request with page=999999 and limit=100 would force MongoDB to skip 99,999,900
+    documents — equivalent to a full collection scan, causing server timeouts.
     """
     return await PostService.get_posts(page, limit, hashtag)
 
