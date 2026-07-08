@@ -31,7 +31,7 @@
     *   `app/features/users/`
     *   `app/features/organizer_requests/` (Phần router gửi và check cooldown của Volunteer)
 *   **Dependency với người khác:** Đây là module nền móng. Dev 1 bắt buộc phải tạo trước Middleware xác thực (`get_current_user`) trong Ngày 2 để các Developer khác (`Dev 2`, `Dev 3`, `Dev 4`) import làm điều kiện xác thực cho API của họ.
-*   **Deliverables:** Trình xác thực tài khoản qua OTP SMS, sinh mã JWT token, bộ hồ sơ cá nhân và logic kiểm tra cooldown của Volunteer.
+*   **Deliverables:** Trình xác thực tài khoản qua OTP Gmail (Email), sinh mã JWT token, bộ hồ sơ cá nhân và logic kiểm tra cooldown của Volunteer.
 *   **Git Branch:** `feature/auth-users-profile`
 *   **Pull Request scope:** Thiết lập JWT middleware, CRUD Users và gửi đơn Request nâng quyền.
 

@@ -1,74 +1,36 @@
 version: '3.8'
 
 services:
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: volunteer_connect_backend
-    ports:
-      - "8080:8080"
-    environment:
-      # Khi chạy qua Docker Compose, đổi MONGODB_URL trỏ về tên service mongodb
-      - MONGODB_URL=mongodb://mongodb:27017/volunteer_connect?replicaSet=rs0
-      - DATABASE_NAME=volunteer_connect
-    depends_on:
-      mongodb:
-        condition: service_healthy
-    networks:
-      - vc_network
-    restart: unless-stopped
-
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      args:
-        # Truyền biến này vào Stage 1 (Builder) của Dockerfile
-        - VITE_API_URL=http://localhost:8080/api
-    container_name: volunteer_connect_frontend
-    ports:
-      - "3000:80"
-    environment:
-      - VITE_API_URL=http://localhost:8080/api
-    depends_on:
-      - backend
-    networks:
-      - vc_network
-    restart: unless-stopped
-
   mongodb:
-    image: mongo:7.0
-    container_name: volunteer_connect_mongodb
+    image: mongo:6.0
+    container_name: volunteer_mongodb
+    # Khởi động MongoDB với Replica Set tên là rs0
+    command: ["--replSet", "rs0", "--bind_ip_all"]
     ports:
       - "27017:27017"
-    # Lệnh bật chế độ Replica Set (rs0) cho MongoDB ngay từ lúc khởi động
-    command: ["--replSet", "rs0", "--bind_ip_all", "--port", "27017"]
-    # MẸO: Dùng Healthcheck để tự động gõ lệnh rs.initiate() cấu hình Single-Node Replica Set
+    volumes:
+      - mongodb_data:/data/db
     healthcheck:
-      test: |
-        mongosh --port 27017 --eval "
-        try {
-          rs.status().ok
-        } catch (err) {
-          rs.initiate({
-            _id: 'rs0',
-            members: [{ _id: 0, host: 'localhost:27017' }]
-          })
-        }"
+      # Mẹo: Tự động initiate Replica Set nếu chưa được khởi tạo
+      test: ["CMD", "mongosh", "--eval", "rs.status().ok || rs.initiate({_id: 'rs0', members: [{_id: 0, host: 'localhost:27017'}]}).ok"]
       interval: 5s
       timeout: 5s
       retries: 5
       start_period: 10s
-    volumes:
-      - mongodb_data:/data/db
-    networks:
-      - vc_network
-    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: volunteer_backend
+    ports:
+      - "8000:8000"
+    environment:
+      # URL cần có tham số replicaSet=rs0 để hỗ trợ ACID Transactions
+      - MONGODB_URL=mongodb://mongodb:27017/volunteer_db?replicaSet=rs0
+    depends_on:
+      mongodb:
+        condition: service_healthy
 
 volumes:
   mongodb_data:
-
-networks:
-  vc_network:
-    driver: bridge

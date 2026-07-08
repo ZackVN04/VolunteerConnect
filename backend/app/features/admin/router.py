@@ -1,9 +1,15 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends, Query
 from .schemas import AdminReviewRequest, RequestStatus, StatisticsResponse, ActivityApprovalRequest
 from .services import AdminService
+from app.features.auth.dependencies import require_admin
 
 # Initialize router with appropriate tags and prefix
-router = APIRouter(prefix="/admin", tags=["Admin Workflow"])
+router = APIRouter(
+    prefix="/api/v1/admin",
+    tags=["Admin Workflow"],
+    dependencies=[Depends(require_admin)]
+)
+
 
 @router.patch("/requests/{request_id}/approve")
 async def approve_request(request_id: str, data: AdminReviewRequest):
@@ -53,3 +59,35 @@ async def get_statistics():
     Fetch dashboard statistics calculated concurrently.
     """
     return await AdminService.get_statistics()
+
+@router.get("/organizer-requests")
+async def get_organizer_requests(
+    limit: int = Query(50, ge=1, le=500, description="Max records to return (capped at 500 for OOM safety)"),
+    skip: int = Query(0, ge=0, description="Number of records to skip")
+):
+    """
+    Get organizer requests for admin with mandatory pagination.
+    OOM FIX: .to_list() with no limit on large collections loads ALL documents into RAM.
+    Capped at 500 records per request.
+    """
+    import json
+    from app.features.organizer_requests.models import OrganizerRequest
+    try:
+        requests = await OrganizerRequest.find_all().sort("-created_at").skip(skip).limit(limit).to_list()
+        serialized = [json.loads(req.model_dump_json()) for req in requests]
+        return {"success": True, "data": {"requests": serialized}}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Serialization error: {type(e).__name__}: {str(e)}")
+
+@router.get("/activities")
+async def get_activities(
+    limit: int = Query(50, ge=1, le=500, description="Max records to return (capped at 500 for OOM safety)"),
+    skip: int = Query(0, ge=0, description="Number of records to skip")
+):
+    """
+    Get activities for admin with mandatory pagination.
+    OOM FIX: Identical to organizer-requests — capped at 500 per request.
+    """
+    from app.features.activities.models import Activity
+    activities = await Activity.find_all().sort("-created_at").skip(skip).limit(limit).to_list()
+    return {"success": True, "data": {"activities": activities}}
