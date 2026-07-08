@@ -69,9 +69,13 @@ export const authService = {
     // Backend: POST /api/v1/auth/login, body: { email, password }
     const res = await api.post('/auth/login', { email, password: password_raw });
     const token = res.data.access_token;
+    const refreshToken = res.data.refresh_token;
     
-    // Immediately save token to localStorage for axios interceptor
+    // Immediately save tokens to localStorage for axios interceptor
     localStorage.setItem('token', token);
+    if (refreshToken) {
+      localStorage.setItem('refresh_token', refreshToken);
+    }
     
     // Fetch profile details
     const user = await authService.getCurrentUser();
@@ -127,6 +131,7 @@ export const authService = {
   },
   logout: async (): Promise<void> => {
     localStorage.removeItem('token');
+    localStorage.removeItem('refresh_token');
   }
 };
 
