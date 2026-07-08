@@ -23,21 +23,6 @@ const LOCATION_DATA: Record<string, string[]> = {
   ]
 };
 
-// Helper: inline avatar fallback with initials
-const OrgAvatar: React.FC<{ name: string; src?: string | null }> = ({ name, src }) => {
-  if (src) {
-    return <img alt="Avatar" className="w-full h-full object-cover" src={src} />;
-  }
-  const initials = name.split(' ').map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
-  const colors = ['#006d37', '#0d6efd', '#6f42c1', '#fd7e14', '#20c997'];
-  const bg = colors[name.charCodeAt(0) % colors.length];
-  return (
-    <div style={{ background: bg, width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <span style={{ color: '#fff', fontWeight: 700, fontSize: 14, fontFamily: 'inherit' }}>{initials}</span>
-    </div>
-  );
-};
-
 // Status badge helper
 const ActivityStatusBadge: React.FC<{ status: string }> = ({ status }) => {
   const map: Record<string, { label: string; cls: string }> = {

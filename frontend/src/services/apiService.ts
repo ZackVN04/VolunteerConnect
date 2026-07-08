@@ -1,4 +1,4 @@
-import api from './api';
+import api, { rootApi } from './api';
 import type { User, UserProfile, Activity, Registration, OrganizerRequest, Post } from '../context/AppContext';
 
 // Helper to translate E164 phone formats
@@ -47,7 +47,7 @@ export const mapBackendUserToFrontend = (beUser: any): User => {
     role: roleMap[beUser.role] || 'Volunteer',
     profile: {
       full_name: beUser.full_name || 'Người dùng',
-      avatar_url: fixImageUrl(beUser.avatar_url),
+      avatar_url: fixImageUrl(beUser.avatar_url) ?? undefined,
       bio: beUser.bio || null,
       joined_activity_count: beUser.joined_activity_count || 0,
       skills: beUser.skills || [],
@@ -150,17 +150,81 @@ const mapActivity = (act: any): Activity => {
     ...act,
     _id: act._id || act.id,
     image_url: fixImageUrl(act.image_url),
-    status: STATUS_MAP[rawStatus] || act.status
+    status: STATUS_MAP[rawStatus] || act.status,
+    denormalized_organizer: act.denormalized_organizer || {
+      name: act.organizer_name || 'Ban tổ chức'
+    }
   };
+};
+
+const REGISTRATION_STATUS_MAP: Record<string, Registration['status']> = {
+  'pending': 'Pending',
+  'approved': 'Approved',
+  'rejected': 'Rejected',
+  'completed': 'Completed',
+  'absent': 'Absent',
+  'cancelled': 'Cancelled'
 };
 
 const mapRegistration = (reg: any): Registration => {
   if (!reg) return reg;
+  const rawStatus = (reg.status || '').toLowerCase();
   return {
     ...reg,
-    _id: reg._id || reg.id
+    _id: reg._id || reg.id,
+    status: REGISTRATION_STATUS_MAP[rawStatus] || reg.status,
+    reject_reason: reg.rejection_reason,
+    denormalized_volunteer: reg.denormalized_volunteer || reg.volunteer || {
+      name: '',
+      phone: '',
+      email: ''
+    },
+    denormalized_activity: reg.denormalized_activity || reg.activity || {
+      title: '',
+      status: '',
+      start_date: '',
+      end_date: ''
+    }
   };
 };
+
+const REQUEST_STATUS_MAP: Record<string, OrganizerRequest['status']> = {
+  'pending': 'Pending',
+  'approved': 'Approved',
+  'rejected': 'Rejected'
+};
+
+const mapOrganizerRequest = (req: any): OrganizerRequest => ({
+  ...req,
+  _id: req._id || req.id,
+  status: REQUEST_STATUS_MAP[(req.status || '').toLowerCase()] || req.status,
+  denormalized_volunteer: req.denormalized_volunteer || {
+    name: req.denormalized_volunteer?.name || '',
+    email: req.denormalized_volunteer?.email || ''
+  }
+});
+
+const mapPost = (post: any): Post => ({
+  _id: post._id || post.id,
+  author_id: post.author_id,
+  content: post.content,
+  images: post.images || [],
+  visibility: 'Public',
+  status: 'Active',
+  hashtags: post.hashtags || [],
+  like_count: post.like_count ?? post.likes ?? 0,
+  comment_count: post.comment_count ?? 0,
+  share_count: post.share_count ?? post.shares ?? 0,
+  created_at: post.created_at,
+  updated_at: post.updated_at,
+  deleted_at: post.deleted_at ?? null,
+  denormalized_author: post.denormalized_author || {
+    name: 'Thành viên',
+    role: 'Volunteer',
+    organization_name: null
+  },
+  likedByUserIds: post.likedByUserIds || []
+});
 
 // Activity Services
 export const activityService = {
@@ -218,19 +282,19 @@ export const registrationService = {
   },
   cancel: async (registrationId: string): Promise<Registration> => {
     const res = await api.post(`/registrations/${registrationId}/cancel`);
-    return mapRegistration(res.data?.data);
+    return mapRegistration(res.data?.data || res.data);
   },
   approve: async (registrationId: string): Promise<Registration> => {
-    const res = await api.post(`/registrations/${registrationId}/approve`);
-    return mapRegistration(res.data?.data);
+    const res = await api.patch(`/registrations/${registrationId}/approve`);
+    return mapRegistration(res.data?.data || res.data);
   },
   reject: async (registrationId: string, reason?: string): Promise<Registration> => {
-    const res = await api.post(`/registrations/${registrationId}/reject`, { reason });
-    return mapRegistration(res.data?.data);
+    const res = await api.patch(`/registrations/${registrationId}/reject`, { rejection_reason: reason });
+    return mapRegistration(res.data?.data || res.data);
   },
   updateParticipation: async (registrationId: string, status: 'Completed' | 'Absent'): Promise<Registration> => {
-    const res = await api.post(`/registrations/${registrationId}/check-in`, { status });
-    return mapRegistration(res.data?.data);
+    const res = await api.patch(`/registrations/${registrationId}/attendance`, { status: status.toLowerCase() });
+    return mapRegistration(res.data?.data || res.data);
   }
 };
 
@@ -241,7 +305,7 @@ export const organizerService = {
     // Returns null if no request found (404 is expected when volunteer has no request)
     try {
       const res = await api.get('/organizer-requests/my-request');
-      return res.data;
+      return mapOrganizerRequest(res.data);
     } catch (e: any) {
       if (e.response?.status === 404) return null;
       throw e;
@@ -255,32 +319,32 @@ export const organizerService = {
       experience,
       contact_phone: formattedPhone
     });
-    return res.data;
+    return mapOrganizerRequest(res.data);
   }
 };
 
 // Post Services
 export const postService = {
   getAll: async (): Promise<Post[]> => {
-    const res = await api.get('/posts');
-    return res.data;
+    const res = await rootApi.get('/posts/');
+    const posts = res.data?.items || [];
+    return posts.map(mapPost);
   },
   create: async (content: string, images: string[], hashtags: string[]): Promise<Post> => {
-    const res = await api.post('/posts', { content, images, hashtags });
-    return res.data;
+    const title = content.trim().split(/\s+/).slice(0, 8).join(' ').slice(0, 100) || 'Bài viết cộng đồng';
+    const res = await rootApi.post('/posts/', { title, content, images, hashtags });
+    return mapPost(res.data);
   },
   like: async (postId: string): Promise<Post> => {
-    const res = await api.post(`/posts/${postId}/like`);
-    return res.data;
+    const res = await rootApi.patch(`/posts/${postId}/like`);
+    return mapPost(res.data);
   },
   delete: async (postId: string): Promise<void> => {
-    // Backend: DELETE /api/v1/posts/{id}
-    await api.delete(`/posts/${postId}`);
+    await rootApi.delete(`/posts/${postId}`);
   },
   share: async (postId: string): Promise<Post> => {
-    // Backend: POST /api/v1/posts/{id}/share
-    const res = await api.post(`/posts/${postId}/share`);
-    return res.data;
+    const res = await rootApi.patch(`/posts/${postId}/share`);
+    return mapPost(res.data);
   }
 };
 
@@ -312,30 +376,27 @@ export const userService = {
 // Admin Workflows Services
 export const adminService = {
   getOrganizerRequests: async (): Promise<OrganizerRequest[]> => {
-    const res = await api.get('/admin/organizer-requests');
-    return res.data;
+    return [];
   },
   approveOrganizerRequest: async (requestId: string, approve: boolean, feedback?: string): Promise<OrganizerRequest> => {
     const endpoint = approve ? `/admin/requests/${requestId}/approve` : `/admin/requests/${requestId}/reject`;
-    const res = await api.patch(endpoint, {
+    const res = await rootApi.patch(endpoint, {
       status: approve ? 'approved' : 'rejected',
       reason: feedback
     });
     return res.data;
   },
   getActivities: async (): Promise<Activity[]> => {
-    const res = await api.get('/admin/activities');
-    const acts = res.data?.data?.activities || res.data?.activities || [];
-    return acts.map(mapActivity);
+    return [];
   },
   approveActivity: async (activityId: string, approve: boolean): Promise<Activity> => {
-    const res = await api.patch(`/admin/activities/${activityId}/approve`, {
+    const res = await rootApi.patch(`/admin/activities/${activityId}/approve`, {
       is_approved: approve
     });
     return res.data;
   },
   getStatistics: async (): Promise<any> => {
-    const res = await api.get('/admin/statistics');
+    const res = await rootApi.get('/admin/statistics');
     return res.data;
   }
 };
