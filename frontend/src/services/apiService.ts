@@ -115,34 +115,36 @@ export const authService = {
 export const activityService = {
   getAll: async (): Promise<Activity[]> => {
     const res = await api.get('/activities');
-    return res.data;
+    return res.data.data?.activities || res.data;
   },
   getById: async (id: string): Promise<Activity> => {
     const res = await api.get(`/activities/${id}`);
-    return res.data;
+    return res.data.data || res.data;
   },
   create: async (activityData: Partial<Activity>, submitForReview: boolean): Promise<Activity> => {
     const res = await api.post('/activities', activityData);
-    if (submitForReview && res.data._id) {
-      const submitRes = await api.post(`/activities/${res.data._id}/submit`);
-      return submitRes.data;
+    const createdActivity = res.data.data || res.data;
+    const actId = createdActivity._id || createdActivity.id;
+    if (submitForReview && actId) {
+      const submitRes = await api.post(`/activities/${actId}/submit`);
+      return submitRes.data.data || submitRes.data;
     }
-    return res.data;
+    return createdActivity;
   },
   edit: async (id: string, activityData: Partial<Activity>): Promise<Activity> => {
     const res = await api.patch(`/activities/${id}`, activityData);
-    return res.data;
+    return res.data.data || res.data;
   },
   submit: async (id: string): Promise<Activity> => {
     const res = await api.post(`/activities/${id}/submit`);
-    return res.data;
+    return res.data.data || res.data;
   },
   cancel: async (id: string): Promise<void> => {
     await api.post(`/activities/${id}/cancel`);
   },
   getOrganizerActivities: async (): Promise<Activity[]> => {
     const res = await api.get('/organizer/activities');
-    return res.data;
+    return res.data.data?.activities || res.data;
   }
 };
 
@@ -150,31 +152,31 @@ export const activityService = {
 export const registrationService = {
   getVolunteerRegistrations: async (): Promise<Registration[]> => {
     const res = await api.get('/users/me/registrations');
-    return res.data;
+    return res.data.data?.registrations || res.data;
   },
   getActivityRegistrations: async (activityId: string): Promise<Registration[]> => {
     const res = await api.get(`/activities/${activityId}/registrations`);
-    return res.data;
+    return res.data.data?.registrations || res.data;
   },
   register: async (activityId: string): Promise<Registration> => {
     const res = await api.post(`/activities/${activityId}/registrations`);
-    return res.data;
+    return res.data.data || res.data;
   },
   cancel: async (registrationId: string): Promise<Registration> => {
     const res = await api.post(`/registrations/${registrationId}/cancel`);
-    return res.data;
+    return res.data.data || res.data;
   },
   approve: async (registrationId: string): Promise<Registration> => {
-    const res = await api.post(`/registrations/${registrationId}/approve`);
-    return res.data;
+    const res = await api.patch(`/registrations/${registrationId}/approve`);
+    return res.data.data || res.data;
   },
   reject: async (registrationId: string, reason?: string): Promise<Registration> => {
-    const res = await api.post(`/registrations/${registrationId}/reject`, { reason });
-    return res.data;
+    const res = await api.patch(`/registrations/${registrationId}/reject`, { rejection_reason: reason });
+    return res.data.data || res.data;
   },
   updateParticipation: async (registrationId: string, status: 'Completed' | 'Absent'): Promise<Registration> => {
-    const res = await api.post(`/registrations/${registrationId}/check-in`, { status });
-    return res.data;
+    const res = await api.patch(`/registrations/${registrationId}/attendance`, { status: status.toLowerCase() });
+    return res.data.data || res.data;
   }
 };
 
@@ -183,16 +185,17 @@ export const organizerService = {
   getMyRequest: async (): Promise<any> => {
     // Backend: GET /api/v1/organizer-requests/my-request
     const res = await api.get('/organizer-requests/my-request');
-    return res.data;
+    return res.data.data || res.data;
   },
   submitRequest: async (reason: string, experience: string, contactPhone: string): Promise<any> => {
     const formattedPhone = formatPhoneE164(contactPhone);
-    // Backend: POST /api/v1/organizer-requests/request-upgrade, body: { organization_name, documents }
+    // Backend: POST /api/v1/organizer-requests/request-upgrade, body: { reason, experience, contact_phone }
     const res = await api.post('/organizer-requests/request-upgrade', { 
-      organization_name: reason,
-      documents: [experience, formattedPhone]
+      reason,
+      experience,
+      contact_phone: formattedPhone
     });
-    return res.data;
+    return res.data.data || res.data;
   }
 };
 
@@ -200,15 +203,16 @@ export const organizerService = {
 export const postService = {
   getAll: async (): Promise<Post[]> => {
     const res = await api.get('/posts');
-    return res.data;
+    return res.data.items || res.data.data?.items || res.data;
   },
   create: async (content: string, images: string[], hashtags: string[]): Promise<Post> => {
-    const res = await api.post('/posts', { content, images, hashtags });
-    return res.data;
+    const title = content.substring(0, 30) || "Community Post";
+    const res = await api.post('/posts', { title, content, images, hashtags });
+    return res.data.data || res.data;
   },
   like: async (postId: string): Promise<Post> => {
-    const res = await api.post(`/posts/${postId}/like`);
-    return res.data;
+    const res = await api.patch(`/posts/${postId}/like`);
+    return res.data.data || res.data;
   }
 };
 
@@ -236,23 +240,25 @@ export const userService = {
 export const adminService = {
   getOrganizerRequests: async (): Promise<OrganizerRequest[]> => {
     const res = await api.get('/admin/organizer-requests');
-    return res.data;
+    return res.data.data?.requests || res.data;
   },
   approveOrganizerRequest: async (requestId: string, approve: boolean, feedback?: string): Promise<OrganizerRequest> => {
-    const res = await api.post(`/admin/organizer-requests/${requestId}/approve`, { approve, feedback });
-    return res.data;
+    const path = approve ? 'approve' : 'reject';
+    const status = approve ? 'approved' : 'rejected';
+    const res = await api.patch(`/admin/requests/${requestId}/${path}`, { status, reason: feedback || '' });
+    return res.data.data || res.data;
   },
   getActivities: async (): Promise<Activity[]> => {
     const res = await api.get('/admin/activities');
-    return res.data;
+    return res.data.data?.activities || res.data;
   },
   approveActivity: async (activityId: string, approve: boolean): Promise<Activity> => {
-    const res = await api.post(`/admin/activities/${activityId}/approve`, { approve });
-    return res.data;
+    const res = await api.patch(`/admin/activities/${activityId}/approve`, { is_approved: approve, reason: '' });
+    return res.data.data || res.data;
   },
   getStatistics: async (): Promise<any> => {
     const res = await api.get('/admin/statistics');
-    return res.data;
+    return res.data.data || res.data;
   }
 };
 

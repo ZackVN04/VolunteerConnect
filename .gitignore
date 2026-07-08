@@ -18,3 +18,4 @@ CLAUDE.md
 *.txt
 .docx
 backend\db_erd_design_v2.md
+.agents

@@ -60,42 +60,45 @@ class RegistrationService:
         if overlaps:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Overlapping activity schedule")
         
-        # 6. Reactivate or Create registration
-        if existing:
-            existing.status = RegistrationStatus.PENDING.value
-            existing.updated_at = datetime.now(timezone.utc)
-            existing.rejection_reason = None
-            existing.reviewed_at = None
-            await existing.save()
-            registration_to_return = existing
-        else:
-            denorm_vol = DenormalizedVolunteer(
-                name=volunteer.full_name or "Unknown",
-                phone=volunteer.phone_number,
-                email=volunteer.email
-            )
-            
-            denorm_act = DenormalizedActivity(
-                title=activity.title,
-                status=activity.status,
-                start_date=activity.start_date,
-                end_date=activity.end_date
-            )
-            
-            new_registration = Registration(
-                volunteer_id=volunteer.id,
-                activity_id=act_id,
-                denormalized_volunteer=denorm_vol,
-                denormalized_activity=denorm_act
-            )
-            await new_registration.insert()
-            registration_to_return = new_registration
-        
-        # 7. Update activity active count and status
-        activity.active_volunteers_count = getattr(activity, "active_volunteers_count", 0) + 1
-        if activity.active_volunteers_count >= activity.limit_volunteers:
-            activity.status = ActivityStatus.FULL.value
-        await activity.save()
+        # 6. Reactivate or Create registration (in Transaction)
+        client = Registration.get_pymongo_collection().database.client
+        async with await client.start_session() as session:
+            async with session.start_transaction():
+                if existing:
+                    existing.status = RegistrationStatus.PENDING.value
+                    existing.updated_at = datetime.now(timezone.utc)
+                    existing.rejection_reason = None
+                    existing.reviewed_at = None
+                    await existing.save(session=session)
+                    registration_to_return = existing
+                else:
+                    denorm_vol = DenormalizedVolunteer(
+                        name=volunteer.full_name or "Unknown",
+                        phone=volunteer.phone_number,
+                        email=volunteer.email
+                    )
+                    
+                    denorm_act = DenormalizedActivity(
+                        title=activity.title,
+                        status=activity.status,
+                        start_date=activity.start_date,
+                        end_date=activity.end_date
+                    )
+                    
+                    new_registration = Registration(
+                        volunteer_id=volunteer.id,
+                        activity_id=act_id,
+                        denormalized_volunteer=denorm_vol,
+                        denormalized_activity=denorm_act
+                    )
+                    await new_registration.insert(session=session)
+                    registration_to_return = new_registration
+                
+                # 7. Update activity active count and status
+                activity.active_volunteers_count = getattr(activity, "active_volunteers_count", 0) + 1
+                if activity.approved_volunteers_count >= activity.limit_volunteers:
+                    activity.status = ActivityStatus.FULL.value
+                await activity.save(session=session)
             
         return registration_to_return
 
@@ -138,25 +141,28 @@ class RegistrationService:
         if not activity:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Activity not found")
 
-        # 6. Update Activity counts
-        activity.active_volunteers_count = getattr(activity, "active_volunteers_count", 0) - 1
-        if activity.active_volunteers_count < 0:
-            activity.active_volunteers_count = 0
-            
-        if registration.status == RegistrationStatus.APPROVED:
-            activity.approved_volunteers_count -= 1
-            if activity.approved_volunteers_count < 0:
-                activity.approved_volunteers_count = 0
-                
-        if activity.status == ActivityStatus.FULL.value and activity.active_volunteers_count < activity.limit_volunteers:
-            activity.status = ActivityStatus.OPEN.value
-        await activity.save()
-
-        # 7. Update Registration
-        registration.status = RegistrationStatus.CANCELLED
-        registration.updated_at = datetime.now(timezone.utc)
-        await registration.save()
-
+        # 6. Update Activity counts & Registration (in Transaction)
+        client = Registration.get_pymongo_collection().database.client
+        async with await client.start_session() as session:
+            async with session.start_transaction():
+                activity.active_volunteers_count = getattr(activity, "active_volunteers_count", 0) - 1
+                if activity.active_volunteers_count < 0:
+                    activity.active_volunteers_count = 0
+                    
+                if registration.status == RegistrationStatus.APPROVED:
+                    activity.approved_volunteers_count -= 1
+                    if activity.approved_volunteers_count < 0:
+                        activity.approved_volunteers_count = 0
+                        
+                if activity.status == ActivityStatus.FULL.value and activity.approved_volunteers_count < activity.limit_volunteers:
+                    activity.status = ActivityStatus.OPEN.value
+                await activity.save(session=session)
+        
+                # 7. Update Registration
+                registration.status = RegistrationStatus.CANCELLED
+                registration.updated_at = datetime.now(timezone.utc)
+                await registration.save(session=session)
+ 
         return registration
 
     async def bulk_approve_registrations(self, organizer: User, activity_id: str, request: "BulkApproveRequest") -> "BulkReviewResponse":
@@ -210,22 +216,25 @@ class RegistrationService:
         
         now = datetime.now(timezone.utc)
 
-        # 4. Bulk Update Registrations
-        await Registration.find(In(Registration.id, processed_ids)).update(
-            {"$set": {
-                "status": RegistrationStatus.APPROVED.value,
-                "reviewed_at": now,
-                "updated_at": now
-            }}
-        )
-
-        # 5. Update Activity
-        if actual_processed > 0:
-            activity.approved_volunteers_count += actual_processed
-            # active_volunteers_count is unchanged because PENDING -> APPROVED doesn't change active count
-            if getattr(activity, "active_volunteers_count", 0) >= activity.limit_volunteers:
-                activity.status = ActivityStatus.FULL.value
-            await activity.save()
+        # 4. Bulk Update Registrations & Activity (in Transaction)
+        client = Registration.get_pymongo_collection().database.client
+        async with await client.start_session() as session:
+            async with session.start_transaction():
+                await Registration.find(In(Registration.id, processed_ids)).update(
+                    {"$set": {
+                        "status": RegistrationStatus.APPROVED.value,
+                        "reviewed_at": now,
+                        "updated_at": now
+                    }},
+                    session=session
+                )
+        
+                # 5. Update Activity
+                if actual_processed > 0:
+                    activity.approved_volunteers_count += actual_processed
+                    if activity.approved_volunteers_count >= activity.limit_volunteers:
+                        activity.status = ActivityStatus.FULL.value
+                    await activity.save(session=session)
             
         return BulkReviewResponse(
             processed=actual_processed,
@@ -272,7 +281,7 @@ class RegistrationService:
         
         now = datetime.now(timezone.utc)
 
-        # 4. Bulk Update Registrations
+        # 4. Bulk Update Registrations & Activity (in Transaction)
         update_doc = {
             "status": RegistrationStatus.REJECTED.value,
             "reviewed_at": now,
@@ -280,21 +289,25 @@ class RegistrationService:
         }
         if request.rejection_reason:
             update_doc["rejection_reason"] = request.rejection_reason
-
-        await Registration.find(In(Registration.id, processed_ids)).update(
-            {"$set": update_doc}
-        )
-        
-        # 5. Update Activity counts
-        if actual_processed > 0:
-            activity.active_volunteers_count = getattr(activity, "active_volunteers_count", 0) - actual_processed
-            if activity.active_volunteers_count < 0:
-                activity.active_volunteers_count = 0
+ 
+        client = Registration.get_pymongo_collection().database.client
+        async with await client.start_session() as session:
+            async with session.start_transaction():
+                await Registration.find(In(Registration.id, processed_ids)).update(
+                    {"$set": update_doc},
+                    session=session
+                )
                 
-            if activity.status == ActivityStatus.FULL.value and activity.active_volunteers_count < activity.limit_volunteers:
-                activity.status = ActivityStatus.OPEN.value
-            await activity.save()
-
+                # 5. Update Activity counts
+                if actual_processed > 0:
+                    activity.active_volunteers_count = getattr(activity, "active_volunteers_count", 0) - actual_processed
+                    if activity.active_volunteers_count < 0:
+                        activity.active_volunteers_count = 0
+                        
+                    if activity.status == ActivityStatus.FULL.value and activity.approved_volunteers_count < activity.limit_volunteers:
+                        activity.status = ActivityStatus.OPEN.value
+                    await activity.save(session=session)
+ 
         return BulkReviewResponse(
             processed=actual_processed,
             skipped=len(safe_ids) - actual_processed
@@ -322,16 +335,19 @@ class RegistrationService:
 
         # active_volunteers_count is unchanged because PENDING -> APPROVED
         now = datetime.now(timezone.utc)
-        registration.status = RegistrationStatus.APPROVED
-        registration.reviewed_at = now
-        registration.updated_at = now
-        await registration.save()
-        
-        activity.approved_volunteers_count += 1
-        if getattr(activity, "active_volunteers_count", 0) >= activity.limit_volunteers:
-            activity.status = ActivityStatus.FULL.value
-        await activity.save()
-
+        client = Registration.get_pymongo_collection().database.client
+        async with await client.start_session() as session:
+            async with session.start_transaction():
+                registration.status = RegistrationStatus.APPROVED
+                registration.reviewed_at = now
+                registration.updated_at = now
+                await registration.save(session=session)
+                
+                activity.approved_volunteers_count += 1
+                if activity.approved_volunteers_count >= activity.limit_volunteers:
+                    activity.status = ActivityStatus.FULL.value
+                await activity.save(session=session)
+ 
         return registration
 
     async def reject_registration(self, organizer: User, registration_id: str, request: "RejectRequest") -> Registration:
@@ -355,23 +371,26 @@ class RegistrationService:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only pending registrations can be rejected")
 
         now = datetime.now(timezone.utc)
-        registration.status = RegistrationStatus.REJECTED
-        registration.reviewed_at = now
-        registration.updated_at = now
-        if request.rejection_reason:
-            registration.rejection_reason = request.rejection_reason
-            
-        await registration.save()
-        
-        # Update Activity counts
-        activity.active_volunteers_count = getattr(activity, "active_volunteers_count", 0) - 1
-        if activity.active_volunteers_count < 0:
-            activity.active_volunteers_count = 0
-            
-        if activity.status == ActivityStatus.FULL.value and activity.active_volunteers_count < activity.limit_volunteers:
-            activity.status = ActivityStatus.OPEN.value
-        await activity.save()
-
+        client = Registration.get_pymongo_collection().database.client
+        async with await client.start_session() as session:
+            async with session.start_transaction():
+                registration.status = RegistrationStatus.REJECTED
+                registration.reviewed_at = now
+                registration.updated_at = now
+                if request.rejection_reason:
+                    registration.rejection_reason = request.rejection_reason
+                    
+                await registration.save(session=session)
+                
+                # Update Activity counts
+                activity.active_volunteers_count = getattr(activity, "active_volunteers_count", 0) - 1
+                if activity.active_volunteers_count < 0:
+                    activity.active_volunteers_count = 0
+                    
+                if activity.status == ActivityStatus.FULL.value and activity.approved_volunteers_count < activity.limit_volunteers:
+                    activity.status = ActivityStatus.OPEN.value
+                await activity.save(session=session)
+ 
         return registration
 
     async def get_activity_registrations(self, organizer: User, activity_id: str, status: str | None, skip: int, limit: int) -> tuple[list[Registration], int]:

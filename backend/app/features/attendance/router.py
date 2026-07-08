@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, status
 from app.features.auth.dependencies import get_current_user
+from app.features.activities.dependencies import require_organizer
 from app.features.users.models import User
 from app.features.attendance.schemas import BulkCheckinRequest, CheckinRequest, AttendanceResponse
 from app.features.attendance.services import AttendanceService
@@ -16,7 +17,7 @@ registrations_attendance_router = APIRouter(prefix="/api/v1/registrations", tags
 async def bulk_checkin_endpoint(
     activity_id: str,
     request: BulkCheckinRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_organizer),
     service: AttendanceService = Depends(get_attendance_service)
 ):
     """
@@ -33,7 +34,7 @@ async def bulk_checkin_endpoint(
 async def checkin_single_endpoint(
     registration_id: str,
     request: CheckinRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_organizer),
     service: AttendanceService = Depends(get_attendance_service)
 ):
     """

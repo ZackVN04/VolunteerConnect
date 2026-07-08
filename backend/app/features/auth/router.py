@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
+from beanie import PydanticObjectId
 import jwt
 import random
 import string
@@ -190,6 +191,21 @@ async def refresh_token(request: RefreshTokenRequest):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Loại Token không hợp lệ"
+            )
+            
+        try:
+            obj_id = PydanticObjectId(user_id)
+        except Exception:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Mã định danh Token không hợp lệ"
+            )
+            
+        user = await User.get(obj_id)
+        if user is None or user.status == UserStatus.BANNED:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Tài khoản đã bị khóa hoặc không tồn tại"
             )
             
         return TokenResponse(

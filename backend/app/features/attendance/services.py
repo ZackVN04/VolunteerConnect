@@ -45,37 +45,40 @@ class AttendanceService:
         now = datetime.now(timezone.utc)
         processed = 0
 
-        # 4. Process each registration
-        for reg in registrations:
-            # Only allow check-in for Approved, Completed, or Absent
-            if reg.status not in [RegistrationStatus.APPROVED, RegistrationStatus.COMPLETED, RegistrationStatus.ABSENT]:
-                continue
-                
-            old_status = reg.status
-            new_status_enum = record_map[str(reg.id)].status
-            new_status = RegistrationStatus.COMPLETED if new_status_enum == AttendanceStatus.COMPLETED else RegistrationStatus.ABSENT
-            
-            if old_status == new_status:
-                continue
-
-            # Calculate user points delta
-            delta = 0
-            if new_status == RegistrationStatus.COMPLETED and old_status != RegistrationStatus.COMPLETED:
-                delta = 1
-            elif new_status == RegistrationStatus.ABSENT and old_status == RegistrationStatus.COMPLETED:
-                delta = -1
-                
-            # Update Registration
-            reg.status = new_status
-            reg.participation_updated_at = now
-            await reg.save()
-            
-            # Update User
-            if delta != 0:
-                await User.find_one(User.id == reg.volunteer_id).update({"$inc": {"joined_activity_count": delta}})
-                
-            processed += 1
-
+        # 4. Process each registration (in Transaction)
+        client = Registration.get_pymongo_collection().database.client
+        async with await client.start_session() as session:
+            async with session.start_transaction():
+                for reg in registrations:
+                    # Only allow check-in for Approved, Completed, or Absent
+                    if reg.status not in [RegistrationStatus.APPROVED, RegistrationStatus.COMPLETED, RegistrationStatus.ABSENT]:
+                        continue
+                        
+                    old_status = reg.status
+                    new_status_enum = record_map[str(reg.id)].status
+                    new_status = RegistrationStatus.COMPLETED if new_status_enum == AttendanceStatus.COMPLETED else RegistrationStatus.ABSENT
+                    
+                    if old_status == new_status:
+                        continue
+        
+                    # Calculate user points delta
+                    delta = 0
+                    if new_status == RegistrationStatus.COMPLETED and old_status != RegistrationStatus.COMPLETED:
+                        delta = 1
+                    elif new_status == RegistrationStatus.ABSENT and old_status == RegistrationStatus.COMPLETED:
+                        delta = -1
+                        
+                    # Update Registration
+                    reg.status = new_status
+                    reg.participation_updated_at = now
+                    await reg.save(session=session)
+                    
+                    # Update User
+                    if delta != 0:
+                        await User.find_one(User.id == reg.volunteer_id).update({"$inc": {"joined_activity_count": delta}}, session=session)
+                        
+                    processed += 1
+        
         return AttendanceResponse(
             processed=processed,
             skipped=len(safe_records) - processed
@@ -120,13 +123,16 @@ class AttendanceService:
         elif new_status == RegistrationStatus.ABSENT and old_status == RegistrationStatus.COMPLETED:
             delta = -1
             
-        # 5. Update Registration
-        registration.status = new_status
-        registration.participation_updated_at = datetime.now(timezone.utc)
-        await registration.save()
-        
-        # 6. Update User
-        if delta != 0:
-            await User.find_one(User.id == registration.volunteer_id).update({"$inc": {"joined_activity_count": delta}})
-            
+        # 5. Update Registration & User (in Transaction)
+        client = Registration.get_pymongo_collection().database.client
+        async with await client.start_session() as session:
+            async with session.start_transaction():
+                registration.status = new_status
+                registration.participation_updated_at = datetime.now(timezone.utc)
+                await registration.save(session=session)
+                
+                # 6. Update User
+                if delta != 0:
+                    await User.find_one(User.id == registration.volunteer_id).update({"$inc": {"joined_activity_count": delta}}, session=session)
+                    
         return {"message": "Attendance recorded successfully", "new_status": new_status.value}

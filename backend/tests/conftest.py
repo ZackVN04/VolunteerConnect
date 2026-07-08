@@ -7,6 +7,8 @@ from app.core.config.settings import settings
 from app.features.users.models import User
 from app.features.organizer_requests.models import OrganizerRequest
 from app.features.activities.models import Activity
+from app.features.registrations.models import Registration
+from app.features.posts.models import Post
 
 @pytest.fixture(scope="function", autouse=True)
 async def initialize_db():
@@ -34,7 +36,9 @@ async def initialize_db():
         document_models=[
             User,
             OrganizerRequest,
-            Activity
+            Activity,
+            Registration,
+            Post
         ]
     )
     
