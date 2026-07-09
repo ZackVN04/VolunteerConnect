@@ -155,6 +155,8 @@ interface AppContextType {
   reviewActivity: (activityId: string, approve: boolean) => Promise<{ success: boolean; error?: string }>;
   createPost: (content: string, images: string[], hashtags: string[]) => void;
   likePost: (postId: string) => void;
+  sharePost: (postId: string) => void;
+  deletePost: (postId: string) => Promise<{ success: boolean; error?: string }>;
   updateProfile: (updatedProfile: Partial<UserProfile>, email: string, province: string, phone?: string) => void;
   changePassword: (oldPassword: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
   changeUserRole: (userId: string, role: 'Volunteer' | 'Organizer' | 'Admin') => void;
@@ -1160,6 +1162,59 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     syncToLocalStorage(users, activities, registrations, organizerRequests, newPosts, currentUser);
   };
 
+  // Share Community Post
+  const sharePost = (postId: string) => {
+    if (USE_REAL_BACKEND) {
+      (async () => {
+        try {
+          await postService.share(postId);
+          const pts = await postService.getAll();
+          setPosts(pts);
+        } catch (e) {
+          console.error(e);
+        }
+      })();
+      return;
+    }
+
+    if (!currentUser) return;
+    const postIndex = posts.findIndex(p => p._id === postId);
+    if (postIndex === -1) return;
+
+    const post = posts[postIndex];
+    const updatedPost: Post = {
+      ...post,
+      share_count: (post.share_count || 0) + 1,
+      updated_at: new Date().toISOString()
+    };
+
+    const newPosts = [...posts];
+    newPosts[postIndex] = updatedPost;
+    setPosts(newPosts);
+    syncToLocalStorage(users, activities, registrations, organizerRequests, newPosts, currentUser);
+  };
+
+  // Delete Community Post
+  const deletePost = async (postId: string): Promise<{ success: boolean; error?: string }> => {
+    if (USE_REAL_BACKEND) {
+      try {
+        await postService.delete(postId);
+        const pts = await postService.getAll();
+        setPosts(pts);
+        return { success: true };
+      } catch (e: any) {
+        const msg = e?.response?.data?.detail || 'Xóa bài viết thất bại.';
+        return { success: false, error: msg };
+      }
+    }
+
+    if (!currentUser) return { success: false, error: 'Chưa đăng nhập.' };
+    const newPosts = posts.filter(p => p._id !== postId);
+    setPosts(newPosts);
+    syncToLocalStorage(users, activities, registrations, organizerRequests, newPosts, currentUser);
+    return { success: true };
+  };
+
   // Edit/Update Profile Details
   const updateProfile = (updatedProfile: Partial<UserProfile>, email: string, province: string, phone?: string) => {
     if (USE_REAL_BACKEND) {
@@ -1289,6 +1344,8 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         reviewActivity,
         createPost,
         likePost,
+        sharePost,
+        deletePost,
         updateProfile,
         changePassword,
         changeUserRole,

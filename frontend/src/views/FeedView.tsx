@@ -157,10 +157,12 @@ const CreatePostModal: React.FC<{ onClose: () => void; onSubmit: (title: string,
 };
 
 export const FeedView: React.FC = () => {
-  const { currentUser, users, activities, posts, createPost, likePost, showNotification } = useApp();
+  const { currentUser, users, activities, posts, createPost, likePost, sharePost, deletePost, showNotification } = useApp();
   const [currentPage, setCurrentPage] = useState(1);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
+  const [openMenuPostId, setOpenMenuPostId] = useState<string | null>(null);
   const itemsPerPage = 3;
 
   // Stats
@@ -188,6 +190,19 @@ export const FeedView: React.FC = () => {
   posts.forEach(p => (p.hashtags || []).forEach(h => { hashtagCounts[h] = (hashtagCounts[h] || 0) + 1; }));
   const trendingTags = Object.entries(hashtagCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
 
+  // Relative time helper
+  const formatRelativeTime = (dateStr: string): string => {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'Vừa xong';
+    if (mins < 60) return `${mins} phút trước`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs} giờ trước`;
+    const days = Math.floor(hrs / 24);
+    if (days < 7) return `${days} ngày trước`;
+    return new Date(dateStr).toLocaleDateString('vi-VN');
+  };
+
   const handleCreatePost = (title: string, content: string, images: string[], videoUrl: string, hashtags: string[]) => {
     if (!currentUser) return;
     const fullContent = title ? `${title}\n${content}` : content;
@@ -196,9 +211,22 @@ export const FeedView: React.FC = () => {
     showNotification('Đã đăng bài viết thành công!', 'success');
   };
 
-  const handleShare = () => {
-    navigator.clipboard.writeText(window.location.href);
-    showNotification('Đã sao chép liên kết!', 'success');
+  const handleShare = async (postId: string) => {
+    sharePost(postId);
+    navigator.clipboard.writeText(window.location.origin + window.location.pathname + '#/feed').catch(() => {});
+    showNotification('Đã chia sẻ bài viết!', 'success');
+  };
+
+  const handleDelete = async (postId: string) => {
+    setOpenMenuPostId(null);
+    setDeletingPostId(postId);
+    const result = await deletePost(postId);
+    setDeletingPostId(null);
+    if (result.success) {
+      showNotification('Đã xóa bài viết thành công!', 'success');
+    } else {
+      showNotification(result.error || 'Xóa bài viết thất bại!', 'error');
+    }
   };
 
   return (
@@ -371,26 +399,83 @@ export const FeedView: React.FC = () => {
                     const avatarUrl = authorUser?.profile.avatar_url;
                     const isLiked = currentUser && post.likedByUserIds?.includes(currentUser._id);
                     const authorRole = post.denormalized_author?.role === 'Organizer' ? 'Ban tổ chức' : (post.denormalized_author?.role === 'Admin' ? 'Quản trị viên' : 'Tình nguyện viên');
+                    const canDelete = currentUser && (post.author_id === currentUser._id || currentUser.role === 'Admin');
+                    const isDeleting = deletingPostId === post._id;
+
+                    // Split title (first line) and body content
+                    const contentLines = post.content.split('\n');
+                    const postTitle = contentLines.length > 1 ? contentLines[0] : null;
+                    const postBody = contentLines.length > 1 ? contentLines.slice(1).join('\n') : post.content;
 
                     return (
-                      <div key={post._id} className="bg-white border border-slate-200/80 rounded-2xl shadow-sm p-6 space-y-4 hover:shadow-md transition-all">
+                      <div
+                        key={post._id}
+                        className={`bg-white border border-slate-200/80 rounded-2xl shadow-sm p-6 space-y-4 hover:shadow-md transition-all relative ${isDeleting ? 'opacity-50 pointer-events-none' : ''}`}
+                      >
+                        {/* Post Header */}
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            <PostAvatar name={authorName} src={avatarUrl} size={42} />
+                            <PostAvatar name={authorName} src={avatarUrl} size={44} />
                             <div>
                               <p className="font-bold text-sm text-slate-800">{authorName}</p>
-                              <p className="text-[10px] font-bold uppercase tracking-wider text-[#006d37]">{authorRole}</p>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-[#006d37]">{authorRole}</span>
+                                <span className="text-slate-300 text-[10px]">•</span>
+                                <span className="text-[10px] text-slate-400 font-semibold">{formatRelativeTime(post.created_at)}</span>
+                              </div>
                             </div>
                           </div>
-                          <span className="text-[11px] text-slate-400 font-semibold">{new Date(post.created_at).toLocaleDateString('vi-VN')}</span>
+
+                          {/* 3-dot menu for owner/admin */}
+                          {canDelete && (
+                            <div className="relative">
+                              <button
+                                onClick={() => setOpenMenuPostId(openMenuPostId === post._id ? null : post._id)}
+                                className="p-1.5 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                              >
+                                <span className="material-symbols-outlined text-xl">more_horiz</span>
+                              </button>
+                              {openMenuPostId === post._id && (
+                                <>
+                                  <div
+                                    className="fixed inset-0 z-10"
+                                    onClick={() => setOpenMenuPostId(null)}
+                                  />
+                                  <div className="absolute right-0 mt-1 w-40 bg-white border border-slate-200 rounded-xl shadow-lg py-1.5 z-20 animate-fadeIn">
+                                    <button
+                                      onClick={() => handleDelete(post._id)}
+                                      className="w-full flex items-center gap-2.5 px-4 py-2 text-red-600 hover:bg-red-50 text-xs font-bold transition-colors cursor-pointer text-left"
+                                    >
+                                      <span className="material-symbols-outlined text-sm text-red-500">delete</span>
+                                      Xóa bài viết
+                                    </button>
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          )}
                         </div>
 
-                        <p className="text-slate-700 text-sm leading-relaxed whitespace-pre-line font-medium">{post.content}</p>
+                        {/* Post Title (if exists) */}
+                        {postTitle && (
+                          <h3 className="font-bold text-base text-slate-900 leading-snug">{postTitle}</h3>
+                        )}
+
+                        {/* Post Body */}
+                        <p className="text-slate-700 text-sm leading-relaxed whitespace-pre-line font-medium">{postBody}</p>
 
                         {/* Post images */}
                         {post.images && post.images.length > 0 && (
-                          <div className="rounded-xl overflow-hidden border border-slate-100 max-h-[280px]">
-                            <img src={post.images[0]} alt="Post image" className="w-full h-full object-cover" />
+                          <div className={`rounded-xl overflow-hidden border border-slate-100 ${post.images.length > 1 ? 'grid grid-cols-2 gap-1' : 'max-h-[320px]'}`}>
+                            {post.images.slice(0, 4).map((img, idx) => (
+                              <img
+                                key={idx}
+                                src={img}
+                                alt={`Post image ${idx + 1}`}
+                                className="w-full object-cover"
+                                style={{ maxHeight: post.images.length > 1 ? '180px' : '320px' }}
+                              />
+                            ))}
                           </div>
                         )}
 
@@ -398,20 +483,32 @@ export const FeedView: React.FC = () => {
                         {post.hashtags && post.hashtags.length > 0 && (
                           <div className="flex flex-wrap gap-1.5">
                             {post.hashtags.map((tag, idx) => (
-                              <span key={idx} className="bg-emerald-50 text-[#006d37] border border-emerald-100/50 px-2 py-0.5 rounded-lg text-xs font-bold">#{tag}</span>
+                              <button
+                                key={idx}
+                                onClick={() => setSearchQuery(tag)}
+                                className="bg-emerald-50 text-[#006d37] border border-emerald-100/50 px-2 py-0.5 rounded-lg text-xs font-bold hover:bg-emerald-100 transition-colors cursor-pointer"
+                              >
+                                #{tag}
+                              </button>
                             ))}
                           </div>
                         )}
 
-                        {/* Actions */}
-                        <div className="flex items-center gap-4 text-xs text-slate-500 font-bold border-t border-slate-100 pt-3">
-                          <button onClick={() => likePost(post._id)} className={`flex items-center gap-1.5 py-1 px-3 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer ${isLiked ? 'text-[#006d37] bg-[#e8f5e9]/50' : ''}`}>
-                            <span className={`material-symbols-outlined text-lg ${isLiked ? 'filled' : ''}`}>favorite</span>
-                            <span>{post.like_count || 0} Thích</span>
+                        {/* Actions: Like, Share */}
+                        <div className="flex items-center gap-3 text-xs text-slate-500 font-bold border-t border-slate-100 pt-3">
+                          <button
+                            onClick={() => likePost(post._id)}
+                            className={`flex items-center gap-1.5 py-1.5 px-3 rounded-xl hover:bg-slate-50 transition-all cursor-pointer ${isLiked ? 'text-rose-500 bg-rose-50' : 'hover:text-slate-700'}`}
+                          >
+                            <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: isLiked ? "'FILL' 1" : "'FILL' 0" }}>favorite</span>
+                            <span>{post.like_count || 0}</span>
                           </button>
-                          <button onClick={handleShare} className="flex items-center gap-1.5 py-1 px-3 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer">
+                          <button
+                            onClick={() => handleShare(post._id)}
+                            className="flex items-center gap-1.5 py-1.5 px-3 rounded-xl hover:bg-slate-50 hover:text-slate-700 transition-all cursor-pointer"
+                          >
                             <span className="material-symbols-outlined text-lg">share</span>
-                            <span>Chia sẻ</span>
+                            <span>{post.share_count || 0} Chia sẻ</span>
                           </button>
                         </div>
                       </div>
