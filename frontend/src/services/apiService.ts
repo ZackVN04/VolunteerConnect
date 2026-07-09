@@ -392,7 +392,7 @@ export const adminService = {
   approveOrganizerRequest: async (requestId: string, approve: boolean, feedback?: string): Promise<any> => {
     const endpoint = approve ? `/admin/requests/${requestId}/approve` : `/admin/requests/${requestId}/reject`;
     const res = await rootApi.patch(endpoint, {
-      status: approve ? 'Approved' : 'Rejected',
+      status: approve ? 'approved' : 'rejected',
       reason: feedback
     });
     return res.data;
