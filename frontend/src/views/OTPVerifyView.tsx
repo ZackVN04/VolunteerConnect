@@ -23,7 +23,7 @@ export const OTPVerifyView: React.FC<OTPVerifyViewProps> = ({
   const [countdown, setCountdown] = useState(60);
 
   useEffect(() => {
-    let timer: NodeJS.Timeout;
+    let timer: ReturnType<typeof setInterval>;
     if (countdown > 0) {
       timer = setInterval(() => {
         setCountdown((prev) => prev - 1);
