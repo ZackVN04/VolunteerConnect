@@ -104,7 +104,7 @@ const setupResponseInterceptor = (axiosInstance: any) => {
 
       const isAuthUrl = originalRequest.url && (
         originalRequest.url.includes('/auth/login') ||
-        originalRequest.url.includes('/auth/refresh-token')
+        originalRequest.url.includes('/auth/refresh')
       );
 
       if (error.response && error.response.status === 401 && !isAuthUrl && !originalRequest._retry) {
@@ -134,7 +134,7 @@ const setupResponseInterceptor = (axiosInstance: any) => {
         isRefreshing = true;
 
         try {
-          const res = await refreshClient.post('/auth/refresh-token', {
+          const res = await refreshClient.post('/auth/refresh', {
             refresh_token: refreshToken,
           });
 

@@ -125,11 +125,16 @@ export const authService = {
     return res.data;
   },
   refreshToken: async (token: string): Promise<any> => {
-    // Backend: POST /api/v1/auth/refresh-token, body: { refresh_token }
-    const res = await api.post('/auth/refresh-token', { refresh_token: token });
+    // Backend: POST /api/v1/auth/refresh, body: { refresh_token }
+    const res = await api.post('/auth/refresh', { refresh_token: token });
     return res.data;
   },
   logout: async (): Promise<void> => {
+    try {
+      await api.post('/auth/logout');
+    } catch (e) {
+      console.warn("Server logout failed", e);
+    }
     localStorage.removeItem('token');
     localStorage.removeItem('refresh_token');
   }
@@ -290,15 +295,15 @@ export const registrationService = {
     return mapRegistration(res.data?.data || res.data);
   },
   approve: async (registrationId: string): Promise<Registration> => {
-    const res = await api.patch(`/registrations/${registrationId}/approve`);
+    const res = await api.post(`/registrations/${registrationId}/approve`);
     return mapRegistration(res.data?.data || res.data);
   },
   reject: async (registrationId: string, reason?: string): Promise<Registration> => {
-    const res = await api.patch(`/registrations/${registrationId}/reject`, { rejection_reason: reason });
+    const res = await api.post(`/registrations/${registrationId}/reject`, { rejection_reason: reason });
     return mapRegistration(res.data?.data || res.data);
   },
   updateParticipation: async (registrationId: string, status: 'Completed' | 'Absent'): Promise<Registration> => {
-    const res = await api.patch(`/registrations/${registrationId}/attendance`, { status: status.toLowerCase() });
+    const res = await api.post(`/registrations/${registrationId}/check-in`, { status: status.toLowerCase() });
     return mapRegistration(res.data?.data || res.data);
   }
 };
@@ -306,10 +311,10 @@ export const registrationService = {
 // Organizer Upgrade Role Requests Services
 export const organizerService = {
   getMyRequest: async (): Promise<any> => {
-    // Backend: GET /api/v1/organizer-requests/my-request
+    // Backend: GET /api/v1/organizer-requests/latest
     // Returns null if no request found (404 is expected when volunteer has no request)
     try {
-      const res = await api.get('/organizer-requests/my-request');
+      const res = await api.get('/organizer-requests/latest');
       return mapOrganizerRequest(res.data);
     } catch (e: any) {
       if (e.response?.status === 404) return null;
@@ -319,7 +324,7 @@ export const organizerService = {
   submitRequest: async (reason: string, experience: string, contactPhone: string): Promise<any> => {
     const formattedPhone = formatPhoneE164(contactPhone);
     // Backend schema: OrganizerRequestCreate { reason, experience, contact_phone }
-    const res = await api.post('/organizer-requests/request-upgrade', { 
+    const res = await api.post('/organizer-requests', { 
       reason,
       experience,
       contact_phone: formattedPhone
@@ -331,24 +336,24 @@ export const organizerService = {
 // Post Services
 export const postService = {
   getAll: async (): Promise<Post[]> => {
-    const res = await rootApi.get('/posts/');
+    const res = await rootApi.get('/posts');
     const posts = res.data?.items || [];
     return posts.map(mapPost);
   },
   create: async (content: string, images: string[], hashtags: string[]): Promise<Post> => {
     const title = content.trim().split(/\s+/).slice(0, 8).join(' ').slice(0, 100) || 'Bài viết cộng đồng';
-    const res = await rootApi.post('/posts/', { title, content, images, hashtags });
+    const res = await rootApi.post('/posts', { title, content, images, hashtags });
     return mapPost(res.data);
   },
   like: async (postId: string): Promise<Post> => {
-    const res = await rootApi.patch(`/posts/${postId}/like`);
+    const res = await rootApi.post(`/posts/${postId}/like`);
     return mapPost(res.data);
   },
   delete: async (postId: string): Promise<void> => {
     await rootApi.delete(`/posts/${postId}`);
   },
   share: async (postId: string): Promise<Post> => {
-    const res = await rootApi.patch(`/posts/${postId}/share`);
+    const res = await rootApi.post(`/posts/${postId}/share`);
     return mapPost(res.data);
   }
 };
@@ -358,8 +363,8 @@ export const userService = {
   updateProfile: async (
     updatedProfile: Partial<UserProfile> & { phone?: string; age?: number; gender?: string }
   ): Promise<User> => {
-    // Backend: PUT /api/v1/users/me, body: { full_name, avatar_url, bio, skills, area_of_interest, phone_number, age, gender }
-    const res = await api.put('/users/me', { 
+    // Backend: PATCH /api/v1/users/me, body: { full_name, avatar_url, bio, skills, area_of_interest, phone_number, age, gender }
+    const res = await api.patch('/users/me', { 
       full_name: updatedProfile.full_name,
       avatar_url: updatedProfile.avatar_url,
       bio: updatedProfile.bio,
@@ -386,8 +391,7 @@ export const adminService = {
     return reqs.map(mapOrganizerRequest);
   },
   approveOrganizerRequest: async (requestId: string, approve: boolean, feedback?: string): Promise<OrganizerRequest> => {
-    const endpoint = approve ? `/admin/requests/${requestId}/approve` : `/admin/requests/${requestId}/reject`;
-    const res = await rootApi.patch(endpoint, {
+    const res = await rootApi.post(`/admin/organizer-requests/${requestId}/approve`, {
       status: approve ? 'approved' : 'rejected',
       reason: feedback
     });
@@ -399,7 +403,7 @@ export const adminService = {
     return acts.map(mapActivity);
   },
   approveActivity: async (activityId: string, approve: boolean): Promise<Activity> => {
-    const res = await rootApi.patch(`/admin/activities/${activityId}/approve`, {
+    const res = await rootApi.post(`/admin/activities/${activityId}/approve`, {
       is_approved: approve
     });
     return res.data;
