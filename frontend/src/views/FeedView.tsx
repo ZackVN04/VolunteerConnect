@@ -292,6 +292,22 @@ export const FeedView: React.FC = () => {
     }
   }, []);
 
+  // Banner slide state
+  const bannerImages = [
+    "https://images.unsplash.com/photo-1559027615-cd4628902d4a?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1544027993-37dbfe43562a?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=800&q=80"
+  ];
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setActiveImageIndex((prevIndex) => (prevIndex + 1) % bannerImages.length);
+    }, 4000);
+    return () => clearInterval(timer);
+  }, []);
+
   const handleAddComment = (postId: string) => {
     const text = newCommentTexts[postId]?.trim();
     if (!text) return;
@@ -424,12 +440,43 @@ export const FeedView: React.FC = () => {
             </div>
           </div>
           <div className="lg:w-1/2 w-full flex justify-center">
-            <div className="w-full max-w-[500px] h-[300px] rounded-3xl overflow-hidden shadow-md">
-              <img
-                src="https://images.unsplash.com/photo-1559027615-cd4628902d4a?auto=format&fit=crop&w=800&q=80"
-                alt="Volunteer Community"
-                className="w-full h-full object-cover"
-              />
+            <div className="w-full max-w-[500px] h-[300px] rounded-3xl overflow-hidden shadow-md relative group">
+              {bannerImages.map((img, idx) => (
+                <img
+                  key={idx}
+                  src={img}
+                  alt={`Volunteer Community ${idx + 1}`}
+                  className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${idx === activeImageIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
+                />
+              ))}
+              
+              {/* Dots navigation indicator */}
+              <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 z-20">
+                {bannerImages.map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setActiveImageIndex(idx)}
+                    className={`w-2.5 h-2.5 rounded-full transition-all duration-300 cursor-pointer ${idx === activeImageIndex ? 'bg-white w-6' : 'bg-white/50'}`}
+                    aria-label={`Slide ${idx + 1}`}
+                  />
+                ))}
+              </div>
+
+              {/* Prev / Next controls */}
+              <button
+                type="button"
+                onClick={() => setActiveImageIndex((prev) => (prev - 1 + bannerImages.length) % bannerImages.length)}
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 z-20 cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-base">chevron_left</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveImageIndex((prev) => (prev + 1) % bannerImages.length)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 z-20 cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-base">chevron_right</span>
+              </button>
             </div>
           </div>
         </section>
