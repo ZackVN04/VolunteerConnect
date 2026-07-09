@@ -389,9 +389,10 @@ export const adminService = {
     const reqs = res.data?.data?.requests || [];
     return reqs.map(mapOrganizerRequest);
   },
-  approveOrganizerRequest: async (requestId: string, approve: boolean, feedback?: string): Promise<OrganizerRequest> => {
-    const res = await rootApi.post(`/admin/organizer-requests/${requestId}/approve`, {
-      status: approve ? 'approved' : 'rejected',
+  approveOrganizerRequest: async (requestId: string, approve: boolean, feedback?: string): Promise<any> => {
+    const endpoint = approve ? `/admin/requests/${requestId}/approve` : `/admin/requests/${requestId}/reject`;
+    const res = await rootApi.patch(endpoint, {
+      status: approve ? 'Approved' : 'Rejected',
       reason: feedback
     });
     return res.data;
@@ -401,9 +402,10 @@ export const adminService = {
     const acts = res.data?.data?.activities || [];
     return acts.map(mapActivity);
   },
-  approveActivity: async (activityId: string, approve: boolean): Promise<Activity> => {
-    const res = await rootApi.post(`/admin/activities/${activityId}/approve`, {
-      is_approved: approve
+  approveActivity: async (activityId: string, approve: boolean, feedback?: string): Promise<any> => {
+    const res = await rootApi.patch(`/admin/activities/${activityId}/approve`, {
+      is_approved: approve,
+      reason: feedback
     });
     return res.data;
   },

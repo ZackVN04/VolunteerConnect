@@ -152,7 +152,7 @@ interface AppContextType {
   reviewOrganizerRequest: (requestId: string, approve: boolean, feedback?: string) => Promise<{ success: boolean; error?: string }>;
   createActivity: (activityData: Partial<Activity>, submitForReview: boolean) => Promise<{ success: boolean; error?: string }>;
   editActivity: (activityId: string, activityData: Partial<Activity>) => Promise<{ success: boolean; error?: string }>;
-  reviewActivity: (activityId: string, approve: boolean) => Promise<{ success: boolean; error?: string }>;
+  reviewActivity: (activityId: string, approve: boolean, feedback?: string) => Promise<{ success: boolean; error?: string }>;
   createPost: (title: string, content: string, images: string[], hashtags: string[]) => Promise<{ success: boolean; error?: string }>;
   likePost: (postId: string) => void;
   sharePost: (postId: string) => void;
@@ -1017,10 +1017,10 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   // Admin: Review Activity Approval
-  const reviewActivity = async (activityId: string, approve: boolean): Promise<{ success: boolean; error?: string }> => {
+  const reviewActivity = async (activityId: string, approve: boolean, feedback?: string): Promise<{ success: boolean; error?: string }> => {
     if (USE_REAL_BACKEND) {
       try {
-        await adminService.approveActivity(activityId, approve);
+        await adminService.approveActivity(activityId, approve, feedback);
         // Sau khi duyệt, reload tất cả activities để cập nhật trạng thái mới
         const [allActs, adminActs] = await Promise.allSettled([
           activityService.getAll(),
