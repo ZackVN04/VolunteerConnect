@@ -311,10 +311,10 @@ export const registrationService = {
 // Organizer Upgrade Role Requests Services
 export const organizerService = {
   getMyRequest: async (): Promise<any> => {
-    // Backend: GET /api/v1/organizer-requests/latest
+    // Backend: GET /api/v1/organizer-requests/my-request
     // Returns null if no request found (404 is expected when volunteer has no request)
     try {
-      const res = await api.get('/organizer-requests/latest');
+      const res = await api.get('/organizer-requests/my-request');
       return mapOrganizerRequest(res.data);
     } catch (e: any) {
       if (e.response?.status === 404) return null;
@@ -324,7 +324,7 @@ export const organizerService = {
   submitRequest: async (reason: string, experience: string, contactPhone: string): Promise<any> => {
     const formattedPhone = formatPhoneE164(contactPhone);
     // Backend schema: OrganizerRequestCreate { reason, experience, contact_phone }
-    const res = await api.post('/organizer-requests', { 
+    const res = await api.post('/organizer-requests/request-upgrade', { 
       reason,
       experience,
       contact_phone: formattedPhone

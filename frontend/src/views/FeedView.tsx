@@ -392,7 +392,7 @@ export const FeedView: React.FC = () => {
     const shareUrl = `${window.location.origin}${window.location.pathname}#/feed?postId=${postId}`;
 
     if (actionType === 'copy') {
-      await navigator.clipboard.writeText(shareUrl).catch(() => {});
+      await navigator.clipboard.writeText(shareUrl).catch(() => { });
       showNotification('Đã sao chép liên kết bài viết!', 'success');
     } else if (actionType === 'facebook') {
       window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`, '_blank', 'noopener,noreferrer');
@@ -424,11 +424,11 @@ export const FeedView: React.FC = () => {
         <section className="bg-[#f0f9f4] rounded-[2rem] p-8 md:p-12 flex flex-col lg:flex-row items-center justify-between gap-8">
           <div className="lg:w-1/2 space-y-6">
             <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-on-surface leading-tight font-headline-md">
-              Kết nối sức trẻ,<br />
-              Kiến tạo <span className="text-[#006d37]">cộng đồng xanh</span>
+              Kết nối sức trẻ<br />
+              <span className="text-[#006d37]">Lan tỏa giá trị cho cộng đồng</span>
             </h1>
             <p className="text-on-surface-variant text-base md:text-lg leading-relaxed">
-              Chào mừng bạn đến với Volunteer Connect! Nơi hội tụ của những hoạt động tình nguyện ý nghĩa, kết nối trực tiếp tình nguyện viên với các tổ chức thiện nguyện uy tín tại Việt Nam. Đăng ký dễ dàng, lưu giữ hành trình ý nghĩa.
+              Volunteer Connect mang đến không gian nơi mỗi người đều có thể đóng góp cho xã hội. Khám phá các hoạt động tình nguyện uy tín, đồng hành cùng những con người cùng chí hướng và lưu giữ hành trình tạo nên những thay đổi tích cực.
             </p>
             <div className="flex flex-wrap gap-4">
               <a href="#/activities" className="bg-[#006d37] hover:bg-emerald-800 text-white font-bold px-6 py-3 rounded-xl transition-all shadow-sm">
@@ -449,7 +449,7 @@ export const FeedView: React.FC = () => {
                   className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${idx === activeImageIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
                 />
               ))}
-              
+
               {/* Dots navigation indicator */}
               <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 z-20">
                 {bannerImages.map((_, idx) => (
@@ -515,8 +515,8 @@ export const FeedView: React.FC = () => {
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {featuredActivities.map(act => (
-                  <div 
-                    key={act._id} 
+                  <div
+                    key={act._id}
                     onClick={() => { window.location.hash = `#/activity/${act._id}`; }}
                     className="bg-white border border-surface-variant/40 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col cursor-pointer"
                   >
@@ -725,7 +725,7 @@ export const FeedView: React.FC = () => {
                             <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: isLiked ? "'FILL' 1" : "'FILL' 0" }}>favorite</span>
                             <span>{post.like_count || 0} Thích</span>
                           </button>
-                          
+
                           <button
                             onClick={() => setShowCommentsPostId(showCommentsPostId === post._id ? null : post._id)}
                             className={`flex items-center gap-1.5 py-1.5 px-3 rounded-xl hover:bg-slate-50 transition-all cursor-pointer ${showCommentsPostId === post._id ? 'text-[#006d37] bg-[#e8f5e9]/50' : 'hover:text-slate-700'}`}
