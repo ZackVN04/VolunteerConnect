@@ -101,7 +101,13 @@ async def get_activity_registrations(
                 name=reg.denormalized_volunteer.name,
                 phone=reg.denormalized_volunteer.phone,
                 email=reg.denormalized_volunteer.email
-            ) if reg.denormalized_volunteer else None
+            ) if reg.denormalized_volunteer else None,
+            activity=ActivitySnippet(
+                title=reg.denormalized_activity.title,
+                status=reg.denormalized_activity.status,
+                start_date=reg.denormalized_activity.start_date,
+                end_date=reg.denormalized_activity.end_date
+            ) if reg.denormalized_activity else None
         ))
     return RegistrationListResponse(
         message="Lấy danh sách ứng viên thành công",

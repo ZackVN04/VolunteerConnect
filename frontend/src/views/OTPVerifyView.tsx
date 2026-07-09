@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { authService } from '../services/apiService';
 
 const USE_REAL_BACKEND = true;
@@ -20,6 +20,39 @@ export const OTPVerifyView: React.FC<OTPVerifyViewProps> = ({
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [loading, setLoading] = useState(false);
+  const [countdown, setCountdown] = useState(60);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (countdown > 0) {
+      timer = setInterval(() => {
+        setCountdown((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [countdown]);
+
+  const handleResendOTP = async () => {
+    if (countdown > 0 || loading) return;
+    setLoading(true);
+    setErrorMsg('');
+    setSuccessMsg('');
+    try {
+      if (USE_REAL_BACKEND) {
+        await authService.resendOtp(email || phoneNumber);
+      } else {
+        await new Promise((resolve) => setTimeout(resolve, 800));
+      }
+      setSuccessMsg('Mã OTP mới đã được gửi! Vui lòng kiểm tra email/điện thoại.');
+      setCountdown(60);
+    } catch (err: any) {
+      setErrorMsg(err.response?.data?.detail || err.message || 'Không thể gửi lại mã OTP lúc này.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,9 +99,9 @@ export const OTPVerifyView: React.FC<OTPVerifyViewProps> = ({
   return (
     <div className="flex w-full h-screen overflow-hidden text-left font-body-md bg-background">
       <div className="hidden lg:flex w-1/2 bg-surface-container-low h-full items-center justify-center relative overflow-hidden">
-        <div 
-          aria-hidden="true" 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat scale-105" 
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat scale-105"
           style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1544027993-37dbfe43562a?q=80&w=800")' }}
         ></div>
         <div className="absolute inset-0 bg-gradient-to-t from-black/35 to-transparent"></div>
@@ -105,21 +138,21 @@ export const OTPVerifyView: React.FC<OTPVerifyViewProps> = ({
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div className="space-y-1">
               <label className="block text-xs text-on-surface font-semibold" htmlFor="otp">Mã xác thực (6 số)</label>
-              <input 
-                className="w-full px-4 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg text-center tracking-widest text-lg font-bold placeholder-on-surface-variant/35 focus:outline-none focus:border-primary" 
-                id="otp" 
+              <input
+                className="w-full px-4 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg text-center tracking-widest text-lg font-bold placeholder-on-surface-variant/35 focus:outline-none focus:border-primary"
+                id="otp"
                 maxLength={6}
                 value={otp}
                 onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                placeholder="000000" 
-                required 
+                placeholder="000000"
+                required
                 type="text"
                 disabled={loading}
               />
             </div>
 
-            <button 
-              className="w-full bg-primary hover:bg-tertiary text-on-primary font-bold rounded-full py-3 px-6 transition-all disabled:opacity-50" 
+            <button
+              className="w-full bg-primary hover:bg-tertiary text-on-primary font-bold rounded-full py-3 px-6 transition-all disabled:opacity-50"
               type="submit"
               disabled={loading}
             >
@@ -127,12 +160,21 @@ export const OTPVerifyView: React.FC<OTPVerifyViewProps> = ({
             </button>
           </form>
 
-          <div className="text-center text-xs text-on-surface-variant">
-            <button 
+          <div className="flex justify-between items-center text-xs text-on-surface-variant px-2">
+            <button
               onClick={onBackToLogin}
+              type="button"
               className="text-primary font-bold hover:underline transition-colors"
             >
               Quay lại Đăng nhập
+            </button>
+            <button
+              onClick={handleResendOTP}
+              type="button"
+              disabled={countdown > 0 || loading}
+              className={`font-bold transition-colors ${countdown > 0 ? 'text-slate-400 cursor-not-allowed' : 'text-primary hover:underline'}`}
+            >
+              {countdown > 0 ? `Gửi lại mã sau ${countdown}s` : 'Gửi lại mã OTP'}
             </button>
           </div>
         </div>

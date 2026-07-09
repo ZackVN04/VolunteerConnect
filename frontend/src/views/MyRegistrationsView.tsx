@@ -17,9 +17,14 @@ export const MyRegistrationsView: React.FC = () => {
   const handleCancel = (regId: string) => {
     showConfirm(
       'Bạn có chắc chắn muốn hủy đơn đăng ký tham gia hoạt động này?',
-      () => {
-        cancelOrRejectRegistration(regId);
-        showNotification('Đã hủy đơn đăng ký thành công!', 'success');
+      async () => {
+        const res = cancelOrRejectRegistration(regId);
+        const result = res instanceof Promise ? await res : res;
+        if (result && result.error) {
+          showNotification(result.error, 'error');
+        } else {
+          showNotification('Đã hủy đơn đăng ký thành công!', 'success');
+        }
       },
       'Hủy đăng ký tham gia'
     );
@@ -70,7 +75,7 @@ export const MyRegistrationsView: React.FC = () => {
     <div className="w-full bg-[#f8f9fa] min-h-screen pb-16">
       {/* Container */}
       <div className="max-w-[1280px] mx-auto px-4 md:px-8 py-8 space-y-8 text-left">
-        
+
         {/* Title block */}
         <div>
           <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-on-surface font-headline-md">
@@ -103,8 +108,8 @@ export const MyRegistrationsView: React.FC = () => {
             <div className="p-16 text-center space-y-4">
               <span className="material-symbols-outlined text-outline text-5xl">event_busy</span>
               <p className="text-sm text-on-surface-variant italic">Bạn chưa đăng ký tham gia hoạt động nào.</p>
-              <a 
-                href="#/activities" 
+              <a
+                href="#/activities"
                 className="inline-block bg-[#006d37] hover:bg-emerald-800 text-white font-bold px-6 py-2.5 rounded-xl transition-all text-sm shadow-sm"
               >
                 Khám phá hoạt động ngay
@@ -127,13 +132,13 @@ export const MyRegistrationsView: React.FC = () => {
                     const isCancellable = reg.status === 'Pending' || reg.status === 'Approved';
                     const act = activities.find(a => a._id === reg.activity_id);
                     const district = act?.location?.district || 'Hồ Chí Minh';
-                    
+
                     return (
                       <tr key={reg._id} className="hover:bg-slate-50 transition-colors">
                         {/* Title Column */}
                         <td className="px-6 py-5 font-bold">
-                          <a 
-                            href={`#/activity/${reg.activity_id}`} 
+                          <a
+                            href={`#/activity/${reg.activity_id}`}
                             className="hover:text-[#006d37] transition-colors"
                           >
                             {reg.denormalized_activity.title}

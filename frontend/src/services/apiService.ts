@@ -70,13 +70,13 @@ export const authService = {
     const res = await api.post('/auth/login', { email, password: password_raw });
     const token = res.data.access_token;
     const refreshToken = res.data.refresh_token;
-    
+
     // Immediately save tokens to localStorage for axios interceptor
     localStorage.setItem('token', token);
     if (refreshToken) {
       localStorage.setItem('refresh_token', refreshToken);
     }
-    
+
     // Fetch profile details
     const user = await authService.getCurrentUser();
     return { token, user };
@@ -84,9 +84,9 @@ export const authService = {
   register: async (fullname: string, email: string, phone: string, password_raw: string): Promise<{ message: string; user_id: string }> => {
     const formattedPhone = formatPhoneE164(phone);
     // Backend: POST /api/v1/auth/register, body: { email, password, phone_number, full_name }
-    const res = await api.post('/auth/register', { 
-      email, 
-      phone_number: formattedPhone, 
+    const res = await api.post('/auth/register', {
+      email,
+      phone_number: formattedPhone,
       password: password_raw,
       full_name: fullname
     });
@@ -94,9 +94,9 @@ export const authService = {
   },
   verifyOtp: async (email: string, otpCode: string): Promise<any> => {
     // Backend: POST /api/v1/auth/verify-otp, body: { email, otp_code }
-    const res = await api.post('/auth/verify-otp', { 
-      email, 
-      otp_code: otpCode 
+    const res = await api.post('/auth/verify-otp', {
+      email,
+      otp_code: otpCode
     });
     return res.data;
   },
@@ -112,10 +112,10 @@ export const authService = {
   },
   resetPassword: async (email: string, otpCode: string, newPasswordRaw: string): Promise<any> => {
     // Backend: POST /api/v1/auth/reset-password, body: { email, otp_code, new_password }
-    const res = await api.post('/auth/reset-password', { 
-      email, 
-      otp_code: otpCode, 
-      new_password: newPasswordRaw 
+    const res = await api.post('/auth/reset-password', {
+      email,
+      otp_code: otpCode,
+      new_password: newPasswordRaw
     });
     return res.data;
   },
@@ -319,7 +319,7 @@ export const organizerService = {
   submitRequest: async (reason: string, experience: string, contactPhone: string): Promise<any> => {
     const formattedPhone = formatPhoneE164(contactPhone);
     // Backend schema: OrganizerRequestCreate { reason, experience, contact_phone }
-    const res = await api.post('/organizer-requests/request-upgrade', { 
+    const res = await api.post('/organizer-requests/request-upgrade', {
       reason,
       experience,
       contact_phone: formattedPhone
@@ -359,7 +359,7 @@ export const userService = {
     updatedProfile: Partial<UserProfile> & { phone?: string; age?: number; gender?: string }
   ): Promise<User> => {
     // Backend: PUT /api/v1/users/me, body: { full_name, avatar_url, bio, skills, area_of_interest, phone_number, age, gender }
-    const res = await api.put('/users/me', { 
+    const res = await api.put('/users/me', {
       full_name: updatedProfile.full_name,
       avatar_url: updatedProfile.avatar_url,
       bio: updatedProfile.bio,
@@ -389,7 +389,7 @@ export const adminService = {
     const endpoint = approve ? `/admin/requests/${requestId}/approve` : `/admin/requests/${requestId}/reject`;
     const res = await rootApi.patch(endpoint, {
       status: approve ? 'approved' : 'rejected',
-      reason: feedback
+      reason: feedback || ""
     });
     return res.data;
   },
