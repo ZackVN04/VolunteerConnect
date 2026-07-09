@@ -2,7 +2,7 @@
   "users": [
     {
       "_id": "user_admin_001",
-      "phone": "0901234567",
+      "phone": "",
       "is_phone_verified": true,
       "otp_code": null,
       "otp_expires_at": null,
@@ -23,7 +23,7 @@
     },
     {
       "_id": "user_vol_a_002",
-      "phone": "0987654321",
+      "phone": "",
       "is_phone_verified": true,
       "otp_code": null,
       "otp_expires_at": null,
@@ -44,7 +44,7 @@
     },
     {
       "_id": "user_org_b_003",
-      "phone": "0912345678",
+      "phone": "",
       "is_phone_verified": true,
       "otp_code": null,
       "otp_expires_at": null,
@@ -65,7 +65,7 @@
     },
     {
       "_id": "user_vol_c_004",
-      "phone": "0934567890",
+      "phone": "",
       "is_phone_verified": true,
       "otp_code": null,
       "otp_expires_at": null,
@@ -86,7 +86,7 @@
     },
     {
       "_id": "user_vol_d_005",
-      "phone": "0956789012",
+      "phone": "",
       "is_phone_verified": true,
       "otp_code": null,
       "otp_expires_at": null,

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import { mediaService } from '../services/apiService';
+import type { User } from '../context/AppContext';
+import { mediaService, userService } from '../services/apiService';
+import { USE_REAL_BACKEND } from '../config/backend';
 
 // Helper: generate avatar initials placeholder
 const AvatarPlaceholder: React.FC<{ name: string; size?: number }> = ({ name, size = 128 }) => {
@@ -110,7 +112,35 @@ export const ProfileView: React.FC = () => {
   const viewedUserId = getUserIdFromHash();
   const isOwnProfile = !viewedUserId || viewedUserId === currentUser?._id;
 
-  const displayUser = isOwnProfile ? currentUser : users.find(u => u._id === viewedUserId);
+  const [fetchedUser, setFetchedUser] = useState<User | null>(null);
+  const [loadingUser, setLoadingUser] = useState(false);
+
+  useEffect(() => {
+    if (!isOwnProfile && viewedUserId) {
+      setLoadingUser(true);
+      if (USE_REAL_BACKEND) {
+        userService.getById(viewedUserId)
+          .then(user => {
+            setFetchedUser(user);
+            setLoadingUser(false);
+          })
+          .catch(err => {
+            console.error("Lỗi khi tải thông tin người dùng từ backend:", err);
+            setFetchedUser(null);
+            setLoadingUser(false);
+          });
+      } else {
+        const localUser = users.find(u => u._id === viewedUserId);
+        setFetchedUser(localUser || null);
+        setLoadingUser(false);
+      }
+    } else {
+      setFetchedUser(null);
+      setLoadingUser(false);
+    }
+  }, [viewedUserId, isOwnProfile, users]);
+
+  const displayUser = isOwnProfile ? currentUser : fetchedUser;
 
   const myRegs = registrations.filter(r => r.volunteer_id === displayUser?._id);
   const orgActs = activities.filter(a => a.organizer_id === displayUser?._id);
@@ -129,6 +159,15 @@ export const ProfileView: React.FC = () => {
       setRequestContact(currentUser.phone || '');
     }
   }, [currentUser, isOwnProfile]);
+
+  if (loadingUser) {
+    return (
+      <div className="py-20 text-center space-y-4 max-w-md mx-auto">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#006d37] mx-auto"></div>
+        <p className="text-sm text-on-surface-variant font-medium">Đang tải thông tin người dùng...</p>
+      </div>
+    );
+  }
 
   if (!displayUser) {
     return (
@@ -438,150 +477,159 @@ export const ProfileView: React.FC = () => {
             <div className="col-span-12 md:col-span-8 space-y-6">
               
               {/* tab === details: VIEW PROFILE DETAILS */}
-              {viewMode === 'details' && (
-                <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm p-6 md:p-8 space-y-6">
-                  <div>
-                    <h3 className="text-xl font-bold text-slate-800">Thông tin chi tiết</h3>
-                    <p className="text-slate-400 text-xs mt-1">Các thông tin cơ bản và lý lịch cá nhân được liên kết trên hệ thống.</p>
-                  </div>
+              {viewMode === 'details' && (() => {
+                const displaySkills: string[] = isOwnProfile 
+                  ? (skillsStr ? skillsStr.split(',').map(s => s.trim()).filter(Boolean) : []) 
+                  : (displayUser.profile.skills || []);
+                const displayAge = isOwnProfile ? age : displayUser.profile.age;
+                const displayGender = isOwnProfile ? gender : displayUser.profile.gender;
+                const displayAreaOfInterest = isOwnProfile ? areaOfInterest : displayUser.profile.area_of_interest;
 
-                  {/* 2-Column Info Grid */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <InfoItem 
-                      icon="mail" 
-                      iconColorClass="text-blue-600" 
-                      bgClass="bg-blue-50" 
-                      label="Địa chỉ Email" 
-                      value={displayUser.email || "Chưa cập nhật"} 
-                    />
-                    <InfoItem 
-                      icon="call" 
-                      iconColorClass="text-emerald-600" 
-                      bgClass="bg-emerald-50" 
-                      label="Số điện thoại" 
-                      value={displayUser.phone || "Chưa cập nhật"} 
-                    />
-                    <InfoItem 
-                      icon="location_on" 
-                      iconColorClass="text-rose-600" 
-                      bgClass="bg-rose-50" 
-                      label="Khu vực hoạt động" 
-                      value={areaOfInterest || "Chưa cập nhật"} 
-                    />
-                    <InfoItem 
-                      icon="cake" 
-                      iconColorClass="text-amber-600" 
-                      bgClass="bg-amber-50" 
-                      label="Tuổi" 
-                      value={age !== '' && age !== null && age !== undefined ? `${age} tuổi` : "Chưa cập nhật"} 
-                    />
-                    <InfoItem 
-                      icon="wc" 
-                      iconColorClass="text-purple-600" 
-                      bgClass="bg-purple-50" 
-                      label="Giới tính" 
-                      value={gender || "Chưa cập nhật"} 
-                    />
-                  </div>
-
-                  {/* Kỹ năng nổi bật */}
-                  <div className="bg-slate-50 border border-slate-100 rounded-xl p-5 space-y-2 text-left">
-                    <div className="flex items-center gap-2 text-slate-500 font-bold text-xs uppercase tracking-wider">
-                      <span className="material-symbols-outlined text-lg text-[#006d37]">psychology</span>
-                      Kỹ năng nổi bật
-                    </div>
-                    <div className="flex flex-wrap gap-2 pt-1">
-                      {skillsStr ? (
-                        skillsStr.split(',').map(s => s.trim()).filter(s => s.length > 0).map((skill, index) => (
-                          <span key={index} className="bg-teal-50 text-teal-800 border border-teal-100 px-3 py-1 rounded-lg text-xs font-semibold">
-                            {skill}
-                          </span>
-                        ))
-                      ) : (
-                        <span className="text-slate-400 text-xs italic font-medium">Chưa cập nhật danh sách kỹ năng nổi bật.</span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Giới thiệu bản thân */}
-                  <div className="bg-slate-50 border border-slate-100 rounded-xl p-5 space-y-2 text-left">
-                    <div className="flex items-center gap-2 text-slate-500 font-bold text-xs uppercase tracking-wider">
-                      <span className="material-symbols-outlined text-lg text-[#006d37]">chat_bubble</span>
-                      Giới thiệu bản thân
-                    </div>
-                    <p className="text-slate-600 text-sm font-medium leading-relaxed italic">
-                      "{displayUser.profile.bio || "Thành viên Volunteer Connect"}"
-                    </p>
-                  </div>
-
-                  {/* Stats Box */}
-                  <div className="bg-[#e8f5e9]/40 border border-[#006d37]/15 p-5 rounded-xl flex items-center gap-4 text-left">
-                    <div className="w-12 h-12 rounded-xl bg-[#e8f5e9] flex items-center justify-center shrink-0">
-                      <span className="material-symbols-outlined text-[#006d37] text-2xl font-bold">star</span>
-                    </div>
+                return (
+                  <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm p-6 md:p-8 space-y-6">
                     <div>
-                      <span className="text-xs text-slate-400 font-bold uppercase tracking-wider block">Thống kê cống hiến</span>
-                      <span className="text-slate-800 text-sm font-bold block mt-0.5">
-                        Đã tham gia <span className="text-[#006d37] text-base font-extrabold">{displayUser.profile.joined_activity_count || 0}</span> chiến dịch tình nguyện
-                      </span>
+                      <h3 className="text-xl font-bold text-slate-800">Thông tin chi tiết</h3>
+                      <p className="text-slate-400 text-xs mt-1">Các thông tin cơ bản và lý lịch cá nhân được liên kết trên hệ thống.</p>
                     </div>
-                  </div>
 
-                  {/* Organizer upgrade banner if Volunteer */}
-                  {displayUser.role === 'Volunteer' && (userRequest ? (
-                    <div className={`p-4 rounded-xl border text-sm text-left ${
-                      isPending ? 'bg-[#fef7e0] border-[#b06000]/30 text-[#b06000]' :
-                      isApproved ? 'bg-[#e8f5e9] border-[#006d37]/30 text-[#006d37]' :
-                      'bg-red-50 border-red-200 text-red-700'
-                    }`}>
-                      <div className="font-bold flex items-center gap-1.5">
-                        <span className="material-symbols-outlined text-lg">
-                          {isPending ? 'hourglass_empty' : isApproved ? 'verified' : 'cancel'}
-                        </span>
-                        Trạng thái đơn nâng quyền: {
-                          isPending ? 'Đang chờ Admin duyệt' :
-                          isApproved ? 'Đã duyệt thành công' : 'Bị từ chối'
-                        }
+                    {/* 2-Column Info Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <InfoItem 
+                        icon="mail" 
+                        iconColorClass="text-blue-600" 
+                        bgClass="bg-blue-50" 
+                        label="Địa chỉ Email" 
+                        value={displayUser.email || "Chưa cập nhật"} 
+                      />
+                      <InfoItem 
+                        icon="call" 
+                        iconColorClass="text-emerald-600" 
+                        bgClass="bg-emerald-50" 
+                        label="Số điện thoại" 
+                        value={displayUser.phone || "Chưa cập nhật"} 
+                      />
+                      <InfoItem 
+                        icon="location_on" 
+                        iconColorClass="text-rose-600" 
+                        bgClass="bg-rose-50" 
+                        label="Khu vực hoạt động" 
+                        value={displayAreaOfInterest || "Chưa cập nhật"} 
+                      />
+                      <InfoItem 
+                        icon="cake" 
+                        iconColorClass="text-amber-600" 
+                        bgClass="bg-amber-50" 
+                        label="Tuổi" 
+                        value={displayAge ? `${displayAge} tuổi` : "Chưa cập nhật"} 
+                      />
+                      <InfoItem 
+                        icon="wc" 
+                        iconColorClass="text-purple-600" 
+                        bgClass="bg-purple-50" 
+                        label="Giới tính" 
+                        value={displayGender || "Chưa cập nhật"} 
+                      />
+                    </div>
+
+                    {/* Kỹ năng nổi bật */}
+                    <div className="bg-slate-50 border border-slate-100 rounded-xl p-5 space-y-2 text-left">
+                      <div className="flex items-center gap-2 text-slate-500 font-bold text-xs uppercase tracking-wider">
+                        <span className="material-symbols-outlined text-lg text-[#006d37]">psychology</span>
+                        Kỹ năng nổi bật
                       </div>
-                      <p className="mt-1 text-xs opacity-90">Gửi ngày: {new Date(userRequest.created_at).toLocaleDateString('vi-VN')}</p>
-                      {userRequest.admin_feedback && (
-                        <p className="mt-2.5 p-3 bg-white/60 border border-current/20 rounded-lg text-xs font-semibold leading-relaxed">
-                          <strong>Phản hồi từ Admin:</strong> {userRequest.admin_feedback}
-                        </p>
-                      )}
-                      {isRejected && (
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        {displaySkills.length > 0 ? (
+                          displaySkills.map((skill, index) => (
+                            <span key={index} className="bg-teal-50 text-teal-800 border border-teal-100 px-3 py-1 rounded-lg text-xs font-semibold">
+                              {skill}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-slate-400 text-xs italic font-medium">Chưa cập nhật danh sách kỹ năng nổi bật.</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Giới thiệu bản thân */}
+                    <div className="bg-slate-50 border border-slate-100 rounded-xl p-5 space-y-2 text-left">
+                      <div className="flex items-center gap-2 text-slate-500 font-bold text-xs uppercase tracking-wider">
+                        <span className="material-symbols-outlined text-lg text-[#006d37]">chat_bubble</span>
+                        Giới thiệu bản thân
+                      </div>
+                      <p className="text-slate-600 text-sm font-medium leading-relaxed italic">
+                        "{displayUser.profile.bio || "Thành viên Volunteer Connect"}"
+                      </p>
+                    </div>
+
+                    {/* Stats Box */}
+                    <div className="bg-[#e8f5e9]/40 border border-[#006d37]/15 p-5 rounded-xl flex items-center gap-4 text-left">
+                      <div className="w-12 h-12 rounded-xl bg-[#e8f5e9] flex items-center justify-center shrink-0">
+                        <span className="material-symbols-outlined text-[#006d37] text-2xl font-bold">star</span>
+                      </div>
+                      <div>
+                        <span className="text-xs text-slate-400 font-bold uppercase tracking-wider block">Thống kê cống hiến</span>
+                        <span className="text-slate-800 text-sm font-bold block mt-0.5">
+                          Đã tham gia <span className="text-[#006d37] text-base font-extrabold">{displayUser.profile.joined_activity_count || 0}</span> chiến dịch tình nguyện
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Organizer upgrade banner if Volunteer */}
+                    {displayUser.role === 'Volunteer' && (userRequest ? (
+                      <div className={`p-4 rounded-xl border text-sm text-left ${
+                        isPending ? 'bg-[#fef7e0] border-[#b06000]/30 text-[#b06000]' :
+                        isApproved ? 'bg-[#e8f5e9] border-[#006d37]/30 text-[#006d37]' :
+                        'bg-red-50 border-red-200 text-red-700'
+                      }`}>
+                        <div className="font-bold flex items-center gap-1.5">
+                          <span className="material-symbols-outlined text-lg">
+                            {isPending ? 'hourglass_empty' : isApproved ? 'verified' : 'cancel'}
+                          </span>
+                          Trạng thái đơn nâng quyền: {
+                            isPending ? 'Đang chờ Admin duyệt' :
+                            isApproved ? 'Đã duyệt thành công' : 'Bị từ chối'
+                          }
+                        </div>
+                        <p className="mt-1 text-xs opacity-90">Gửi ngày: {new Date(userRequest.created_at).toLocaleDateString('vi-VN')}</p>
+                        {userRequest.admin_feedback && (
+                          <p className="mt-2.5 p-3 bg-white/60 border border-current/20 rounded-lg text-xs font-semibold leading-relaxed">
+                            <strong>Phản hồi từ Admin:</strong> {userRequest.admin_feedback}
+                          </p>
+                        )}
+                        {isRejected && (
+                          <button
+                            onClick={() => {
+                              setViewMode('upgrade');
+                              window.location.hash = '#/profile?tab=upgrade';
+                            }}
+                            className="mt-3 w-full bg-[#006d37] hover:bg-emerald-800 text-white py-2 rounded-xl font-bold text-xs shadow-sm transition-all"
+                          >
+                            Gửi lại yêu cầu nâng quyền khác
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="bg-[#e8f5e9]/30 border border-[#006d37]/15 rounded-2xl p-5 flex flex-col sm:flex-row justify-between items-center gap-4 text-left">
+                        <div className="space-y-1">
+                          <h4 className="text-sm font-bold text-slate-800">Trở thành Nhà tổ chức (Organizer)</h4>
+                          <p className="text-slate-500 text-xs leading-relaxed max-w-[420px]">
+                            Bạn muốn tự đăng bài và quản lý chiến dịch cộng đồng của riêng mình? Đăng ký nâng cấp tài khoản ngay.
+                          </p>
+                        </div>
                         <button
                           onClick={() => {
                             setViewMode('upgrade');
                             window.location.hash = '#/profile?tab=upgrade';
                           }}
-                          className="mt-3 w-full bg-[#006d37] hover:bg-emerald-800 text-white py-2 rounded-xl font-bold text-xs shadow-sm transition-all"
+                          className="bg-[#006d37] hover:bg-emerald-800 text-white font-bold px-4 py-2.5 rounded-xl transition-all text-xs shadow-sm whitespace-nowrap cursor-pointer shrink-0 animate-pulse hover:animate-none"
                         >
-                          Gửi lại yêu cầu nâng quyền khác
+                          Đăng ký nâng quyền
                         </button>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="bg-[#e8f5e9]/30 border border-[#006d37]/15 rounded-2xl p-5 flex flex-col sm:flex-row justify-between items-center gap-4 text-left">
-                      <div className="space-y-1">
-                        <h4 className="text-sm font-bold text-slate-800">Trở thành Nhà tổ chức (Organizer)</h4>
-                        <p className="text-slate-500 text-xs leading-relaxed max-w-[420px]">
-                          Bạn muốn tự đăng bài và quản lý chiến dịch cộng đồng của riêng mình? Đăng ký nâng cấp tài khoản ngay.
-                        </p>
                       </div>
-                      <button
-                        onClick={() => {
-                          setViewMode('upgrade');
-                          window.location.hash = '#/profile?tab=upgrade';
-                        }}
-                        className="bg-[#006d37] hover:bg-emerald-800 text-white font-bold px-4 py-2.5 rounded-xl transition-all text-xs shadow-sm whitespace-nowrap cursor-pointer shrink-0 animate-pulse hover:animate-none"
-                      >
-                        Đăng ký nâng quyền
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    ))}
+                  </div>
+                );
+              })()}
 
               {/* tab === edit: EDIT PROFILE FORM */}
               {viewMode === 'edit' && (
@@ -1107,7 +1155,7 @@ export const ProfileView: React.FC = () => {
                     Kỹ năng nổi bật
                   </div>
                   <div className="flex flex-wrap gap-2 pt-1">
-                    {displayUser.profile.skills.map((skill, index) => (
+                    {displayUser.profile.skills.map((skill: string, index: number) => (
                       <span key={index} className="bg-teal-50 text-teal-800 border border-teal-100 px-3 py-1 rounded-lg text-xs font-semibold">
                         {skill}
                       </span>

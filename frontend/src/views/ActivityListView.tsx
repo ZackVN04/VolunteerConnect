@@ -151,7 +151,8 @@ export const ActivityListView: React.FC = () => {
             {filteredActivities.map(act => (
               <div 
                 key={act._id} 
-                className="bg-white border border-surface-variant/40 rounded-3xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col h-[550px]"
+                onClick={() => { window.location.hash = `#/activity/${act._id}`; }}
+                className="bg-white border border-surface-variant/40 rounded-3xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col h-[550px] cursor-pointer"
               >
                 {/* Image Section */}
                 <div className="relative h-[250px] w-full shrink-0">
@@ -171,7 +172,7 @@ export const ActivityListView: React.FC = () => {
                 <div className="p-6 flex flex-col justify-between flex-grow">
                   <div className="space-y-4">
                     <h3 className="text-xl font-bold text-on-surface line-clamp-1 leading-tight">
-                      {act.title}
+                       {act.title}
                     </h3>
                     
                     <div className="space-y-2 text-sm text-on-surface-variant">
@@ -199,6 +200,7 @@ export const ActivityListView: React.FC = () => {
                     </span>
                     <a 
                       href={`#/activity/${act._id}`}
+                      onClick={(e) => e.stopPropagation()}
                       className="bg-[#006d37] hover:bg-emerald-800 text-white font-bold px-5 py-2.5 rounded-full transition-all text-sm shadow-sm"
                     >
                       Xem chi tiết

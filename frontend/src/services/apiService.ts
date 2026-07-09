@@ -336,24 +336,23 @@ export const organizerService = {
 // Post Services
 export const postService = {
   getAll: async (): Promise<Post[]> => {
-    const res = await rootApi.get('/posts');
+    const res = await rootApi.get('/posts/');
     const posts = res.data?.items || [];
     return posts.map(mapPost);
   },
-  create: async (content: string, images: string[], hashtags: string[]): Promise<Post> => {
-    const title = content.trim().split(/\s+/).slice(0, 8).join(' ').slice(0, 100) || 'Bài viết cộng đồng';
-    const res = await rootApi.post('/posts', { title, content, images, hashtags });
+  create: async (title: string, content: string, images: string[], hashtags: string[]): Promise<Post> => {
+    const res = await rootApi.post('/posts/', { title, content, images, hashtags });
     return mapPost(res.data);
   },
   like: async (postId: string): Promise<Post> => {
-    const res = await rootApi.post(`/posts/${postId}/like`);
+    const res = await rootApi.patch(`/posts/${postId}/like`);
     return mapPost(res.data);
   },
   delete: async (postId: string): Promise<void> => {
     await rootApi.delete(`/posts/${postId}`);
   },
   share: async (postId: string): Promise<Post> => {
-    const res = await rootApi.post(`/posts/${postId}/share`);
+    const res = await rootApi.patch(`/posts/${postId}/share`);
     return mapPost(res.data);
   }
 };

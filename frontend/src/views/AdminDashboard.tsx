@@ -17,7 +17,7 @@ const AdminAvatar: React.FC<{ name: string; src?: string | null }> = ({ name, sr
 };
 
 export const AdminDashboard: React.FC = () => {
-  const { 
+  const {
     currentUser, users, activities, registrations, organizerRequests,
     reviewOrganizerRequest, reviewActivity, changeUserRole, loginAs, setCurrentUser,
     showNotification, showPrompt
@@ -123,89 +123,99 @@ export const AdminDashboard: React.FC = () => {
             </span>
           </div>
 
-          {/* Right: Admin Info Dropdown */}
-          <div className="relative">
-            <button 
-              onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-              className="flex items-center gap-2.5 pl-2 focus:outline-none cursor-pointer"
+          {/* Right: Admin Actions & Info Dropdown */}
+          <div className="flex items-center gap-4">
+            <a
+              href="#/feed"
+              className="flex items-center gap-1.5 px-3.5 py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold rounded-xl text-xs transition-all shadow-sm cursor-pointer"
             >
-              <div className="w-10 h-10 rounded-full border-2 border-primary-container overflow-hidden bg-surface-container-high shrink-0 hover:scale-105 active:scale-95 transition-all">
-                <AdminAvatar 
-                  name={currentUser.profile.full_name} 
-                  src={currentUser.profile.avatar_url}
-                />
-              </div>
-              <div className="flex flex-col text-left">
-                <span className="font-bold text-xs text-on-surface leading-tight">
-                  {currentUser.profile.full_name}
-                </span>
-                <span className="text-[10px] text-on-surface-variant font-semibold mt-0.5 flex items-center gap-0.5">
-                  Quản trị viên
-                  <span className="material-symbols-outlined text-[12px] text-outline-variant">keyboard_arrow_down</span>
-                </span>
-              </div>
-            </button>
+              <span className="material-symbols-outlined text-sm">home</span>
+              Trang chủ
+            </a>
 
-            {/* Dropdown Menu */}
-            {profileDropdownOpen && (
-              <>
-                {/* Backdrop overlay */}
-                <div 
-                  onClick={() => setProfileDropdownOpen(false)}
-                  className="fixed inset-0 z-40 bg-transparent"
-                ></div>
-                
-                {/* Menu list */}
-                <div className="absolute right-0 mt-2 w-48 bg-white border border-surface-variant rounded-xl shadow-lg py-2 z-50 animate-fadeIn text-left text-xs font-semibold">
-                  <a 
-                    href="#/feed" 
-                    onClick={() => setProfileDropdownOpen(false)}
-                    className="flex items-center gap-2.5 px-4 py-2.5 text-on-surface hover:bg-slate-50 transition-colors"
-                  >
-                    <span className="material-symbols-outlined text-sm text-on-surface-variant">home</span>
-                    Trang chủ hệ thống
-                  </a>
-                  <hr className="border-outline-variant/30 my-1" />
-                  <a 
-                    href="#/profile" 
-                    onClick={() => setProfileDropdownOpen(false)}
-                    className="flex items-center gap-2.5 px-4 py-2.5 text-on-surface hover:bg-slate-50 transition-colors"
-                  >
-                    <span className="material-symbols-outlined text-sm text-on-surface-variant">account_circle</span>
-                    Hồ sơ cá nhân
-                  </a>
-                  <hr className="border-outline-variant/30 my-1" />
-                  <a 
-                    href="#/profile?tab=password" 
-                    onClick={() => setProfileDropdownOpen(false)}
-                    className="flex items-center gap-2.5 px-4 py-2.5 text-on-surface hover:bg-slate-50 transition-colors"
-                  >
-                    <span className="material-symbols-outlined text-sm text-on-surface-variant">vpn_key</span>
-                    Đổi mật khẩu
-                  </a>
-                  <hr className="border-outline-variant/30 my-1" />
-                  <button 
-                    onClick={() => {
-                      setProfileDropdownOpen(false);
-                      localStorage.removeItem('token');
-                      setCurrentUser(null);
-                      window.location.hash = '#/feed';
-                    }}
-                    className="w-full flex items-center gap-2.5 px-4 py-2.5 text-red-600 hover:bg-red-50 transition-colors text-left font-semibold"
-                  >
-                    <span className="material-symbols-outlined text-sm text-red-500">logout</span>
-                    Đăng xuất
-                  </button>
+            <div className="relative">
+              <button
+                onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                className="flex items-center gap-2.5 pl-2 focus:outline-none cursor-pointer"
+              >
+                <div className="w-10 h-10 rounded-full border-2 border-primary-container overflow-hidden bg-surface-container-high shrink-0 hover:scale-105 active:scale-95 transition-all">
+                  <AdminAvatar
+                    name={currentUser.profile.full_name}
+                    src={currentUser.profile.avatar_url}
+                  />
                 </div>
-              </>
-            )}
+                <div className="flex flex-col text-left">
+                  <span className="font-bold text-xs text-on-surface leading-tight">
+                    {currentUser.profile.full_name}
+                  </span>
+                  <span className="text-[10px] text-on-surface-variant font-semibold mt-0.5 flex items-center gap-0.5">
+                    Quản trị viên
+                    <span className="material-symbols-outlined text-[12px] text-outline-variant">keyboard_arrow_down</span>
+                  </span>
+                </div>
+              </button>
+
+              {/* Dropdown Menu */}
+              {profileDropdownOpen && (
+                <>
+                  {/* Backdrop overlay */}
+                  <div
+                    onClick={() => setProfileDropdownOpen(false)}
+                    className="fixed inset-0 z-40 bg-transparent"
+                  ></div>
+
+                  {/* Menu list */}
+                  <div className="absolute right-0 mt-2 w-48 bg-white border border-surface-variant rounded-xl shadow-lg py-2 z-50 animate-fadeIn text-left text-xs font-semibold">
+                    <a
+                      href="#/feed"
+                      onClick={() => setProfileDropdownOpen(false)}
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-on-surface hover:bg-slate-50 transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-sm text-on-surface-variant">home</span>
+                      Trang chủ hệ thống
+                    </a>
+                    <hr className="border-outline-variant/30 my-1" />
+                    <a
+                      href="#/profile"
+                      onClick={() => setProfileDropdownOpen(false)}
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-on-surface hover:bg-slate-50 transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-sm text-on-surface-variant">account_circle</span>
+                      Hồ sơ cá nhân
+                    </a>
+                    <hr className="border-outline-variant/30 my-1" />
+                    <a
+                      href="#/profile?tab=password"
+                      onClick={() => setProfileDropdownOpen(false)}
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-on-surface hover:bg-slate-50 transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-sm text-on-surface-variant">vpn_key</span>
+                      Đổi mật khẩu
+                    </a>
+                    <hr className="border-outline-variant/30 my-1" />
+                    <button
+                      onClick={() => {
+                        setProfileDropdownOpen(false);
+                        localStorage.removeItem('token');
+                        setCurrentUser(null);
+                        window.location.hash = '#/feed';
+                      }}
+                      className="w-full flex items-center gap-2.5 px-4 py-2.5 text-red-600 hover:bg-red-50 transition-colors text-left font-semibold"
+                    >
+                      <span className="material-symbols-outlined text-sm text-red-500">logout</span>
+                      Đăng xuất
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </header>
 
       {/* Container */}
       <div className="max-w-[1440px] mx-auto px-4 md:px-8 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8 text-left">
-        
+
         {/* Left Sidebar Layout */}
         <aside className="lg:col-span-3 bg-white border border-surface-variant/40 rounded-3xl p-6 shadow-sm h-fit space-y-6">
           <div>
@@ -217,11 +227,10 @@ export const AdminDashboard: React.FC = () => {
             {/* Tab 1 */}
             <button
               onClick={() => setActiveTab('overview')}
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${
-                activeTab === 'overview'
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${activeTab === 'overview'
                   ? 'bg-[#006d37] text-white'
                   : 'text-on-surface-variant hover:bg-slate-100 hover:text-on-surface'
-              }`}
+                }`}
             >
               <span className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-lg">dashboard</span>
@@ -232,11 +241,10 @@ export const AdminDashboard: React.FC = () => {
             {/* Tab 2 */}
             <button
               onClick={() => setActiveTab('organizers')}
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${
-                activeTab === 'organizers'
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${activeTab === 'organizers'
                   ? 'bg-[#006d37] text-white'
                   : 'text-on-surface-variant hover:bg-slate-100 hover:text-on-surface'
-              }`}
+                }`}
             >
               <span className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-lg">person_add</span>
@@ -252,11 +260,10 @@ export const AdminDashboard: React.FC = () => {
             {/* Tab 3 */}
             <button
               onClick={() => setActiveTab('activities')}
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${
-                activeTab === 'activities'
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${activeTab === 'activities'
                   ? 'bg-[#006d37] text-white'
                   : 'text-on-surface-variant hover:bg-slate-100 hover:text-on-surface'
-              }`}
+                }`}
             >
               <span className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-lg">verified_user</span>
@@ -272,11 +279,10 @@ export const AdminDashboard: React.FC = () => {
             {/* Tab 4 */}
             <button
               onClick={() => setActiveTab('users')}
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${
-                activeTab === 'users'
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${activeTab === 'users'
                   ? 'bg-[#006d37] text-white'
                   : 'text-on-surface-variant hover:bg-slate-100 hover:text-on-surface'
-              }`}
+                }`}
             >
               <span className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-lg">group</span>
@@ -287,11 +293,10 @@ export const AdminDashboard: React.FC = () => {
             {/* Tab 5 */}
             <button
               onClick={() => setActiveTab('stats')}
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${
-                activeTab === 'stats'
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${activeTab === 'stats'
                   ? 'bg-[#006d37] text-white'
                   : 'text-on-surface-variant hover:bg-slate-100 hover:text-on-surface'
-              }`}
+                }`}
             >
               <span className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-lg">analytics</span>
@@ -303,7 +308,7 @@ export const AdminDashboard: React.FC = () => {
 
         {/* Right main workspace layout */}
         <section className="lg:col-span-9 space-y-6">
-          
+
           {/* TAB 1: SYSTEM OVERVIEW */}
           {activeTab === 'overview' && (
             <div className="space-y-8">
@@ -355,7 +360,7 @@ export const AdminDashboard: React.FC = () => {
 
               {/* Two-Column Middle part */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                
+
                 {/* Left: Nhiệm vụ cần xử lý */}
                 <div className="lg:col-span-8 bg-white border border-surface-variant/40 rounded-2xl p-6 shadow-sm space-y-4">
                   <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
@@ -425,7 +430,7 @@ export const AdminDashboard: React.FC = () => {
 
                 {/* Right: Statuses & Registration results */}
                 <div className="lg:col-span-4 flex flex-col gap-6">
-                  
+
                   {/* Statuses card */}
                   <div className="bg-white border border-surface-variant/40 rounded-2xl p-6 shadow-sm space-y-4">
                     <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
@@ -447,14 +452,13 @@ export const AdminDashboard: React.FC = () => {
                           </span>
                         </div>
                         <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                          <div 
-                            className="bg-[#006d37] h-full" 
-                            style={{ 
-                              width: `${
-                                activities.length > 0 
-                                  ? (activities.filter(a => a.status === 'Open').length / activities.length) * 100 
+                          <div
+                            className="bg-[#006d37] h-full"
+                            style={{
+                              width: `${activities.length > 0
+                                  ? (activities.filter(a => a.status === 'Open').length / activities.length) * 100
                                   : 0
-                              }%` 
+                                }%`
                             }}
                           ></div>
                         </div>
@@ -473,14 +477,13 @@ export const AdminDashboard: React.FC = () => {
                           </span>
                         </div>
                         <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                          <div 
-                            className="bg-[#b06000] h-full" 
-                            style={{ 
-                              width: `${
-                                activities.length > 0 
-                                  ? (activities.filter(a => a.status === 'Pending Review').length / activities.length) * 100 
+                          <div
+                            className="bg-[#b06000] h-full"
+                            style={{
+                              width: `${activities.length > 0
+                                  ? (activities.filter(a => a.status === 'Pending Review').length / activities.length) * 100
                                   : 0
-                              }%` 
+                                }%`
                             }}
                           ></div>
                         </div>
@@ -499,14 +502,13 @@ export const AdminDashboard: React.FC = () => {
                           </span>
                         </div>
                         <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                          <div 
-                            className="bg-[#1e429f] h-full" 
-                            style={{ 
-                              width: `${
-                                activities.length > 0 
-                                  ? (activities.filter(a => a.status === 'Completed').length / activities.length) * 100 
+                          <div
+                            className="bg-[#1e429f] h-full"
+                            style={{
+                              width: `${activities.length > 0
+                                  ? (activities.filter(a => a.status === 'Completed').length / activities.length) * 100
                                   : 0
-                              }%` 
+                                }%`
                             }}
                           ></div>
                         </div>
@@ -618,8 +620,8 @@ export const AdminDashboard: React.FC = () => {
                           <span className="col-span-2 text-on-surface font-bold">{pendingActivities[0].categories.join(', ')}</span>
                         </div>
                         <div className="grid grid-cols-3 gap-2">
-                           <span className="text-on-surface-variant">Người đăng</span>
-                           <span className="col-span-2 text-on-surface font-bold">{pendingActivities[0].denormalized_organizer?.name || 'Ban tổ chức'}</span>
+                          <span className="text-on-surface-variant">Người đăng</span>
+                          <span className="col-span-2 text-on-surface font-bold">{pendingActivities[0].denormalized_organizer?.name || 'Ban tổ chức'}</span>
                         </div>
                         <div className="grid grid-cols-3 gap-2">
                           <span className="text-on-surface-variant">Thời gian gửi</span>
@@ -739,8 +741,8 @@ export const AdminDashboard: React.FC = () => {
                         {pendingActivities.map(act => (
                           <tr key={act._id} className="hover:bg-slate-50 transition-colors">
                             <td className="px-6 py-5 font-bold">
-                              <a 
-                                href={`#/activity/${act._id}`} 
+                              <a
+                                href={`#/activity/${act._id}`}
                                 className="hover:text-[#006d37] hover:underline"
                                 target="_blank"
                                 rel="noreferrer"
@@ -755,7 +757,7 @@ export const AdminDashboard: React.FC = () => {
                               {new Date(act.created_at).toLocaleDateString('vi-VN')}
                             </td>
                             <td className="px-6 py-5 text-on-surface-variant">
-                               {act.denormalized_organizer?.name || 'Ban tổ chức'}
+                              {act.denormalized_organizer?.name || 'Ban tổ chức'}
                             </td>
                             <td className="px-6 py-5 whitespace-nowrap">
                               <div className="flex gap-3">

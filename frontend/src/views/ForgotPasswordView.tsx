@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { authService } from '../services/apiService';
 
@@ -11,8 +11,8 @@ interface ForgotPasswordViewProps {
 export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBackToLogin }) => {
   const { users, showNotification } = useApp();
   const [email, setEmail] = useState('');
-  // step 1: enter email & get OTP; step 2: reset password
-  const [step, setStep] = useState<1 | 2>(1);
+  // step 1: enter email; step 2: enter OTP; step 3: reset password
+  const [step, setStep] = useState<1 | 2 | 3>(1);
   const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -22,10 +22,35 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBackTo
   const [successMsg, setSuccessMsg] = useState('');
   const [loading, setLoading] = useState(false);
   const [simulatedOtp, setSimulatedOtp] = useState('');
+  const [timeLeft, setTimeLeft] = useState(300); // 5 minutes in seconds
 
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const getOtpCode = () => otpDigits.join('');
+
+  // Countdown timer effect for Step 2
+  useEffect(() => {
+    if (step !== 2) return;
+
+    setTimeLeft(300);
+    const interval = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [step]);
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
 
   const handleOtpChange = (index: number, value: string) => {
     const v = value.replace(/\D/g, '').slice(-1);
@@ -39,7 +64,7 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBackTo
     const code = newDigits.join('');
     if (code.length === 6) {
       setErrorMsg('');
-      setStep(2);
+      setStep(3); // transition to new password screen when OTP is filled
     }
   };
 
@@ -56,7 +81,7 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBackTo
       otpRefs.current[5]?.focus();
       e.preventDefault();
       setErrorMsg('');
-      setStep(2);
+      setStep(3);
     }
   };
 
@@ -74,6 +99,7 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBackTo
       try {
         const res = await authService.forgotPassword(email.trim());
         setSuccessMsg(res.message || 'Mã OTP đã được gửi về email của bạn.');
+        setStep(2);
       } catch (err: any) {
         let msg = 'Không thể yêu cầu mã OTP. Vui lòng kiểm tra lại email.';
         const detail = err.response?.data?.detail;
@@ -99,8 +125,38 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBackTo
     showNotification(`[MÔ PHỎNG EMAIL] Mã OTP: ${mockOtp}`, 'info');
     setSuccessMsg('Mã OTP đã được gửi tới email giả lập của bạn.');
     setLoading(false);
+    setStep(2);
   };
 
+  const handleResendOtp = async () => {
+    setLoading(true);
+    setErrorMsg('');
+    setSuccessMsg('');
+    if (USE_REAL_BACKEND) {
+      try {
+        const res = await authService.forgotPassword(email.trim());
+        setSuccessMsg(res.message || 'Mã OTP đã được gửi lại về email của bạn.');
+        setTimeLeft(300);
+      } catch (err: any) {
+        let msg = 'Không thể gửi lại mã OTP. Vui lòng thử lại.';
+        const detail = err.response?.data?.detail;
+        if (typeof detail === 'string') msg = detail;
+        else if (err.response?.data?.message) msg = err.response.data.message;
+        setErrorMsg(msg);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
+    // Simulate resend
+    const mockOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    setSimulatedOtp(mockOtp);
+    showNotification(`[MÔ PHỎNG EMAIL] Mã OTP gửi lại: ${mockOtp}`, 'info');
+    setSuccessMsg('Mã OTP mới đã được gửi tới email giả lập của bạn.');
+    setTimeLeft(300);
+    setLoading(false);
+  };
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -154,10 +210,10 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBackTo
   };
 
   return (
-    <div className="min-h-screen bg-[#f5f5f5] flex items-center justify-center px-4">
-      <div className="bg-white rounded-3xl shadow-sm border border-slate-100 w-full max-w-md px-8 py-10 space-y-6">
+    <div className="min-h-screen bg-[#f5f5f5] flex items-center justify-center px-4 py-8 text-left font-body-md">
+      <div className="bg-white rounded-3xl border border-gray-200/80 shadow-sm w-full max-w-md px-8 py-10 space-y-6">
 
-        {/* Logo */}
+        {/* Logo Header */}
         <div className="flex items-center justify-center gap-2 mb-2">
           <div className="w-8 h-8 rounded-lg bg-[#006d37] flex items-center justify-center text-white font-bold text-sm select-none">
             vc
@@ -165,27 +221,27 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBackTo
           <span className="text-[#006d37] font-bold text-lg tracking-tight font-headline-md">Volunteer Connect</span>
         </div>
 
-        {step === 1 ? (
+        {errorMsg && (
+          <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg text-xs font-semibold leading-relaxed">
+            {errorMsg}
+          </div>
+        )}
+        
+        {successMsg && (
+          <div className="bg-green-50 border border-green-200 text-green-700 p-3 rounded-lg text-xs font-semibold leading-relaxed">
+            {successMsg}
+          </div>
+        )}
+
+        {step === 1 && (
           <>
-            {/* Step 1: Enter email + OTP boxes */}
             <div className="text-center space-y-1">
               <h1 className="text-2xl font-bold text-gray-900 font-headline-md">Khôi phục mật khẩu</h1>
               <p className="text-sm text-gray-500 font-medium">Nhập địa chỉ Email đã đăng ký để nhận mã OTP</p>
             </div>
 
-            {errorMsg && (
-              <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg text-xs font-semibold">
-                {errorMsg}
-              </div>
-            )}
-            {successMsg && (
-              <div className="bg-green-50 border border-green-200 text-green-700 p-3 rounded-lg text-xs font-semibold">
-                {successMsg}
-              </div>
-            )}
-
             <form className="space-y-5" onSubmit={handleRequestReset}>
-              <div className="space-y-1 text-left">
+              <div className="space-y-1">
                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider" htmlFor="forgot-email">Email</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
@@ -204,7 +260,7 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBackTo
                 </div>
               </div>
 
-              <div className="flex justify-center">
+              <div className="flex justify-center pt-2">
                 <button
                   type="submit"
                   disabled={loading}
@@ -214,9 +270,17 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBackTo
                 </button>
               </div>
             </form>
+          </>
+        )}
 
-            {/* OTP Boxes */}
-            <form className="space-y-3 text-left" onSubmit={e => e.preventDefault()}>
+        {step === 2 && (
+          <>
+            <div className="text-center space-y-1">
+              <h1 className="text-2xl font-bold text-gray-900 font-headline-md">Khôi phục mật khẩu</h1>
+              <p className="text-sm text-gray-500 font-medium">Nhập mã OTP đã nhận được</p>
+            </div>
+
+            <form className="space-y-4 text-left" onSubmit={e => e.preventDefault()}>
               <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">Mã xác minh</label>
               <div className="flex gap-2 justify-between">
                 {otpDigits.map((digit, i) => (
@@ -235,39 +299,35 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBackTo
                   />
                 ))}
               </div>
-            </form>
 
-            <div className="text-center pt-2">
-              <button
-                onClick={onBackToLogin}
-                className="text-xs text-[#006d37] hover:underline font-bold transition-all cursor-pointer"
-              >
-                ← Quay lại đăng nhập
-              </button>
-            </div>
+              {/* Expiry countdown */}
+              <div className="text-right text-xs font-semibold">
+                {timeLeft > 0 ? (
+                  <span className="text-[#ba1a1a]">Mã hết hạn trong {formatTime(timeLeft)}</span>
+                ) : (
+                  <button 
+                    type="button" 
+                    onClick={handleResendOtp}
+                    className="text-[#006d37] hover:underline font-bold"
+                  >
+                    Gửi lại mã OTP
+                  </button>
+                )}
+              </div>
+            </form>
           </>
-        ) : (
+        )}
+
+        {step === 3 && (
           <>
-            {/* Step 2: Set new password */}
             <div className="text-center space-y-1">
               <h1 className="text-2xl font-bold text-gray-900 font-headline-md">Đặt lại mật khẩu</h1>
               <p className="text-sm text-gray-500 font-medium">Nhập mật khẩu mới để tiếp tục đăng nhập</p>
             </div>
 
-            {errorMsg && (
-              <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg text-xs font-semibold">
-                {errorMsg}
-              </div>
-            )}
-            {successMsg && (
-              <div className="bg-green-50 border border-green-200 text-green-700 p-3 rounded-lg text-xs font-semibold">
-                {successMsg}
-              </div>
-            )}
-
             <form className="space-y-5" onSubmit={handleResetPassword}>
               {/* New Password */}
-              <div className="space-y-1 text-left">
+              <div className="space-y-1">
                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider" htmlFor="new-password">Mật khẩu mới</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
@@ -290,14 +350,14 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBackTo
                     tabIndex={-1}
                   >
                     <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
-                      {showNewPw ? 'visibility_off' : 'visibility'}
+                      {showNewPw ? 'visibility' : 'visibility_off'}
                     </span>
                   </button>
                 </div>
               </div>
 
               {/* Confirm Password */}
-              <div className="space-y-1 text-left">
+              <div className="space-y-1">
                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider" htmlFor="confirm-password">Nhập lại mật khẩu</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
@@ -320,7 +380,7 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBackTo
                     tabIndex={-1}
                   >
                     <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
-                      {showConfirmPw ? 'visibility_off' : 'visibility'}
+                      {showConfirmPw ? 'visibility' : 'visibility_off'}
                     </span>
                   </button>
                 </div>
@@ -336,17 +396,19 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBackTo
                 </button>
               </div>
             </form>
-
-            <div className="text-center pt-2">
-              <button
-                onClick={onBackToLogin}
-                className="text-xs text-[#006d37] hover:underline font-bold transition-all cursor-pointer"
-              >
-                ← Quay lại đăng nhập
-              </button>
-            </div>
           </>
         )}
+
+        {/* Back Link */}
+        <div className="text-center pt-2">
+          <button
+            onClick={onBackToLogin}
+            className="text-xs text-[#006d37] hover:underline font-bold transition-all cursor-pointer"
+          >
+            ← Quay lại đăng nhập
+          </button>
+        </div>
+
       </div>
     </div>
   );

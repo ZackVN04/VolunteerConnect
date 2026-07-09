@@ -1,5 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
+import { mediaService } from '../services/apiService';
 
 // Avatar helper
 const PostAvatar: React.FC<{ name: string; src?: string | null; size?: number }> = ({ name, src, size = 44 }) => {
@@ -21,21 +22,31 @@ const PostAvatar: React.FC<{ name: string; src?: string | null; size?: number }>
 };
 
 // Create Post Modal Component
-const CreatePostModal: React.FC<{ onClose: () => void; onSubmit: (title: string, content: string, images: string[], videoUrl: string, hashtags: string[]) => void }> = ({ onClose, onSubmit }) => {
+const CreatePostModal: React.FC<{ onClose: () => void; onSubmit: (title: string, content: string, images: string[], videoUrl: string, hashtags: string[]) => Promise<void> }> = ({ onClose, onSubmit }) => {
+  const { showNotification } = useApp();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState('');
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState('');
   const [isVideoDragging, setIsVideoDragging] = useState(false);
   const [hashtagsStr, setHashtagsStr] = useState('');
   const [isDragging, setIsDragging] = useState(false);
+  const [localError, setLocalError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (file: File | null) => {
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) return;
+    setLocalError('');
+    if (file.size > 5 * 1024 * 1024) {
+      setLocalError('Kích thước ảnh vượt quá giới hạn cho phép (Tối đa 5MB).');
+      showNotification('Kích thước ảnh vượt quá giới hạn cho phép (Tối đa 5MB).', 'error');
+      return;
+    }
+    setImageFile(file);
     const reader = new FileReader();
     reader.onloadend = () => setImagePreview(reader.result as string);
     reader.readAsDataURL(file);
@@ -50,13 +61,16 @@ const CreatePostModal: React.FC<{ onClose: () => void; onSubmit: (title: string,
 
   const handleVideoFileChange = (file: File | null) => {
     if (!file) return;
+    setLocalError('');
     const validTypes = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/webm', 'video/ogg'];
     if (!validTypes.includes(file.type)) {
-      alert('Chỉ chấp nhận file video (MP4, MOV, AVI, WebM).');
+      setLocalError('Chỉ chấp nhận file video (MP4, MOV, AVI, WebM).');
+      showNotification('Chỉ chấp nhận file video (MP4, MOV, AVI, WebM).', 'error');
       return;
     }
     if (file.size > 100 * 1024 * 1024) {
-      alert('File video quá lớn. Tối đa 100MB.');
+      setLocalError('Kích thước video vượt quá giới hạn cho phép (Tối đa 100MB).');
+      showNotification('Kích thước video vượt quá giới hạn cho phép (Tối đa 100MB).', 'error');
       return;
     }
     setVideoFile(file);
@@ -70,12 +84,28 @@ const CreatePostModal: React.FC<{ onClose: () => void; onSubmit: (title: string,
     if (file && file.type.startsWith('video/')) handleVideoFileChange(file);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const tags = hashtagsStr.split(',').map(t => t.trim().replace(/^#/, '')).filter(Boolean);
-    const images = imagePreview ? [imagePreview] : [];
-    // videoFile tên được truyền qua videoUrl param để backend xử lý (upload riêng trong production)
-    onSubmit(title, content, images, videoFile ? videoFile.name : '', tags);
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    setLocalError('');
+
+    try {
+      let imageUrls: string[] = [];
+      if (imageFile) {
+        // Upload image to backend first
+        const uploadRes = await mediaService.upload(imageFile);
+        imageUrls.push(uploadRes.url);
+      }
+      const tags = hashtagsStr.split(',').map(t => t.trim().replace(/^#/, '')).filter(Boolean);
+      // Wait for onSubmit to complete
+      await onSubmit(title, content, imageUrls, videoFile ? videoFile.name : '', tags);
+    } catch (err: any) {
+      console.error(err);
+      const msg = err.response?.data?.detail || err.message || 'Không thể đăng bài viết. Vui lòng kiểm tra lại.';
+      setLocalError(typeof msg === 'string' ? msg : JSON.stringify(msg));
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -88,6 +118,14 @@ const CreatePostModal: React.FC<{ onClose: () => void; onSubmit: (title: string,
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
+          {/* Local Error Alert */}
+          {localError && (
+            <div className="bg-red-50 border border-red-200 text-red-700 p-3.5 rounded-xl text-xs font-bold flex items-center gap-2 animate-fadeIn">
+              <span className="material-symbols-outlined text-base">error</span>
+              <span>{localError}</span>
+            </div>
+          )}
+
           {/* Title */}
           <div className="space-y-1.5">
             <label className="block text-sm font-bold text-gray-700">Tiêu đề bài viết <span className="text-red-500">*</span></label>
@@ -205,11 +243,11 @@ const CreatePostModal: React.FC<{ onClose: () => void; onSubmit: (title: string,
 
           {/* Footer Buttons */}
           <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
-            <button type="button" onClick={onClose} className="px-6 py-2.5 border border-slate-200 text-slate-600 font-semibold rounded-xl hover:bg-slate-50 text-sm transition-colors cursor-pointer">
+            <button type="button" onClick={onClose} disabled={isSubmitting} className="px-6 py-2.5 border border-slate-200 text-slate-600 font-semibold rounded-xl hover:bg-slate-50 text-sm transition-colors cursor-pointer disabled:opacity-50">
               Hủy bỏ
             </button>
-            <button type="submit" className="px-6 py-2.5 bg-[#1a6c3a] hover:bg-[#155c30] text-white font-bold rounded-xl text-sm transition-all shadow-sm cursor-pointer">
-              Đăng bài viết
+            <button type="submit" disabled={isSubmitting} className="px-6 py-2.5 bg-[#1a6c3a] hover:bg-[#155c30] text-white font-bold rounded-xl text-sm transition-all shadow-sm cursor-pointer disabled:opacity-50">
+              {isSubmitting ? 'Đang đăng...' : 'Đăng bài viết'}
             </button>
           </div>
         </form>
@@ -218,6 +256,15 @@ const CreatePostModal: React.FC<{ onClose: () => void; onSubmit: (title: string,
   );
 };
 
+export interface PostComment {
+  _id: string;
+  post_id: string;
+  author_name: string;
+  author_avatar?: string;
+  content: string;
+  created_at: string;
+}
+
 export const FeedView: React.FC = () => {
   const { currentUser, users, activities, posts, createPost, likePost, sharePost, deletePost, showNotification } = useApp();
   const [currentPage, setCurrentPage] = useState(1);
@@ -225,7 +272,55 @@ export const FeedView: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
   const [openMenuPostId, setOpenMenuPostId] = useState<string | null>(null);
+  const [openSharePostId, setOpenSharePostId] = useState<string | null>(null);
   const itemsPerPage = 3;
+
+  // Comments states
+  const [commentsMap, setCommentsMap] = useState<Record<string, PostComment[]>>({});
+  const [showCommentsPostId, setShowCommentsPostId] = useState<string | null>(null);
+  const [newCommentTexts, setNewCommentTexts] = useState<Record<string, string>>({});
+
+  // Load comments from localStorage on mount
+  useEffect(() => {
+    const savedComments = localStorage.getItem('volunteer_connect_comments');
+    if (savedComments) {
+      try {
+        setCommentsMap(JSON.parse(savedComments));
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  }, []);
+
+  const handleAddComment = (postId: string) => {
+    const text = newCommentTexts[postId]?.trim();
+    if (!text) return;
+
+    const newComment: PostComment = {
+      _id: `comment_${Date.now()}`,
+      post_id: postId,
+      author_name: currentUser?.profile.full_name || 'Thành viên',
+      author_avatar: currentUser?.profile.avatar_url,
+      content: text,
+      created_at: new Date().toISOString()
+    };
+
+    const postComments = commentsMap[postId] || [];
+    const updatedComments = [...postComments, newComment];
+    const updatedMap = {
+      ...commentsMap,
+      [postId]: updatedComments
+    };
+
+    setCommentsMap(updatedMap);
+    localStorage.setItem('volunteer_connect_comments', JSON.stringify(updatedMap));
+
+    // Clear comment input
+    setNewCommentTexts({
+      ...newCommentTexts,
+      [postId]: ''
+    });
+  };
 
   // Stats
   const totalCampaigns = activities.length;
@@ -265,18 +360,32 @@ export const FeedView: React.FC = () => {
     return new Date(dateStr).toLocaleDateString('vi-VN');
   };
 
-  const handleCreatePost = (title: string, content: string, images: string[], _videoUrl: string, hashtags: string[]) => {
+  const handleCreatePost = async (title: string, content: string, images: string[], _videoUrl: string, hashtags: string[]) => {
     if (!currentUser) return;
-    const fullContent = title ? `${title}\n${content}` : content;
-    createPost(fullContent, images, hashtags);
-    setShowCreateModal(false);
-    showNotification('Đã đăng bài viết thành công!', 'success');
+    const res = await createPost(title, content, images, hashtags);
+    if (res.success) {
+      setShowCreateModal(false);
+      showNotification('Đã đăng bài viết thành công!', 'success');
+    } else {
+      throw new Error(res.error || 'Đăng bài viết thất bại.');
+    }
   };
 
-  const handleShare = async (postId: string) => {
+  const performShareAction = async (postId: string, actionType: 'copy' | 'facebook' | 'telegram') => {
     sharePost(postId);
-    navigator.clipboard.writeText(window.location.origin + window.location.pathname + '#/feed').catch(() => {});
-    showNotification('Đã chia sẻ bài viết!', 'success');
+    const shareUrl = `${window.location.origin}${window.location.pathname}#/feed?postId=${postId}`;
+
+    if (actionType === 'copy') {
+      await navigator.clipboard.writeText(shareUrl).catch(() => {});
+      showNotification('Đã sao chép liên kết bài viết!', 'success');
+    } else if (actionType === 'facebook') {
+      window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`, '_blank', 'noopener,noreferrer');
+      showNotification('Đang chuyển hướng sang Facebook...', 'info');
+    } else if (actionType === 'telegram') {
+      window.open(`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent('Xem bài viết này trên Volunteer Connect!')}`, '_blank', 'noopener,noreferrer');
+      showNotification('Đang chuyển hướng sang Telegram...', 'info');
+    }
+    setOpenSharePostId(null);
   };
 
   const handleDelete = async (postId: string) => {
@@ -359,7 +468,11 @@ export const FeedView: React.FC = () => {
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {featuredActivities.map(act => (
-                  <div key={act._id} className="bg-white border border-surface-variant/40 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col">
+                  <div 
+                    key={act._id} 
+                    onClick={() => { window.location.hash = `#/activity/${act._id}`; }}
+                    className="bg-white border border-surface-variant/40 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col cursor-pointer"
+                  >
                     <div className="relative h-[200px] shrink-0">
                       <img
                         src={act.image_url || 'https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=600'}
@@ -389,10 +502,10 @@ export const FeedView: React.FC = () => {
                         </div>
                       </div>
                       <div className="flex gap-3 pt-2">
-                        <a href={`#/activity/${act._id}`} className="flex-1 text-center bg-[#006d37] hover:bg-emerald-800 text-white font-bold py-2 rounded-xl text-xs transition-all">
+                        <a href={`#/activity/${act._id}`} onClick={(e) => e.stopPropagation()} className="flex-1 text-center bg-[#006d37] hover:bg-emerald-800 text-white font-bold py-2 rounded-xl text-xs transition-all">
                           Đang mở đăng ký
                         </a>
-                        <a href={`#/activity/${act._id}`} className="flex-1 text-center border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold py-2 rounded-xl text-xs transition-all">
+                        <a href={`#/activity/${act._id}`} onClick={(e) => e.stopPropagation()} className="flex-1 text-center border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold py-2 rounded-xl text-xs transition-all">
                           Xem chi tiết
                         </a>
                       </div>
@@ -556,23 +669,125 @@ export const FeedView: React.FC = () => {
                           </div>
                         )}
 
-                        {/* Actions: Like, Share */}
+                        {/* Actions: Like, Comment, Share */}
                         <div className="flex items-center gap-3 text-xs text-slate-500 font-bold border-t border-slate-100 pt-3">
                           <button
                             onClick={() => likePost(post._id)}
                             className={`flex items-center gap-1.5 py-1.5 px-3 rounded-xl hover:bg-slate-50 transition-all cursor-pointer ${isLiked ? 'text-rose-500 bg-rose-50' : 'hover:text-slate-700'}`}
                           >
                             <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: isLiked ? "'FILL' 1" : "'FILL' 0" }}>favorite</span>
-                            <span>{post.like_count || 0}</span>
+                            <span>{post.like_count || 0} Thích</span>
                           </button>
+                          
                           <button
-                            onClick={() => handleShare(post._id)}
-                            className="flex items-center gap-1.5 py-1.5 px-3 rounded-xl hover:bg-slate-50 hover:text-slate-700 transition-all cursor-pointer"
+                            onClick={() => setShowCommentsPostId(showCommentsPostId === post._id ? null : post._id)}
+                            className={`flex items-center gap-1.5 py-1.5 px-3 rounded-xl hover:bg-slate-50 transition-all cursor-pointer ${showCommentsPostId === post._id ? 'text-[#006d37] bg-[#e8f5e9]/50' : 'hover:text-slate-700'}`}
                           >
-                            <span className="material-symbols-outlined text-lg">share</span>
-                            <span>{post.share_count || 0} Chia sẻ</span>
+                            <span className="material-symbols-outlined text-lg">chat_bubble</span>
+                            <span>{((commentsMap[post._id] || []).length + (post.comment_count || 0))} Bình luận</span>
                           </button>
+
+                          <div className="relative">
+                            <button
+                              onClick={() => setOpenSharePostId(openSharePostId === post._id ? null : post._id)}
+                              className={`flex items-center gap-1.5 py-1.5 px-3 rounded-xl hover:bg-slate-50 transition-all cursor-pointer ${openSharePostId === post._id ? 'text-[#006d37] bg-[#e8f5e9]/50' : 'hover:text-slate-700'}`}
+                            >
+                              <span className="material-symbols-outlined text-lg">share</span>
+                              <span>{post.share_count || 0} Chia sẻ</span>
+                            </button>
+
+                            {openSharePostId === post._id && (
+                              <>
+                                <div
+                                  className="fixed inset-0 z-30 bg-transparent"
+                                  onClick={() => setOpenSharePostId(null)}
+                                />
+                                <div className="absolute left-0 mt-2 w-44 bg-white border border-slate-200 rounded-xl shadow-lg py-2 z-40 animate-fadeIn text-left text-xs font-semibold">
+                                  <button
+                                    onClick={() => performShareAction(post._id, 'copy')}
+                                    className="w-full flex items-center gap-2.5 px-4 py-2.5 text-slate-700 hover:bg-slate-50 transition-colors text-left font-bold"
+                                  >
+                                    <span className="material-symbols-outlined text-sm text-slate-500">link</span>
+                                    Sao chép liên kết
+                                  </button>
+                                  <hr className="border-slate-100 my-1" />
+                                  <button
+                                    onClick={() => performShareAction(post._id, 'facebook')}
+                                    className="w-full flex items-center gap-2.5 px-4 py-2.5 text-slate-700 hover:bg-slate-50 transition-colors text-left font-bold"
+                                  >
+                                    <span className="material-symbols-outlined text-sm text-[#1877f2]">share_reviews</span>
+                                    Chia sẻ lên Facebook
+                                  </button>
+                                  <hr className="border-slate-100 my-1" />
+                                  <button
+                                    onClick={() => performShareAction(post._id, 'telegram')}
+                                    className="w-full flex items-center gap-2.5 px-4 py-2.5 text-slate-700 hover:bg-slate-50 transition-colors text-left font-bold"
+                                  >
+                                    <span className="material-symbols-outlined text-sm text-[#0088cc]">send</span>
+                                    Chia sẻ qua Telegram
+                                  </button>
+                                </div>
+                              </>
+                            )}
+                          </div>
                         </div>
+
+                        {/* Comments Section */}
+                        {showCommentsPostId === post._id && (
+                          <div className="border-t border-slate-100 pt-4 space-y-4 animate-fadeIn text-left">
+                            {/* Comment Input */}
+                            {currentUser ? (
+                              <div className="flex items-start gap-3">
+                                <PostAvatar name={currentUser.profile.full_name} src={currentUser.profile.avatar_url} size={36} />
+                                <div className="flex-1 flex gap-2">
+                                  <input
+                                    type="text"
+                                    placeholder="Viết bình luận của bạn..."
+                                    value={newCommentTexts[post._id] || ''}
+                                    onChange={(e) => setNewCommentTexts({
+                                      ...newCommentTexts,
+                                      [post._id]: e.target.value
+                                    })}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') {
+                                        handleAddComment(post._id);
+                                      }
+                                    }}
+                                    className="flex-1 px-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] bg-slate-50/50 font-semibold"
+                                  />
+                                  <button
+                                    onClick={() => handleAddComment(post._id)}
+                                    className="bg-[#006d37] hover:bg-[#005027] text-white font-bold text-xs px-4 py-2 rounded-xl transition-all shadow-sm cursor-pointer"
+                                  >
+                                    Gửi
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <p className="text-xs text-slate-400 font-semibold italic">Vui lòng đăng nhập để viết bình luận.</p>
+                            )}
+
+                            {/* Comments List */}
+                            <div className="space-y-3.5 max-h-[250px] overflow-y-auto pr-1">
+                              {(commentsMap[post._id] || []).length === 0 ? (
+                                <p className="text-xs text-slate-400 italic">Chưa có bình luận nào cho bài viết này.</p>
+                              ) : (
+                                (commentsMap[post._id] || []).map((comment) => (
+                                  <div key={comment._id} className="flex gap-3 text-xs bg-slate-50/50 p-3 rounded-xl border border-slate-100/50">
+                                    <PostAvatar name={comment.author_name} src={comment.author_avatar} size={32} />
+                                    <div className="flex-1 space-y-1">
+                                      <div className="flex items-center justify-between">
+                                        <span className="font-bold text-slate-800">{comment.author_name}</span>
+                                        <span className="text-[10px] text-slate-400 font-semibold">{formatRelativeTime(comment.created_at)}</span>
+                                      </div>
+                                      <p className="text-slate-600 font-semibold leading-relaxed">{comment.content}</p>
+                                    </div>
+                                  </div>
+                                ))
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     );
                   })

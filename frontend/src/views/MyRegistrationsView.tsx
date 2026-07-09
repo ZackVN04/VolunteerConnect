@@ -2,7 +2,7 @@ import React from 'react';
 import { useApp } from '../context/AppContext';
 
 export const MyRegistrationsView: React.FC = () => {
-  const { currentUser, registrations, activities, cancelOrRejectRegistration, showConfirm, showNotification } = useApp();
+  const { currentUser, registrations, cancelOrRejectRegistration, showConfirm, showNotification } = useApp();
 
   if (!currentUser) return null;
 
@@ -25,41 +25,66 @@ export const MyRegistrationsView: React.FC = () => {
     );
   };
 
-  const getStatusBadge = (status: string) => {
+  const formatDate = (dateStr: string) => {
+    try {
+      const d = new Date(dateStr);
+      return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    } catch (e) {
+      return dateStr;
+    }
+  };
+
+  const getStatusBadges = (status: string) => {
     switch (status) {
       case 'Pending':
         return (
-          <span className="bg-[#fef7e0] text-[#b06000] px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap">
-            Đang chờ duyệt
+          <span className="bg-[#fef7e0] text-[#b06000] px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap">
+            Đang chờ
           </span>
         );
       case 'Approved':
         return (
-          <span className="bg-[#e8f5e9] text-[#006d37] px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap">
+          <span className="bg-[#e8f5e9] text-[#006d37] px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap">
             Đã duyệt
           </span>
         );
       case 'Rejected':
         return (
-          <span className="bg-red-50 text-red-600 px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap">
+          <span className="bg-red-50 text-red-600 px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap">
             Từ chối
           </span>
         );
       case 'Completed':
         return (
-          <span className="bg-[#e1effe] text-[#1e429f] px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap">
-            Đã hoàn thành
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="bg-[#e8f5e9] text-[#006d37] px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap">
+              Đã duyệt
+            </span>
+            <span className="bg-[#006d37] text-white px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap">
+              Hoàn thành
+            </span>
+          </div>
+        );
+      case 'Absent':
+        return (
+          <div className="flex items-center gap-2">
+            <span className="bg-[#e8f5e9] text-[#006d37] px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap">
+              Đã duyệt
+            </span>
+            <span className="bg-red-600 text-white px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap">
+              Vắng mặt
+            </span>
+          </div>
         );
       case 'Cancelled':
         return (
-          <span className="bg-gray-100 text-gray-500 px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap">
+          <span className="bg-gray-100 text-gray-500 px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap">
             Đã hủy
           </span>
         );
       default:
         return (
-          <span className="bg-slate-100 text-slate-700 px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap">
+          <span className="bg-slate-100 text-slate-700 px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap">
             {status}
           </span>
         );
@@ -67,109 +92,104 @@ export const MyRegistrationsView: React.FC = () => {
   };
 
   return (
-    <div className="w-full bg-[#f8f9fa] min-h-screen pb-16">
+    <div className="w-full bg-[#f5f5f5] min-h-screen pb-16 text-left font-body-md">
       {/* Container */}
-      <div className="max-w-[1280px] mx-auto px-4 md:px-8 py-8 space-y-8 text-left">
+      <div className="max-w-[1280px] mx-auto px-4 md:px-8 py-8 space-y-8">
         
-        {/* Title block */}
-        <div>
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-on-surface font-headline-md">
-            Đăng ký của tôi
-          </h1>
-          <p className="text-on-surface-variant text-sm md:text-base mt-1.5 font-semibold">
-            Theo dõi trạng thái các hoạt động tình nguyện bạn đã đăng ký tham gia
+        {/* Header stats row */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Card 1 */}
+          <div className="bg-white border border-gray-200/80 rounded-2xl p-6 flex flex-col items-center justify-center shadow-sm min-h-[120px] space-y-1">
+            <span className="text-4xl font-extrabold text-gray-900">{pendingCount}</span>
+            <span className="text-sm font-bold text-gray-600">Đang chờ duyệt</span>
+          </div>
+          
+          {/* Card 2 */}
+          <div className="bg-white border border-gray-200/80 rounded-2xl p-6 flex flex-col items-center justify-center shadow-sm min-h-[120px] space-y-1">
+            <span className="text-4xl font-extrabold text-gray-900">{approvedCount}</span>
+            <span className="text-sm font-bold text-gray-600">Sắp diễn ra</span>
+          </div>
+
+          {/* Card 3 */}
+          <div className="bg-white border border-gray-200/80 rounded-2xl p-6 flex flex-col items-center justify-center shadow-sm min-h-[120px] space-y-1">
+            <span className="text-4xl font-extrabold text-gray-900">{completedCount}</span>
+            <span className="text-sm font-bold text-gray-600">Đã hoàn thành</span>
+          </div>
+        </div>
+
+        {/* Section Title */}
+        <div className="space-y-1 pt-2">
+          <h2 className="text-xl font-bold text-gray-900 font-headline-md">
+            Dòng thời gian hoạt động
+          </h2>
+          <p className="text-sm text-gray-500 font-semibold">
+            Theo dõi hành trình tình nguyện của bạn theo trình tự thời gian
           </p>
         </div>
 
-        {/* Header stats row */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white border border-surface-variant/40 rounded-2xl p-6 text-center shadow-sm">
-            <h3 className="text-4xl font-bold text-[#b06000]">{pendingCount}</h3>
-            <p className="text-on-surface-variant font-semibold text-sm mt-1">Đang chờ duyệt</p>
-          </div>
-          <div className="bg-white border border-surface-variant/40 rounded-2xl p-6 text-center shadow-sm">
-            <h3 className="text-4xl font-bold text-[#006d37]">{approvedCount}</h3>
-            <p className="text-on-surface-variant font-semibold text-sm mt-1">Đã duyệt tham gia</p>
-          </div>
-          <div className="bg-white border border-surface-variant/40 rounded-2xl p-6 text-center shadow-sm">
-            <h3 className="text-4xl font-bold text-[#1e429f]">{completedCount}</h3>
-            <p className="text-on-surface-variant font-semibold text-sm mt-1">Đã hoàn thành</p>
-          </div>
-        </div>
-
-        {/* Registrations List Table */}
-        <div className="bg-white border border-surface-variant/40 rounded-2xl shadow-sm overflow-hidden">
+        {/* Timeline Items List */}
+        <div className="space-y-4">
           {userRegs.length === 0 ? (
-            <div className="p-16 text-center space-y-4">
-              <span className="material-symbols-outlined text-outline text-5xl">event_busy</span>
-              <p className="text-sm text-on-surface-variant italic">Bạn chưa đăng ký tham gia hoạt động nào.</p>
+            <div className="bg-white border border-gray-200/80 rounded-2xl p-16 text-center shadow-sm space-y-4">
+              <span className="material-symbols-outlined text-gray-300 text-5xl">event_busy</span>
+              <p className="text-sm text-gray-500 font-semibold italic">Bạn chưa đăng ký tham gia hoạt động nào.</p>
               <a 
                 href="#/activities" 
-                className="inline-block bg-[#006d37] hover:bg-emerald-800 text-white font-bold px-6 py-2.5 rounded-xl transition-all text-sm shadow-sm"
+                className="inline-block bg-[#006d37] hover:bg-[#005027] text-white font-bold px-6 py-2.5 rounded-xl transition-all text-sm shadow-sm"
               >
                 Khám phá hoạt động ngay
               </a>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-left text-sm">
-                <thead>
-                  <tr className="bg-[#f8f9fa] border-b border-surface-variant/40 text-on-surface-variant font-bold text-xs uppercase tracking-wider">
-                    <th className="px-6 py-4">Tên hoạt động</th>
-                    <th className="px-6 py-4">Thời gian diễn ra</th>
-                    <th className="px-6 py-4">Địa điểm</th>
-                    <th className="px-6 py-4">Trạng thái</th>
-                    <th className="px-6 py-4">Hành động</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-surface-variant/30 text-on-surface">
-                  {userRegs.map(reg => {
-                    const isCancellable = reg.status === 'Pending' || reg.status === 'Approved';
-                    const act = activities.find(a => a._id === reg.activity_id);
-                    const district = act?.location?.district || 'Hồ Chí Minh';
-                    
-                    return (
-                      <tr key={reg._id} className="hover:bg-slate-50 transition-colors">
-                        {/* Title Column */}
-                        <td className="px-6 py-5 font-bold">
-                          <a 
-                            href={`#/activity/${reg.activity_id}`} 
-                            className="hover:text-[#006d37] transition-colors"
-                          >
-                            {reg.denormalized_activity.title}
-                          </a>
-                        </td>
-                        {/* Time Column */}
-                        <td className="px-6 py-5 whitespace-nowrap text-on-surface-variant font-semibold">
-                          {new Date(reg.denormalized_activity.start_date).toLocaleDateString('vi-VN')}
-                        </td>
-                        {/* Location Column */}
-                        <td className="px-6 py-5 text-on-surface-variant font-semibold">
-                          {district}
-                        </td>
-                        {/* Status Column */}
-                        <td className="px-6 py-5">
-                          {getStatusBadge(reg.status)}
-                        </td>
-                        {/* Actions Column */}
-                        <td className="px-6 py-5">
-                          {isCancellable ? (
-                            <button
-                              onClick={() => handleCancel(reg._id)}
-                              className="text-red-600 hover:underline font-bold"
-                            >
-                              Hủy đăng ký
-                            </button>
-                          ) : (
-                            <span className="text-on-surface-variant">-</span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+            userRegs.map(reg => {
+              const isCancellable = reg.status === 'Pending' || reg.status === 'Approved';
+              
+              return (
+                <div 
+                  key={reg._id} 
+                  className="bg-white border border-gray-200/80 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col md:flex-row md:items-center justify-between gap-4"
+                >
+                  {/* Left Side: Info */}
+                  <div className="space-y-1">
+                    <span className="text-xs text-gray-500 font-semibold">
+                      {formatDate(reg.denormalized_activity.start_date)} - {formatDate(reg.denormalized_activity.end_date)}
+                    </span>
+                    <h3 className="text-base font-bold text-gray-900 hover:text-[#006d37] transition-colors leading-snug block">
+                      <a href={`#/activity/${reg.activity_id}`}>
+                        {reg.denormalized_activity.title}
+                      </a>
+                    </h3>
+                  </div>
+
+                  {/* Right Side: Badges & Action Buttons */}
+                  <div className="flex flex-wrap items-center gap-3 self-start md:self-auto shrink-0">
+                    {/* Status badges */}
+                    <div className="flex items-center gap-2">
+                      {getStatusBadges(reg.status)}
+                    </div>
+
+                    {/* Action buttons */}
+                    <div className="flex items-center gap-2 pl-2 border-l border-gray-200">
+                      <a 
+                        href={`#/activity/${reg.activity_id}`}
+                        className="border border-gray-300 hover:border-gray-400 text-gray-700 hover:bg-gray-50 px-4 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap block"
+                      >
+                        Xem chi tiết
+                      </a>
+                      
+                      {isCancellable && (
+                        <button
+                          onClick={() => handleCancel(reg._id)}
+                          className="border border-red-200 hover:border-red-600 text-red-600 hover:bg-red-50 px-4 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer"
+                        >
+                          Hủy đăng ký
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })
           )}
         </div>
 

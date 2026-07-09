@@ -153,7 +153,7 @@ interface AppContextType {
   createActivity: (activityData: Partial<Activity>, submitForReview: boolean) => Promise<{ success: boolean; error?: string }>;
   editActivity: (activityId: string, activityData: Partial<Activity>) => Promise<{ success: boolean; error?: string }>;
   reviewActivity: (activityId: string, approve: boolean) => Promise<{ success: boolean; error?: string }>;
-  createPost: (content: string, images: string[], hashtags: string[]) => void;
+  createPost: (title: string, content: string, images: string[], hashtags: string[]) => Promise<{ success: boolean; error?: string }>;
   likePost: (postId: string) => void;
   sharePost: (postId: string) => void;
   deletePost: (postId: string) => Promise<{ success: boolean; error?: string }>;
@@ -242,23 +242,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     if (USE_REAL_BACKEND) {
       const loadBackendData = async () => {
         try {
-          // 1. Load offline simulated collections first
-          const localDataRaw = localStorage.getItem('volunteer_connect_db');
-          if (localDataRaw) {
-            const db = JSON.parse(localDataRaw);
-            setActivities((db.activities || []) as Activity[]);
-            setRegistrations((db.registrations || []) as Registration[]);
-            setPosts((db.posts || []) as Post[]);
-            if (!organizerRequests.length) {
-              setOrganizerRequests((db.organizerRequests || []) as OrganizerRequest[]);
-            }
-          } else {
-            setActivities((initialMockData.activities || []) as Activity[]);
-            setRegistrations((initialMockData.registrations || []) as Registration[]);
-            setPosts((initialMockData.posts || []) as Post[]);
-          }
-
-          // 2. Load backend session details
+          // 1. Load backend session details
           let activeUser: User | null = null;
           const token = localStorage.getItem('token');
           if (token) {
@@ -310,7 +294,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             }
           }
 
-          // 3. Load activities from backend
+          // 2. Load activities from backend
           try {
             let serverActs: Activity[] = [];
             if (activeUser && activeUser.role === 'Admin') {
@@ -324,7 +308,6 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                 allActs.value.forEach(a => mergedMap.set(a._id, a));
               }
               if (adminActs.status === 'fulfilled') {
-                // adminService.getActivities() trả về activities kể cả Pending Review
                 adminActs.value.forEach(a => mergedMap.set(a._id, a));
               }
               serverActs = Array.from(mergedMap.values());
@@ -344,9 +327,36 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           } catch (err) {
             console.error("Lỗi lấy danh sách hoạt động từ server:", err);
           }
+
+          // 3. Load registrations from backend if user is logged in
+          if (activeUser) {
+            if (activeUser.role === 'Volunteer') {
+              try {
+                const serverRegs = await registrationService.getVolunteerRegistrations();
+                setRegistrations(serverRegs);
+              } catch (err) {
+                console.error("Lỗi lấy danh sách đăng ký từ server:", err);
+              }
+            }
+            if (activeUser.role === 'Admin') {
+              try {
+                const serverRequests = await adminService.getOrganizerRequests();
+                setOrganizerRequests(serverRequests);
+              } catch (err) {
+                console.error("Lỗi lấy danh sách yêu cầu nâng quyền từ server:", err);
+              }
+            }
+          }
+
+          // 4. Load posts from backend
+          try {
+            const serverPosts = await postService.getAll();
+            setPosts(serverPosts);
+          } catch (err) {
+            console.error("Lỗi lấy danh sách bài viết từ server:", err);
+          }
         } catch (e) {
-          console.error('Lỗi khi tải dữ liệu từ Backend, chuyển sang giả lập LocalStorage:', e);
-          loadLocalStorageData();
+          console.error('Lỗi khi tải dữ liệu từ Backend:', e);
         }
       };
       loadBackendData();
@@ -1070,26 +1080,35 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   // Create Community Post
-  const createPost = (content: string, images: string[], hashtags: string[]) => {
+  const createPost = async (title: string, content: string, images: string[], hashtags: string[]): Promise<{ success: boolean; error?: string }> => {
     if (USE_REAL_BACKEND) {
-      (async () => {
-        try {
-          await postService.create(content, images, hashtags);
-          const pts = await postService.getAll();
-          setPosts(pts);
-        } catch (e) {
-          console.error(e);
+      try {
+        await postService.create(title, content, images, hashtags);
+        const pts = await postService.getAll();
+        setPosts(pts);
+        return { success: true };
+      } catch (e: any) {
+        console.error(e);
+        let errorMsg = 'Không thể lưu bài viết lên máy chủ.';
+        const detail = e.response?.data?.detail;
+        if (typeof detail === 'string') {
+          errorMsg = detail;
+        } else if (Array.isArray(detail)) {
+          errorMsg = detail.map((d: any) => d.msg).join('\n');
+        } else if (e.response?.data?.message) {
+          errorMsg = e.response.data.message;
         }
-      })();
-      return;
+        showNotification(errorMsg, 'error');
+        return { success: false, error: errorMsg };
+      }
     }
 
-    if (!currentUser) return;
+    if (!currentUser) return { success: false, error: 'Chưa đăng nhập' };
 
     const newPost: Post = {
       _id: `post_${Date.now()}`,
       author_id: currentUser._id,
-      content,
+      content: title ? `${title}\n${content}` : content,
       images,
       visibility: 'Public',
       status: 'Active',
@@ -1111,6 +1130,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     const newPosts = [newPost, ...posts];
     setPosts(newPosts);
     syncToLocalStorage(users, activities, registrations, organizerRequests, newPosts, currentUser);
+    return { success: true };
   };
 
   // Like Community Post Toggle
