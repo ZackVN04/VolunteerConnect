@@ -144,7 +144,7 @@ interface AppContextType {
   // Transactions & Actions
   loginAs: (userId: string) => void;
   registerForActivity: (activityId: string) => { success: boolean; error?: string };
-  cancelOrRejectRegistration: (registrationId: string, rejectReason?: string) => void;
+  cancelOrRejectRegistration: (registrationId: string, rejectReason?: string) => any;
   approveRegistration: (registrationId: string) => void;
   updateParticipation: (registrationId: string, status: 'Completed' | 'Absent') => { success: boolean; error?: string };
   cancelActivity: (activityId: string) => void;
@@ -222,7 +222,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         setRegistrations(db.registrations || []);
         setOrganizerRequests(db.organizerRequests || []);
         setPosts(db.posts || []);
-        
+
         // Auto login first user in the saved database if explicitly saved
         if (db.currentUser !== undefined) {
           setCurrentUserInternal(db.currentUser);
@@ -264,7 +264,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           if (token) {
             try {
               activeUser = await authService.getCurrentUser();
-              
+
               // Load organizer request status from backend if Volunteer
               if (activeUser && activeUser.role === 'Volunteer') {
                 try {
@@ -302,8 +302,16 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                 } catch (e) {
                   activeUser.profile.organizer_request_status = 'None';
                 }
+
+                // Luôn fetch dữ liệu Registrations mới nhất từ backend, đè lên localStorage cũ
+                try {
+                  const volunteerRegs = await registrationService.getVolunteerRegistrations();
+                  setRegistrations(volunteerRegs);
+                } catch (e) {
+                  console.error("Lỗi lấy danh sách đăng ký từ server:", e);
+                }
               }
-              
+
               setCurrentUserInternal(activeUser);
             } catch (e) {
               console.warn("Lỗi khôi phục phiên đăng nhập backend:", e);
@@ -315,9 +323,10 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             let serverActs: Activity[] = [];
             if (activeUser && activeUser.role === 'Admin') {
               // Admin cần load tất cả activities kể cả Pending Review
-              const [allActs, adminActs] = await Promise.allSettled([
+              const [allActs, adminActs, organizerReqsRes] = await Promise.allSettled([
                 activityService.getAll(),
-                adminService.getActivities()
+                adminService.getActivities(),
+                adminService.getOrganizerRequests()
               ]);
               const mergedMap = new Map<string, Activity>();
               if (allActs.status === 'fulfilled') {
@@ -326,6 +335,9 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
               if (adminActs.status === 'fulfilled') {
                 // adminService.getActivities() trả về activities kể cả Pending Review
                 adminActs.value.forEach(a => mergedMap.set(a._id, a));
+              }
+              if (organizerReqsRes.status === 'fulfilled') {
+                setOrganizerRequests(organizerReqsRes.value);
               }
               serverActs = Array.from(mergedMap.values());
             } else if (activeUser && activeUser.role === 'Organizer') {
@@ -389,7 +401,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setRegistrations(defaultRegistrations);
     setOrganizerRequests(defaultRequests);
     setPosts(defaultPosts);
-    
+
     // Default logged in user is Nguyễn Văn A (Volunteer) for easy demo
     const defaultUser = defaultUsers.find(u => u._id === 'user_vol_a_002') || defaultUsers[0];
     if (!USE_REAL_BACKEND) {
@@ -426,7 +438,8 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           setActivities(acts);
           return { success: true };
         } catch (e: any) {
-          return { success: false, error: e.response?.data?.error?.message || e.response?.data?.message || 'Đăng ký thất bại' };
+          console.error("Lỗi đăng ký API:", e.response?.data);
+          return { success: false, error: e.response?.data?.detail || e.response?.data?.error?.message || e.response?.data?.message || 'Đăng ký thất bại' };
         }
       })();
     }
@@ -482,7 +495,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     };
 
     const newRegistrations = [newReg, ...registrations];
-    
+
     // Update local states
     setRegistrations(newRegistrations);
     syncToLocalStorage(users, activities, newRegistrations, organizerRequests, posts, currentUser);
@@ -491,33 +504,35 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   // Transaction 8.2: Hủy đăng ký / Từ chối đăng ký (Auto-open logic)
-  const cancelOrRejectRegistration = (registrationId: string, rejectReason?: string) => {
+  const cancelOrRejectRegistration = async (registrationId: string, rejectReason?: string) => {
     if (USE_REAL_BACKEND) {
-      (async () => {
-        try {
-          if (rejectReason) {
-            await registrationService.reject(registrationId, rejectReason);
-          } else {
-            await registrationService.cancel(registrationId);
-          }
-          if (currentUser?.role === 'Volunteer') {
-            const regs = await registrationService.getVolunteerRegistrations();
-            setRegistrations(regs);
-          } else if (currentUser?.role === 'Organizer') {
-            const orgActs = await activityService.getOrganizerActivities();
-            const regsPromises = orgActs.map(a => 
-              registrationService.getActivityRegistrations(a._id).catch(() => [] as Registration[])
-            );
-            const regsLists = await Promise.all(regsPromises);
-            setRegistrations(regsLists.flat());
-          }
-          const acts = await activityService.getAll();
-          setActivities(acts);
-        } catch (e) {
-          console.error(e);
+      try {
+        if (rejectReason) {
+          await registrationService.reject(registrationId, rejectReason);
+        } else {
+          await registrationService.cancel(registrationId);
         }
-      })();
-      return;
+        if (currentUser?.role === 'Volunteer') {
+          const regs = await registrationService.getVolunteerRegistrations();
+          setRegistrations(regs);
+          syncToLocalStorage(users, activities, regs, organizerRequests, posts, currentUser);
+        } else if (currentUser?.role === 'Organizer') {
+          const orgActs = await activityService.getOrganizerActivities();
+          const regsPromises = orgActs.map(a =>
+            registrationService.getActivityRegistrations(a._id).catch(() => [] as Registration[])
+          );
+          const regsLists = await Promise.all(regsPromises);
+          const regs = regsLists.flat();
+          setRegistrations(regs);
+          syncToLocalStorage(users, activities, regs, organizerRequests, posts, currentUser);
+        }
+        const acts = await activityService.getAll();
+        setActivities(acts);
+        return { success: true };
+      } catch (e: any) {
+        console.error(e);
+        return { success: false, error: e.response?.data?.detail || 'Có lỗi xảy ra khi hủy/từ chối đăng ký.' };
+      }
     }
 
     const regIndex = registrations.findIndex(r => r._id === registrationId);
@@ -545,7 +560,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         const act = activities[actIndex];
         const newCount = Math.max(0, act.approved_volunteers_count - 1);
         let newStatus = act.status;
-        
+
         // Auto open if it was Full
         if (act.status === 'Full' && newCount < act.limit_volunteers) {
           newStatus = 'Open';
@@ -566,6 +581,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setRegistrations(updatedRegs);
     setActivities(updatedActivities);
     syncToLocalStorage(users, updatedActivities, updatedRegs, organizerRequests, posts, currentUser);
+    return { success: true };
   };
 
   // Helper: Approve a registration
@@ -575,7 +591,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         try {
           await registrationService.approve(registrationId);
           const orgActs = await activityService.getOrganizerActivities();
-          const regsPromises = orgActs.map(a => 
+          const regsPromises = orgActs.map(a =>
             registrationService.getActivityRegistrations(a._id).catch(() => [] as Registration[])
           );
           const regsLists = await Promise.all(regsPromises);
@@ -637,7 +653,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         try {
           await registrationService.updateParticipation(registrationId, status);
           const orgActs = await activityService.getOrganizerActivities();
-          const regsPromises = orgActs.map(a => 
+          const regsPromises = orgActs.map(a =>
             registrationService.getActivityRegistrations(a._id).catch(() => [] as Registration[])
           );
           const regsLists = await Promise.all(regsPromises);
@@ -684,7 +700,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       if (userIndex !== -1) {
         const u = users[userIndex];
         const newCount = u.profile.joined_activity_count + 1;
-        
+
         const updatedUser = {
           ...u,
           profile: {
@@ -804,7 +820,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
 
     if (!currentUser) return { success: false, error: 'Chưa đăng nhập' };
-    
+
     // Check if there is already a Pending request
     const pendingRequest = organizerRequests.some(r => r.volunteer_id === currentUser._id && r.status === 'Pending');
     if (pendingRequest) {
@@ -1280,7 +1296,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
     const user = users[userIndex];
     const expectedHash = user.password_hash;
-    
+
     const isValid = expectedHash === oldPassword || expectedHash === 'simulated_' + oldPassword || oldPassword === '123456';
     if (!isValid && expectedHash) {
       return { success: false, error: 'Mật khẩu hiện tại không chính xác.' };
@@ -1307,7 +1323,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     const updatedUsers = [...users];
     updatedUsers[userIndex] = updatedUser;
     setUsers(updatedUsers);
-    
+
     let newCurrentUser = currentUser;
     if (currentUser && currentUser._id === userId) {
       newCurrentUser = updatedUser;

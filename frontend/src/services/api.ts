@@ -6,7 +6,7 @@ if (typeof window !== 'undefined' && window.location) {
   const hostname = window.location.hostname;
   if (hostname.endsWith('.run.app') && hostname.includes('volunteer-connect-frontend')) {
     const backendHostname = hostname.replace('volunteer-connect-frontend', 'volunteer-connect-backend');
-    baseURL = `https://${backendHostname}/api/v1`;
+    baseURL = `https://${backendHostname}`;
   }
 }
 
