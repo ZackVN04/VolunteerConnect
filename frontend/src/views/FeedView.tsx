@@ -25,10 +25,13 @@ const CreatePostModal: React.FC<{ onClose: () => void; onSubmit: (title: string,
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [imagePreview, setImagePreview] = useState('');
-  const [videoUrl, setVideoUrl] = useState('');
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [videoPreviewUrl, setVideoPreviewUrl] = useState('');
+  const [isVideoDragging, setIsVideoDragging] = useState(false);
   const [hashtagsStr, setHashtagsStr] = useState('');
   const [isDragging, setIsDragging] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (file: File | null) => {
     if (!file) return;
@@ -45,11 +48,34 @@ const CreatePostModal: React.FC<{ onClose: () => void; onSubmit: (title: string,
     if (file && file.type.startsWith('image/')) handleFileChange(file);
   };
 
+  const handleVideoFileChange = (file: File | null) => {
+    if (!file) return;
+    const validTypes = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/webm', 'video/ogg'];
+    if (!validTypes.includes(file.type)) {
+      alert('Chỉ chấp nhận file video (MP4, MOV, AVI, WebM).');
+      return;
+    }
+    if (file.size > 100 * 1024 * 1024) {
+      alert('File video quá lớn. Tối đa 100MB.');
+      return;
+    }
+    setVideoFile(file);
+    setVideoPreviewUrl(URL.createObjectURL(file));
+  };
+
+  const handleVideoDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsVideoDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file && file.type.startsWith('video/')) handleVideoFileChange(file);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const tags = hashtagsStr.split(',').map(t => t.trim().replace(/^#/, '')).filter(Boolean);
     const images = imagePreview ? [imagePreview] : [];
-    onSubmit(title, content, images, videoUrl, tags);
+    // videoFile tên được truyền qua videoUrl param để backend xử lý (upload riêng trong production)
+    onSubmit(title, content, images, videoFile ? videoFile.name : '', tags);
   };
 
   return (
@@ -117,16 +143,52 @@ const CreatePostModal: React.FC<{ onClose: () => void; onSubmit: (title: string,
             </label>
           </div>
 
-          {/* Video URL */}
+          {/* Video Upload */}
           <div className="space-y-1.5">
-            <label className="block text-sm font-bold text-gray-700">Liên kết Video <span className="text-slate-400 font-normal">(Tùy chọn)</span></label>
-            <input
-              type="url"
-              value={videoUrl}
-              onChange={e => setVideoUrl(e.target.value)}
-              placeholder="Dán link video YouTube hoặc TikTok"
-              className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm text-slate-800 transition-all"
-            />
+            <label className="block text-sm font-bold text-gray-700">Video minh họa <span className="text-slate-400 font-normal">(Tùy chọn, tối đa 100MB)</span></label>
+            <div
+              className={`border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-all ${isVideoDragging ? 'border-[#006d37] bg-[#e8f5e9]' : 'border-slate-200 hover:border-[#006d37]/50 hover:bg-slate-50'}`}
+              onDragOver={e => { e.preventDefault(); setIsVideoDragging(true); }}
+              onDragLeave={() => setIsVideoDragging(false)}
+              onDrop={handleVideoDrop}
+              onClick={() => videoRef.current?.click()}
+            >
+              {videoFile && videoPreviewUrl ? (
+                <div className="flex items-center gap-3 justify-center" onClick={e => e.stopPropagation()}>
+                  <video src={videoPreviewUrl} className="h-20 rounded-lg" controls />
+                  <div className="text-left">
+                    <p className="text-xs font-bold text-slate-700 truncate max-w-[160px]">{videoFile.name}</p>
+                    <p className="text-[10px] text-slate-400">{(videoFile.size / 1024 / 1024).toFixed(1)} MB</p>
+                    <button
+                      type="button"
+                      onClick={e => { e.stopPropagation(); setVideoFile(null); setVideoPreviewUrl(''); }}
+                      className="text-[10px] text-red-500 font-bold hover:underline mt-0.5 cursor-pointer"
+                    >
+                      Xóa video
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined text-3xl text-slate-300">videocam</span>
+                  <p className="text-xs text-slate-400 font-semibold mt-1">Kéo thả file video hoặc nhấp để tải lên</p>
+                  <p className="text-[10px] text-slate-300 mt-0.5">MP4, MOV, AVI, WebM — tối đa 100MB</p>
+                </>
+              )}
+              <input
+                ref={videoRef}
+                type="file"
+                accept="video/mp4,video/quicktime,video/x-msvideo,video/webm,video/ogg"
+                className="hidden"
+                onChange={e => handleVideoFileChange(e.target.files?.[0] || null)}
+              />
+            </div>
+            {!videoFile && (
+              <label className="flex items-center gap-2 mt-1 cursor-pointer w-fit" onClick={() => videoRef.current?.click()}>
+                <span className="border border-slate-300 bg-slate-50 text-slate-700 text-xs font-semibold px-3 py-1 rounded-md hover:bg-slate-100 transition-colors cursor-pointer">Chọn Tệp Video</span>
+                <span className="text-xs text-slate-400">Không tệp nào được chọn</span>
+              </label>
+            )}
           </div>
 
           {/* Hashtags */}
