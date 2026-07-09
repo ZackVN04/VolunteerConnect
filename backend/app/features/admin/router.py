@@ -1,7 +1,8 @@
 from fastapi import APIRouter, HTTPException, status, Depends, Query
 from .schemas import AdminReviewRequest, RequestStatus, StatisticsResponse, ActivityApprovalRequest
 from .services import AdminService
-from app.features.auth.dependencies import require_admin
+from app.features.auth.dependencies import require_admin, get_current_user
+from app.features.users.models import User
 
 # Initialize router with appropriate tags and prefix
 router = APIRouter(
@@ -12,28 +13,36 @@ router = APIRouter(
 
 
 @router.patch("/requests/{request_id}/approve")
-async def approve_request(request_id: str, data: AdminReviewRequest):
+async def approve_request(
+    request_id: str,
+    data: AdminReviewRequest,
+    current_user: User = Depends(get_current_user)
+):
     """
     Approve an organizer request. Uses a multi-document ACID transaction.
     """
     try:
         data.status = RequestStatus.APPROVED
-        result = await AdminService.review_request(request_id, data)
+        result = await AdminService.review_request(request_id, data, admin_id=str(current_user.id))
         if not result:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Request not found or invalid ID")
         return {"message": "Request approved successfully"}
     except ValueError as e:
-        # Catches State Machine errors (e.g., already approved)
+        # Catches State Machine errors (e.g., already approved) and privilege escalation errors
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 @router.patch("/requests/{request_id}/reject")
-async def reject_request(request_id: str, data: AdminReviewRequest):
+async def reject_request(
+    request_id: str,
+    data: AdminReviewRequest,
+    current_user: User = Depends(get_current_user)
+):
     """
     Reject an organizer request.
     """
     try:
         data.status = RequestStatus.REJECTED
-        result = await AdminService.review_request(request_id, data)
+        result = await AdminService.review_request(request_id, data, admin_id=str(current_user.id))
         if not result:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Request not found or invalid ID")
         return {"message": "Request rejected successfully"}

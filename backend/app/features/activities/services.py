@@ -142,7 +142,7 @@ class ActivityService:
             )
 
         # Thực hiện Multi-document Transaction 8.4
-        collection = Activity.get_pymongo_collection() if hasattr(Activity, "get_pymongo_collection") else Activity.get_motor_collection()
+        collection = Activity.get_pymongo_collection()
         db = collection.database
         client = db.client
         async with await client.start_session() as session:
@@ -153,7 +153,7 @@ class ActivityService:
                 await activity.save(session=session)
 
                 # 2. Hủy toàn bộ đơn đăng ký liên quan (pending & approved) bằng raw Motor để không bị phụ thuộc Model của Dev 3
-                db_raw = (Activity.get_pymongo_collection() if hasattr(Activity, "get_pymongo_collection") else Activity.get_motor_collection()).database
+                db_raw = Activity.get_pymongo_collection().database
                 await db_raw["registrations"].update_many(
                     {
                         "activity_id": activity.id,

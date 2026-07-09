@@ -71,11 +71,12 @@ class PostService:
         )
 
     @staticmethod
-    async def like_post(post_id: str) -> Optional[PostResponse]:
+    async def like_post(post_id: str, user_id: str) -> Optional[PostResponse]:
         """
-        Increments the like counter of a post atomically.
+        Increments the like counter of a post atomically with deduplication.
+        Raises ValueError if the user has already liked this post (caller handles → 409).
         """
-        post = await PostRepository.increment_likes(post_id)
+        post = await PostRepository.increment_likes(post_id, user_id)
         if post:
             return PostService._map_to_response(post)
         return None

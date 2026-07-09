@@ -15,6 +15,10 @@ class Post(Document):
     author_id: str
     likes: int = 0
     shares: int = 0
+    comment_count: int = 0
+    # DEDUPLICATION: Stores author_ids of users who liked this post.
+    # Prevents a single user from liking the same post multiple times.
+    liked_by: List[str] = Field(default_factory=list)
     hashtags: List[str] = Field(default_factory=list)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
