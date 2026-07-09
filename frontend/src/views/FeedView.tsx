@@ -160,6 +160,7 @@ export const FeedView: React.FC = () => {
   const { currentUser, users, activities, posts, createPost, likePost, showNotification } = useApp();
   const [currentPage, setCurrentPage] = useState(1);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const itemsPerPage = 3;
 
   // Stats
@@ -172,6 +173,15 @@ export const FeedView: React.FC = () => {
   const featuredList = activities.filter(a => a.status === 'Open' || a.status === 'Full');
   const totalPages = Math.ceil(featuredList.length / itemsPerPage);
   const featuredActivities = featuredList.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  // Filter posts based on search query
+  const filteredPosts = posts.filter(post => {
+    if (!searchQuery.trim()) return true;
+    const query = searchQuery.toLowerCase().trim();
+    const contentMatch = post.content.toLowerCase().includes(query);
+    const hashtagMatch = (post.hashtags || []).some(tag => tag.toLowerCase().includes(query));
+    return contentMatch || hashtagMatch;
+  });
 
   // Trending hashtags (aggregate from posts)
   const hashtagCounts: Record<string, number> = {};
@@ -330,34 +340,32 @@ export const FeedView: React.FC = () => {
 
             {/* ---- LEFT: Post search + feed ---- */}
             <div className="col-span-12 lg:col-span-8 space-y-5">
-              {/* Search / Quick compose box */}
+              {/* Search Box */}
               <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm flex items-center gap-3 p-4">
                 <span className="material-symbols-outlined text-slate-400 text-xl">search</span>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  placeholder="Tìm kiếm bài viết theo từ khóa hoặc hashtag..."
+                  className="flex-1 bg-slate-50 hover:bg-slate-100/80 focus:bg-white text-slate-700 text-sm font-semibold px-4 py-2.5 rounded-full border border-slate-200/60 focus:outline-none focus:border-[#006d37] transition-all"
+                />
                 <button
-                  onClick={() => { if (currentUser) setShowCreateModal(true); else showNotification('Vui lòng đăng nhập để đăng bài!', 'error'); }}
-                  className="flex-1 text-left text-slate-400 text-sm font-semibold bg-slate-50 hover:bg-slate-100 px-4 py-2 rounded-full border border-slate-200/60 transition-all cursor-pointer"
+                  className="shrink-0 bg-[#006d37] hover:bg-emerald-800 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition-all shadow-sm cursor-pointer"
                 >
-                  Tìm kiếm hoặc tạo bài viết mới về Tình nguyện...
+                  Tìm kiếm
                 </button>
-                {currentUser && (
-                  <button
-                    onClick={() => setShowCreateModal(true)}
-                    className="shrink-0 bg-[#1a6c3a] hover:bg-[#155c30] text-white font-bold text-xs px-4 py-2 rounded-xl transition-all shadow-sm cursor-pointer"
-                  >
-                    Đăng bài
-                  </button>
-                )}
               </div>
 
               {/* Posts list */}
               <div className="space-y-5">
-                {posts.length === 0 ? (
+                {filteredPosts.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-12 text-center space-y-3 bg-white border border-slate-200/80 rounded-2xl">
                     <span className="material-symbols-outlined text-5xl text-slate-300">chat_bubble_outline</span>
-                    <p className="text-slate-500 font-semibold text-sm">Chưa có bài đăng nào. Hãy là người đầu tiên chia sẻ!</p>
+                    <p className="text-slate-500 font-semibold text-sm">Không tìm thấy bài viết phù hợp.</p>
                   </div>
                 ) : (
-                  posts.map(post => {
+                  filteredPosts.map(post => {
                     const authorUser = users.find(u => u._id === post.author_id);
                     const authorName = authorUser?.profile.full_name || post.denormalized_author?.name || 'Thành viên';
                     const avatarUrl = authorUser?.profile.avatar_url;

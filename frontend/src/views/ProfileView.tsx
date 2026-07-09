@@ -304,12 +304,12 @@ export const ProfileView: React.FC = () => {
         {/* Header Breadcrumbs and Navigation */}
         <div className="flex justify-between items-center border-b border-slate-200/60 pb-5">
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-slate-800 font-headline-md">
-              {isOwnProfile ? 'Hồ sơ cá nhân' : 'Hồ sơ đối tác'}
+            <h1 className="text-3xl font-bold tracking-tight text-slate-800 font-headline-md">
+              {isOwnProfile ? 'Hồ sơ tài khoản' : 'Hồ sơ đối tác'}
             </h1>
             <p className="text-slate-500 text-sm mt-1.5 font-medium">
               {isOwnProfile 
-                ? 'Quản lý tài khoản và lịch sử đóng góp xã hội' 
+                ? 'Quản lý thông tin bảo mật, chỉnh sửa các chi tiết hồ sơ cá nhân và theo dõi hoạt động cộng đồng.' 
                 : 'Thông tin liên hệ, giới thiệu và lịch sử cống hiến của thành viên.'
               }
             </p>
@@ -325,730 +325,708 @@ export const ProfileView: React.FC = () => {
           )}
         </div>
 
-        {isOwnProfile && (
-          <div className="bg-slate-100/80 p-1.5 rounded-2xl flex gap-1.5 w-fit border border-slate-200/50">
-            <button
-              onClick={() => { setViewMode('details'); window.location.hash = '#/profile'; }}
-              className={`px-6 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
-                viewMode === 'details' || viewMode === 'edit' || viewMode === 'password' || viewMode === 'upgrade'
-                  ? 'bg-white text-[#006d37] shadow-sm font-bold'
-                  : 'text-slate-500 hover:text-slate-700'
-              }`}
-            >
-              Thông tin cá nhân
-            </button>
-            {displayUser.role === 'Volunteer' && (
-              <button
-                onClick={() => { setViewMode('participated'); window.location.hash = '#/profile?tab=participated'; }}
-                className={`px-6 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
-                  viewMode === 'participated'
-                    ? 'bg-white text-[#006d37] shadow-sm font-bold'
-                    : 'text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                Hoạt động tham gia
-              </button>
-            )}
-            {displayUser.role === 'Organizer' && (
-              <button
-                onClick={() => { setViewMode('org_management'); window.location.hash = '#/profile?tab=org_management'; }}
-                className={`px-6 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
-                  viewMode === 'org_management'
-                    ? 'bg-white text-[#006d37] shadow-sm font-bold'
-                    : 'text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                Quản lý tổ chức
-              </button>
-            )}
-          </div>
-        )}
-
         {isOwnProfile ? (
-          /* OWN PROFILE: SINGLE-COLUMN LAYOUT */
-          <div className="space-y-6">
+          /* OWN PROFILE: 2-COLUMN LAYOUT (hồ sơ cá nhân.jpg) */
+          <div className="grid grid-cols-12 gap-8 items-start">
             
-            {/* VIEW 1: PROFILE DETAILS VIEW */}
-            {(viewMode === 'details' || viewMode === 'edit' || viewMode === 'password' || viewMode === 'upgrade') && (
-              <div className="bg-white border border-slate-200/80 rounded-3xl shadow-sm p-6 md:p-8 space-y-6">
-                
-                {/* Profile Header Block inside Card */}
-                {viewMode === 'details' && (
-                  <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 border-b border-slate-100 pb-6">
-                    <div className="relative group w-32 h-32 rounded-full overflow-hidden border-4 border-[#006d37]/85 shrink-0 bg-slate-50 shadow-md">
-                      {avatarUrl ? (
-                        <img 
-                          src={avatarUrl} 
-                          alt="User Avatar" 
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <AvatarPlaceholder name={displayUser.profile.full_name || 'ND'} size={128} />
-                      )}
-                      <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white text-[10px] font-bold uppercase transition-all duration-200 cursor-pointer">
-                        <span className="material-symbols-outlined text-xl mb-1">photo_camera</span>
-                        Đổi ảnh
-                        <input 
-                          type="file" 
-                          accept="image/*" 
-                          onChange={handleAvatarFileChange} 
-                          className="hidden" 
-                        />
-                      </label>
+            {/* ================= COLUMN 1: LEFT SIDEBAR (Avatar Card & Tab Menus) ================= */}
+            <div className="col-span-12 md:col-span-4 space-y-6">
+              
+              {/* Avatar & Basic Info Card */}
+              <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm p-6 text-center space-y-4">
+                <div className="flex flex-col items-center">
+                  <div className="relative group w-32 h-32 rounded-full overflow-hidden border-4 border-[#006d37] shrink-0 bg-slate-50 shadow-sm">
+                    {avatarUrl ? (
+                      <img 
+                        src={avatarUrl} 
+                        alt="User Avatar" 
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <AvatarPlaceholder name={displayUser.profile.full_name || 'ND'} size={128} />
+                    )}
+                    <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white text-[10px] font-bold uppercase transition-all duration-200 cursor-pointer">
+                      <span className="material-symbols-outlined text-xl mb-1">photo_camera</span>
+                      Đổi ảnh
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        onChange={handleAvatarFileChange} 
+                        className="hidden" 
+                      />
+                    </label>
+                  </div>
+                  <h3 className="text-xl font-bold text-slate-800 mt-4 leading-tight">{displayUser.profile.full_name}</h3>
+                  <span className="bg-[#e8f5e9] text-[#006d37] text-xs px-3 py-1 rounded-full font-bold uppercase mt-2">
+                    {displayUser.role === 'Volunteer' ? 'Tình nguyện viên' : (displayUser.role === 'Organizer' ? 'Ban tổ chức' : displayUser.role)}
+                  </span>
+                  <p className="text-xs text-slate-400 font-medium mt-2.5">
+                    Thành viên Volunteer Connect
+                  </p>
+                </div>
+
+                {/* Vertical Tab Navigation */}
+                <div className="pt-4 border-t border-slate-100 flex flex-col gap-1">
+                  <button
+                    onClick={() => { setViewMode('details'); window.location.hash = '#/profile'; }}
+                    className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
+                      viewMode === 'details'
+                        ? 'bg-[#e8f5e9] text-[#006d37] font-bold'
+                        : 'text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-lg">account_circle</span>
+                    Thông tin hồ sơ
+                  </button>
+
+                  <button
+                    onClick={() => { setViewMode('edit'); window.location.hash = '#/profile?tab=edit'; }}
+                    className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
+                      viewMode === 'edit'
+                        ? 'bg-[#e8f5e9] text-[#006d37] font-bold'
+                        : 'text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-lg">edit_square</span>
+                    Chỉnh sửa thông tin
+                  </button>
+
+                  <button
+                    onClick={() => { setViewMode('password'); window.location.hash = '#/profile?tab=password'; }}
+                    className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
+                      viewMode === 'password'
+                        ? 'bg-[#e8f5e9] text-[#006d37] font-bold'
+                        : 'text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-lg">lock</span>
+                    Đổi mật khẩu
+                  </button>
+
+                  {displayUser.role === 'Volunteer' && (
+                    <button
+                      onClick={() => { setViewMode('participated'); window.location.hash = '#/profile?tab=participated'; }}
+                      className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
+                        viewMode === 'participated'
+                          ? 'bg-[#e8f5e9] text-[#006d37] font-bold'
+                          : 'text-slate-600 hover:bg-slate-50'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-lg">volunteer_activism</span>
+                      Hoạt động tham gia
+                    </button>
+                  )}
+
+                  {displayUser.role === 'Organizer' && (
+                    <button
+                      onClick={() => { setViewMode('org_management'); window.location.hash = '#/profile?tab=org_management'; }}
+                      className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
+                        viewMode === 'org_management'
+                          ? 'bg-[#e8f5e9] text-[#006d37] font-bold'
+                          : 'text-slate-600 hover:bg-slate-50'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-lg">campaign</span>
+                      Quản lý tổ chức
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* ================= COLUMN 2: RIGHT DETAIL CONTENT ================= */}
+            <div className="col-span-12 md:col-span-8 space-y-6">
+              
+              {/* tab === details: VIEW PROFILE DETAILS */}
+              {viewMode === 'details' && (
+                <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm p-6 md:p-8 space-y-6">
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-800">Thông tin chi tiết</h3>
+                    <p className="text-slate-400 text-xs mt-1">Các thông tin cơ bản và lý lịch cá nhân được liên kết trên hệ thống.</p>
+                  </div>
+
+                  {/* 2-Column Info Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <InfoItem 
+                      icon="mail" 
+                      iconColorClass="text-blue-600" 
+                      bgClass="bg-blue-50" 
+                      label="Địa chỉ Email" 
+                      value={displayUser.email || "Chưa cập nhật"} 
+                    />
+                    <InfoItem 
+                      icon="call" 
+                      iconColorClass="text-emerald-600" 
+                      bgClass="bg-emerald-50" 
+                      label="Số điện thoại" 
+                      value={displayUser.phone || "Chưa cập nhật"} 
+                    />
+                    <InfoItem 
+                      icon="location_on" 
+                      iconColorClass="text-rose-600" 
+                      bgClass="bg-rose-50" 
+                      label="Khu vực hoạt động" 
+                      value={areaOfInterest || "Chưa cập nhật"} 
+                    />
+                    <InfoItem 
+                      icon="cake" 
+                      iconColorClass="text-amber-600" 
+                      bgClass="bg-amber-50" 
+                      label="Tuổi" 
+                      value={age !== '' && age !== null && age !== undefined ? `${age} tuổi` : "Chưa cập nhật"} 
+                    />
+                    <InfoItem 
+                      icon="wc" 
+                      iconColorClass="text-purple-600" 
+                      bgClass="bg-purple-50" 
+                      label="Giới tính" 
+                      value={gender || "Chưa cập nhật"} 
+                    />
+                  </div>
+
+                  {/* Kỹ năng nổi bật */}
+                  <div className="bg-slate-50 border border-slate-100 rounded-xl p-5 space-y-2 text-left">
+                    <div className="flex items-center gap-2 text-slate-500 font-bold text-xs uppercase tracking-wider">
+                      <span className="material-symbols-outlined text-lg text-[#006d37]">psychology</span>
+                      Kỹ năng nổi bật
                     </div>
-                    <div className="space-y-2 flex-1 text-center sm:text-left">
-                      <div>
-                        <h2 className="text-2xl font-bold text-slate-800">{displayUser.profile.full_name}</h2>
-                        <div className="flex items-center justify-center sm:justify-start gap-1.5 mt-1">
-                          <span className="bg-[#e8f5e9] text-[#006d37] text-xs px-3 py-1 rounded-full font-bold uppercase tracking-wider">
-                            {displayUser.role === 'Volunteer' ? 'Tình nguyện viên' : (displayUser.role === 'Organizer' ? 'Ban tổ chức' : displayUser.role)}
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {skillsStr ? (
+                        skillsStr.split(',').map(s => s.trim()).filter(s => s.length > 0).map((skill, index) => (
+                          <span key={index} className="bg-teal-50 text-teal-800 border border-teal-100 px-3 py-1 rounded-lg text-xs font-semibold">
+                            {skill}
                           </span>
-                        </div>
-                      </div>
-                      <p className="text-slate-500 text-sm italic leading-relaxed">
-                        {displayUser.profile.bio || "Không có giới thiệu bản thân."}
-                      </p>
-                      
-                      {/* Action buttons inside the header card */}
-                      <div className="flex flex-wrap justify-center sm:justify-start gap-2.5 pt-2">
-                        <button
-                          onClick={() => { setViewMode('edit'); window.location.hash = '#/profile?tab=edit'; }}
-                          className="flex items-center gap-1.5 px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-600 font-bold rounded-xl text-xs transition-all cursor-pointer shadow-sm animate-fadeIn"
-                        >
-                          <span className="material-symbols-outlined text-sm text-slate-500">edit_square</span>
-                          Chỉnh sửa thông tin
-                        </button>
-                        <button
-                          onClick={() => { setViewMode('password'); window.location.hash = '#/profile?tab=password'; }}
-                          className="flex items-center gap-1.5 px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-600 font-bold rounded-xl text-xs transition-all cursor-pointer shadow-sm animate-fadeIn"
-                        >
-                          <span className="material-symbols-outlined text-sm text-slate-500">lock</span>
-                          Đổi mật khẩu
-                        </button>
-                        {displayUser.role === 'Volunteer' && (
-                          <button
-                            onClick={() => { setViewMode('upgrade'); window.location.hash = '#/profile?tab=upgrade'; }}
-                            className="flex items-center gap-1.5 px-4 py-2 bg-[#006d37] hover:bg-emerald-800 text-white font-bold rounded-xl text-xs transition-all cursor-pointer shadow-sm animate-fadeIn"
-                          >
-                            <span className="material-symbols-outlined text-sm">verified_user</span>
-                            Nâng cấp quyền Organizer
-                          </button>
-                        )}
-                      </div>
+                        ))
+                      ) : (
+                        <span className="text-slate-400 text-xs italic font-medium">Chưa cập nhật danh sách kỹ năng nổi bật.</span>
+                      )}
                     </div>
                   </div>
-                )}
 
-                {/* Sub View: Details Grid */}
-                {viewMode === 'details' && (
-                  <div className="space-y-6 pt-2">
-                    {/* 2-Column Info Grid */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <InfoItem 
-                        icon="mail" 
-                        iconColorClass="text-blue-600" 
-                        bgClass="bg-blue-50" 
-                        label="Địa chỉ Email" 
-                        value={displayUser.email || "Chưa cập nhật"} 
-                      />
-                      <InfoItem 
-                        icon="call" 
-                        iconColorClass="text-emerald-600" 
-                        bgClass="bg-emerald-50" 
-                        label="Số điện thoại" 
-                        value={displayUser.phone || "Chưa cập nhật"} 
-                      />
-                      <InfoItem 
-                        icon="location_on" 
-                        iconColorClass="text-rose-600" 
-                        bgClass="bg-rose-50" 
-                        label="Khu vực hoạt động" 
-                        value={areaOfInterest || "Chưa cập nhật"} 
-                      />
-                      <InfoItem 
-                        icon="cake" 
-                        iconColorClass="text-amber-600" 
-                        bgClass="bg-amber-50" 
-                        label="Tuổi" 
-                        value={age !== '' && age !== null && age !== undefined ? `${age} tuổi` : "Chưa cập nhật"} 
-                      />
-                      <InfoItem 
-                        icon="wc" 
-                        iconColorClass="text-purple-600" 
-                        bgClass="bg-purple-50" 
-                        label="Giới tính" 
-                        value={gender || "Chưa cập nhật"} 
-                      />
+                  {/* Giới thiệu bản thân */}
+                  <div className="bg-slate-50 border border-slate-100 rounded-xl p-5 space-y-2 text-left">
+                    <div className="flex items-center gap-2 text-slate-500 font-bold text-xs uppercase tracking-wider">
+                      <span className="material-symbols-outlined text-lg text-[#006d37]">chat_bubble</span>
+                      Giới thiệu bản thân
                     </div>
+                    <p className="text-slate-600 text-sm font-medium leading-relaxed italic">
+                      "{displayUser.profile.bio || "Thành viên Volunteer Connect"}"
+                    </p>
+                  </div>
 
-                    {/* Kỹ năng nổi bật */}
-                    <div className="bg-slate-50 border border-slate-100 rounded-2xl p-5 space-y-2 text-left">
-                      <div className="flex items-center gap-2 text-slate-500 font-bold text-xs uppercase tracking-wider">
-                        <span className="material-symbols-outlined text-lg text-teal-600">psychology</span>
-                        Kỹ năng nổi bật
-                      </div>
-                      <div className="flex flex-wrap gap-2 pt-1">
-                        {skillsStr ? (
-                          skillsStr.split(',').map(s => s.trim()).filter(s => s.length > 0).map((skill, index) => (
-                            <span key={index} className="bg-teal-50 text-teal-800 border border-teal-100 px-3 py-1 rounded-lg text-xs font-semibold">
-                              {skill}
-                            </span>
-                          ))
-                        ) : (
-                          <span className="text-slate-400 text-xs italic font-medium">Chưa cập nhật danh sách kỹ năng nổi bật.</span>
-                        )}
-                      </div>
+                  {/* Stats Box */}
+                  <div className="bg-[#e8f5e9]/40 border border-[#006d37]/15 p-5 rounded-xl flex items-center gap-4 text-left">
+                    <div className="w-12 h-12 rounded-xl bg-[#e8f5e9] flex items-center justify-center shrink-0">
+                      <span className="material-symbols-outlined text-[#006d37] text-2xl font-bold">star</span>
                     </div>
+                    <div>
+                      <span className="text-xs text-slate-400 font-bold uppercase tracking-wider block">Thống kê cống hiến</span>
+                      <span className="text-slate-800 text-sm font-bold block mt-0.5">
+                        Đã tham gia <span className="text-[#006d37] text-base font-extrabold">{displayUser.profile.joined_activity_count || 0}</span> chiến dịch tình nguyện
+                      </span>
+                    </div>
+                  </div>
 
-                    {/* Stats Box */}
-                    <div className="bg-[#e8f5e9]/40 border border-[#006d37]/15 p-5 rounded-2xl flex items-center gap-4 text-left">
-                      <div className="w-12 h-12 rounded-xl bg-[#e8f5e9] flex items-center justify-center shrink-0">
-                        <span className="material-symbols-outlined text-[#e3a008] text-2xl font-bold">star</span>
-                      </div>
-                      <div>
-                        <span className="text-xs text-slate-400 font-bold uppercase tracking-wider block">Thống kê cống hiến</span>
-                        <span className="text-slate-800 text-sm font-bold block mt-0.5">
-                          Đã tham gia <span className="text-[#006d37] text-base">{displayUser.profile.joined_activity_count || 0}</span> chiến dịch tình nguyện
+                  {/* Organizer upgrade banner if Volunteer */}
+                  {displayUser.role === 'Volunteer' && (userRequest ? (
+                    <div className={`p-4 rounded-xl border text-sm text-left ${
+                      isPending ? 'bg-[#fef7e0] border-[#b06000]/30 text-[#b06000]' :
+                      isApproved ? 'bg-[#e8f5e9] border-[#006d37]/30 text-[#006d37]' :
+                      'bg-red-50 border-red-200 text-red-700'
+                    }`}>
+                      <div className="font-bold flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-lg">
+                          {isPending ? 'hourglass_empty' : isApproved ? 'verified' : 'cancel'}
                         </span>
+                        Trạng thái đơn nâng quyền: {
+                          isPending ? 'Đang chờ Admin duyệt' :
+                          isApproved ? 'Đã duyệt thành công' : 'Bị từ chối'
+                        }
                       </div>
-                    </div>
-
-                    {/* Organizer upgrade banner if Volunteer */}
-                    {displayUser.role === 'Volunteer' && (userRequest ? (
-                      <div className={`p-4 rounded-xl border text-sm text-left ${
-                        isPending ? 'bg-[#fef7e0] border-[#b06000]/30 text-[#b06000]' :
-                        isApproved ? 'bg-[#e8f5e9] border-[#006d37]/30 text-[#006d37]' :
-                        'bg-red-50 border-red-200 text-red-700'
-                      }`}>
-                        <div className="font-bold flex items-center gap-1.5">
-                          <span className="material-symbols-outlined text-lg">
-                            {isPending ? 'hourglass_empty' : isApproved ? 'verified' : 'cancel'}
-                          </span>
-                          Trạng thái đơn nâng quyền: {
-                            isPending ? 'Đang chờ Admin duyệt' :
-                            isApproved ? 'Đã duyệt thành công' : 'Bị từ chối'
-                          }
-                        </div>
-                        <p className="mt-1 text-xs opacity-90">Gửi ngày: {new Date(userRequest.created_at).toLocaleDateString('vi-VN')}</p>
-                        {userRequest.admin_feedback && (
-                          <p className="mt-2.5 p-3 bg-white/60 border border-current/20 rounded-lg text-xs font-semibold leading-relaxed">
-                            <strong>Phản hồi từ Admin:</strong> {userRequest.admin_feedback}
-                          </p>
-                        )}
-                        {isRejected && (
-                          <button
-                            onClick={() => {
-                              setViewMode('upgrade');
-                              window.location.hash = '#/profile?tab=upgrade';
-                            }}
-                            className="mt-3 w-full bg-[#006d37] hover:bg-emerald-800 text-white py-2 rounded-xl font-bold text-xs shadow-sm transition-all"
-                          >
-                            Gửi lại yêu cầu nâng quyền khác
-                          </button>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="bg-[#e8f5e9]/30 border border-[#006d37]/15 rounded-2xl p-5 flex flex-col sm:flex-row justify-between items-center gap-4 text-left">
-                        <div className="space-y-1">
-                          <h4 className="text-sm font-bold text-slate-800">Trở thành Nhà tổ chức (Organizer)</h4>
-                          <p className="text-slate-500 text-xs leading-relaxed max-w-[420px]">
-                            Bạn muốn tự đăng bài và quản lý chiến dịch cộng đồng của riêng mình? Đăng ký nâng cấp tài khoản ngay.
-                          </p>
-                        </div>
+                      <p className="mt-1 text-xs opacity-90">Gửi ngày: {new Date(userRequest.created_at).toLocaleDateString('vi-VN')}</p>
+                      {userRequest.admin_feedback && (
+                        <p className="mt-2.5 p-3 bg-white/60 border border-current/20 rounded-lg text-xs font-semibold leading-relaxed">
+                          <strong>Phản hồi từ Admin:</strong> {userRequest.admin_feedback}
+                        </p>
+                      )}
+                      {isRejected && (
                         <button
                           onClick={() => {
                             setViewMode('upgrade');
                             window.location.hash = '#/profile?tab=upgrade';
                           }}
-                          className="bg-[#006d37] hover:bg-emerald-800 text-white font-bold px-4 py-2.5 rounded-xl transition-all text-xs shadow-sm whitespace-nowrap cursor-pointer shrink-0 animate-pulse hover:animate-none"
+                          className="mt-3 w-full bg-[#006d37] hover:bg-emerald-800 text-white py-2 rounded-xl font-bold text-xs shadow-sm transition-all"
                         >
-                          Đăng ký nâng quyền
+                          Gửi lại yêu cầu nâng quyền khác
                         </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* VIEW 2: EDIT PROFILE FORM */}
-                {viewMode === 'edit' && (
-                  <div className="space-y-6">
-                    <div>
-                      <h3 className="text-xl font-bold text-slate-800">Cập nhật thông tin cá nhân</h3>
-                      <p className="text-slate-400 text-xs mt-1">Thay đổi họ tên, số điện thoại liên lạc, giới tính và khu vực hoạt động.</p>
-                    </div>
-
-                    <form onSubmit={handleSaveProfile} className="space-y-5 text-left">
-                      <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Họ và tên</label>
-                        <input 
-                          type="text" 
-                          value={fullName}
-                          onChange={(e) => setFullName(e.target.value)}
-                          required
-                          placeholder="Nguyễn Văn A"
-                          className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/20 text-sm font-semibold text-slate-800 bg-white transition-all shadow-sm"
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="flex flex-col gap-1.5">
-                          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Địa chỉ Email</label>
-                          <input 
-                            type="email" 
-                            value={email}
-                            disabled
-                            className="w-full px-4 py-2.5 border border-slate-100 rounded-xl text-sm bg-slate-50 text-slate-400 cursor-not-allowed focus:outline-none font-semibold"
-                          />
-                        </div>
-                        <div className="flex flex-col gap-1.5">
-                          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Số điện thoại</label>
-                          <input 
-                            type="text" 
-                            value={phone}
-                            onChange={(e) => setPhone(e.target.value)}
-                            required
-                            placeholder="Nhập số điện thoại..."
-                            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/20 text-sm font-semibold text-slate-800 bg-white transition-all shadow-sm"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <div className="flex flex-col gap-1.5">
-                          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Khu vực hoạt động</label>
-                          <select
-                            value={areaOfInterest}
-                            onChange={(e) => setAreaOfInterest(e.target.value)}
-                            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/20 text-sm font-semibold text-slate-800 bg-white transition-all shadow-sm cursor-pointer"
-                          >
-                            <option value="TP. Hồ Chí Minh">TP. Hồ Chí Minh</option>
-                            <option value="Hà Nội">Hà Nội</option>
-                            <option value="Đà Nẵng">Đà Nẵng</option>
-                            <option value="Cần Thơ">Cần Thơ</option>
-                            <option value="Hải Phòng">Hải Phòng</option>
-                          </select>
-                        </div>
-
-                        <div className="flex flex-col gap-1.5">
-                          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Tuổi</label>
-                          <input 
-                            type="number" 
-                            value={age}
-                            onChange={(e) => setAge(e.target.value === '' ? '' : Number(e.target.value))}
-                            placeholder="Nhập tuổi..."
-                            min={0}
-                            max={120}
-                            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/20 text-sm font-semibold text-slate-800 bg-white transition-all shadow-sm"
-                          />
-                        </div>
-
-                        <div className="flex flex-col gap-1.5">
-                          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Giới tính</label>
-                          <select
-                            value={gender}
-                            onChange={(e) => setGender(e.target.value)}
-                            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/20 text-sm font-semibold text-slate-800 bg-white transition-all shadow-sm cursor-pointer"
-                          >
-                            <option value="">Chưa chọn</option>
-                            <option value="Nam">Nam</option>
-                            <option value="Nữ">Nữ</option>
-                            <option value="Khác">Khác</option>
-                          </select>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Kỹ năng nổi bật (Cách nhau bằng dấu phẩy)</label>
-                        <input 
-                          type="text" 
-                          value={skillsStr}
-                          onChange={(e) => setSkillsStr(e.target.value)}
-                          placeholder="Giao tiếp tiếng Anh, Dạy học, Vẽ tranh"
-                          className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/20 text-sm font-semibold text-slate-800 bg-white transition-all shadow-sm"
-                        />
-                      </div>
-
-                      <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Giới thiệu bản thân</label>
-                        <textarea 
-                          rows={3}
-                          value={bio}
-                          onChange={(e) => setBio(e.target.value)}
-                          placeholder="Nhập một vài dòng giới thiệu ngắn về bản thân..."
-                          className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/20 text-sm font-semibold text-slate-800 bg-white transition-all shadow-sm"
-                        />
-                      </div>
-
-                      <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
-                        <button 
-                          type="button" 
-                          onClick={handleCancelEdit}
-                          className="px-5 py-2.5 border border-slate-200 text-slate-500 rounded-xl hover:bg-slate-50 transition-colors text-sm font-bold cursor-pointer"
-                        >
-                          Hủy
-                        </button>
-                        <button 
-                          type="submit"
-                          className="px-5 py-2.5 bg-[#006d37] hover:bg-emerald-800 text-white rounded-xl transition-colors text-sm font-bold shadow-sm cursor-pointer"
-                        >
-                          Lưu thay đổi
-                        </button>
-                      </div>
-                    </form>
-                  </div>
-                )}
-
-                {/* VIEW 3: ORGANIZER UPGRADE REQUEST FORM */}
-                {viewMode === 'upgrade' && (
-                  <div className="space-y-6">
-                    <div>
-                      <h3 className="text-xl font-bold text-slate-800">Đăng ký tài khoản Organizer</h3>
-                      <p className="text-slate-400 text-xs mt-1">Cung cấp lý lịch hoạt động để Admin kiểm duyệt vai trò nhà tổ chức chiến dịch.</p>
-                    </div>
-
-                    <form onSubmit={handleSendRequest} className="space-y-5 text-left">
-                      <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Số điện thoại liên hệ khẩn cấp</label>
-                        <input 
-                          type="text" 
-                          value={requestContact}
-                          onChange={(e) => setRequestContact(e.target.value)}
-                          required
-                          placeholder="Nhập số điện thoại..."
-                          className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/20 text-sm font-semibold text-slate-800 bg-white transition-all shadow-sm"
-                        />
-                      </div>
-
-                      <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Kinh nghiệm hoạt động / Tổ chức đại diện</label>
-                        <textarea 
-                          rows={3}
-                          value={requestOrgName}
-                          onChange={(e) => setRequestOrgName(e.target.value)}
-                          required
-                          placeholder="Mô tả kinh nghiệm tình nguyện của bạn hoặc ghi tên câu lạc bộ/đội nhóm bạn làm đại diện..."
-                          className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/20 text-sm font-semibold text-slate-800 bg-white transition-all shadow-sm"
-                        />
-                      </div>
-
-                      <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Mục đích/Lý do nâng cấp quyền tổ chức</label>
-                        <textarea 
-                          rows={3}
-                          value={requestOrgDesc}
-                          onChange={(e) => setRequestOrgDesc(e.target.value)}
-                          required
-                          placeholder="Lý do và kế hoạch các hoạt động tình nguyện bạn dự định tạo lập trên hệ thống..."
-                          className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/20 text-sm font-semibold text-slate-800 bg-white transition-all shadow-sm"
-                        />
-                      </div>
-
-                      <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
-                        <button 
-                          type="button" 
-                          onClick={() => setViewMode('details')}
-                          className="px-5 py-2.5 border border-slate-200 text-slate-500 rounded-xl hover:bg-slate-50 transition-colors text-sm font-bold cursor-pointer"
-                        >
-                          Hủy bỏ
-                        </button>
-                        <button 
-                          type="submit"
-                          className="px-5 py-2.5 bg-[#006d37] hover:bg-emerald-800 text-white rounded-xl transition-colors text-sm font-bold shadow-sm cursor-pointer"
-                        >
-                          Gửi yêu cầu duyệt
-                        </button>
-                      </div>
-                    </form>
-                  </div>
-                )}
-
-                {/* VIEW 4: CHANGE PASSWORD */}
-                {viewMode === 'password' && (
-                  <div className="max-w-md mx-auto py-8">
-                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-8 space-y-6">
-                      <div className="text-center space-y-1">
-                        <h3 className="text-2xl font-bold text-gray-900">Đổi mật khẩu</h3>
-                        <p className="text-slate-400 text-xs">Cập nhật mật khẩu mới để bảo mật tài khoản cá nhân</p>
-                      </div>
-
-                      <form onSubmit={handleChangePassword} className="space-y-4 text-left">
-                        {/* Old password */}
-                        <div className="space-y-1">
-                          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Mật khẩu hiện tại</label>
-                          <div className="relative">
-                            <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-                              <span className="material-symbols-outlined text-slate-400" style={{ fontSize: 18 }}>lock</span>
-                            </div>
-                            <input 
-                              type={showOldPassword ? "text" : "password"} 
-                              value={oldPassword}
-                              onChange={(e) => setOldPassword(e.target.value)}
-                              required
-                              placeholder="••••••••"
-                              className="w-full pl-9 pr-10 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm font-semibold text-slate-800 bg-white transition-all"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setShowOldPassword(!showOldPassword)}
-                              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors flex items-center justify-center p-1 cursor-pointer"
-                              tabIndex={-1}
-                            >
-                              <span className="material-symbols-outlined text-[18px]">
-                                {showOldPassword ? 'visibility_off' : 'visibility'}
-                              </span>
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* New password */}
-                        <div className="space-y-1">
-                          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Mật khẩu mới</label>
-                          <div className="relative">
-                            <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-                              <span className="material-symbols-outlined text-slate-400" style={{ fontSize: 18 }}>lock</span>
-                            </div>
-                            <input 
-                              type={showNewPassword ? "text" : "password"} 
-                              value={newPassword}
-                              onChange={(e) => setNewPassword(e.target.value)}
-                              required
-                              placeholder="••••••••"
-                              className="w-full pl-9 pr-10 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm font-semibold text-slate-800 bg-white transition-all"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setShowNewPassword(!showNewPassword)}
-                              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors flex items-center justify-center p-1 cursor-pointer"
-                              tabIndex={-1}
-                            >
-                              <span className="material-symbols-outlined text-[18px]">
-                                {showNewPassword ? 'visibility_off' : 'visibility'}
-                              </span>
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Confirm password */}
-                        <div className="space-y-1">
-                          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Xác nhận mật khẩu mới</label>
-                          <div className="relative">
-                            <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-                              <span className="material-symbols-outlined text-slate-400" style={{ fontSize: 18 }}>lock</span>
-                            </div>
-                            <input 
-                              type={showConfirmPassword ? "text" : "password"} 
-                              value={confirmNewPassword}
-                              onChange={(e) => setConfirmNewPassword(e.target.value)}
-                              required
-                              placeholder="••••••••"
-                              className="w-full pl-9 pr-10 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm font-semibold text-slate-800 bg-white transition-all"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors flex items-center justify-center p-1 cursor-pointer"
-                              tabIndex={-1}
-                            >
-                              <span className="material-symbols-outlined text-[18px]">
-                                {showConfirmPassword ? 'visibility_off' : 'visibility'}
-                              </span>
-                            </button>
-                          </div>
-                        </div>
-
-                        <button 
-                          type="submit"
-                          disabled={passwordLoading}
-                          className="w-full mt-2 bg-[#1a6c3a] hover:bg-[#155c30] text-white font-semibold rounded-full py-2.5 text-sm transition-all shadow-sm cursor-pointer disabled:opacity-50"
-                        >
-                          {passwordLoading ? 'Đang thực hiện...' : 'Cập nhật mật khẩu'}
-                        </button>
-                      </form>
-
-                      <div className="text-center pt-2">
-                        <button 
-                          type="button" 
-                          onClick={() => { setViewMode('details'); window.location.hash = '#/profile'; }}
-                          className="text-sm text-[#1a6c3a] hover:underline font-semibold"
-                        >
-                          ← Quay lại Hồ sơ cá nhân
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-              </div>
-            )}
-
-            {/* VIEW: PARTICIPATED CAMPAIGNS (Matches mockup table layout) */}
-            {viewMode === 'participated' && (
-              <div className="bg-white border border-slate-200/80 rounded-3xl shadow-sm p-6 md:p-8 space-y-6">
-                <div>
-                  <h3 className="text-xl font-bold text-slate-800 font-headline-md">Lịch sử tham gia hoạt động</h3>
-                </div>
-
-                {myRegs.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12 text-center space-y-3 bg-slate-50 border border-slate-100 rounded-2xl">
-                    <span className="material-symbols-outlined text-4xl text-slate-300">volunteer_activism</span>
-                    <p className="text-slate-500 font-semibold text-sm">Chưa có hoạt động tham gia nào.</p>
-                    <a href="#/activities" className="text-[#006d37] hover:underline font-bold text-xs">Khám phá hoạt động ngay</a>
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto border border-slate-100 rounded-2xl">
-                    <table className="w-full text-sm text-left border-collapse">
-                      <thead>
-                        <tr className="bg-slate-50/75 border-b border-slate-100 text-xs font-bold uppercase tracking-wider text-slate-400">
-                          <th className="px-6 py-4">HOẠT ĐỘNG</th>
-                          <th className="px-6 py-4">THỜI GIAN DIỄN RA</th>
-                          <th className="px-6 py-4">TRẠNG THÁI DUYỆT</th>
-                          <th className="px-6 py-4">KẾT QUẢ THAM GIA</th>
-                          <th className="px-6 py-4">THAO TÁC</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 text-slate-700">
-                        {myRegs.map(reg => {
-                          const act = activities.find(a => a._id === reg.activity_id);
-                          if (!act) return null;
-                          
-                          // Format date to D/M/YYYY
-                          const dateObj = new Date(act.start_date);
-                          const formattedDate = `${dateObj.getDate()}/${dateObj.getMonth() + 1}/${dateObj.getFullYear()}`;
-
-                          const statusConfig: Record<string, { label: string; class: string }> = {
-                            'Pending': { label: 'Chờ duyệt', class: 'bg-amber-50 text-amber-800 border-amber-100/50' },
-                            'Approved': { label: 'Đã duyệt', class: 'bg-emerald-50 text-[#006d37] border-emerald-100/50' },
-                            'Rejected': { label: 'Từ chối', class: 'bg-rose-50 text-rose-800 border-rose-100/50' },
-                            'Completed': { label: 'Completed', class: 'bg-slate-100 text-slate-600 border border-slate-200/50' },
-                            'Absent': { label: 'Vắng mặt', class: 'bg-slate-100 text-slate-600 border-slate-200/50' },
-                            'Cancelled': { label: 'Đã hủy', class: 'bg-slate-50 text-slate-500 border-slate-100/50' }
-                          };
-                          const badge = statusConfig[reg.status] || { label: reg.status, class: 'bg-slate-50 text-slate-600' };
-
-                          // Participation Result logic
-                          let resultNode = <span className="text-slate-500 text-xs font-semibold">Chưa diễn ra</span>;
-                          if (reg.status === 'Completed') {
-                            resultNode = (
-                              <span className="bg-emerald-50 text-[#006d37] border border-emerald-100/50 px-2.5 py-0.5 rounded-lg text-xs font-bold whitespace-nowrap">
-                                Hoàn thành (+1)
-                              </span>
-                            );
-                          } else if (reg.status === 'Absent') {
-                            resultNode = <span className="text-red-500 text-xs font-bold">Vắng mặt</span>;
-                          } else if (reg.status === 'Cancelled') {
-                            resultNode = <span className="text-slate-400 text-xs font-semibold">Đã hủy</span>;
-                          }
-
-                          return (
-                            <tr key={reg._id} className="hover:bg-slate-50/50 transition-colors">
-                              <td className="px-6 py-4 font-bold text-slate-800 max-w-[280px]">
-                                <a 
-                                  href={`#/activity/${act._id}`} 
-                                  className="text-[#006d37] hover:underline whitespace-normal break-words line-clamp-2 leading-relaxed"
-                                >
-                                  {act.title}
-                                </a>
-                              </td>
-                              <td className="px-6 py-4 text-xs font-semibold text-slate-500 whitespace-nowrap">
-                                {formattedDate}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <span className={`text-[11px] px-2.5 py-1 rounded-full font-bold uppercase border ${badge.class}`}>
-                                  {badge.label}
-                                </span>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                {resultNode}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <a 
-                                  href={`#/activity/${act._id}`} 
-                                  className="text-xs font-bold text-[#006d37] hover:underline"
-                                >
-                                  Chi tiết →
-                                </a>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* VIEW: ORGANIZER MANAGEMENT */}
-            {viewMode === 'org_management' && (
-              <div className="bg-white border border-slate-200/80 rounded-3xl shadow-sm p-6 md:p-8 space-y-6">
-                <div>
-                  <h3 className="text-xl font-bold text-slate-800">Quản lý tổ chức</h3>
-                  <p className="text-slate-400 text-xs mt-1">Thông tin chiến dịch và hoạt động quản trị của đơn vị tổ chức.</p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-center">
-                    <h4 className="text-3xl font-extrabold text-[#006d37]">{orgActs.length}</h4>
-                    <p className="text-slate-500 text-xs font-semibold mt-1">Tổng chiến dịch</p>
-                  </div>
-                  <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-center">
-                    <h4 className="text-3xl font-extrabold text-[#006d37]">
-                      {orgActs.filter(a => a.status === 'Open').length}
-                    </h4>
-                    <p className="text-slate-500 text-xs font-semibold mt-1">Chiến dịch đang mở</p>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <h4 className="font-bold text-xs text-slate-500 uppercase tracking-wider">Danh sách chiến dịch đã tạo</h4>
-                  {orgActs.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-10 text-center space-y-3 bg-slate-50 border border-slate-100 rounded-2xl">
-                      <span className="material-symbols-outlined text-4xl text-slate-300">campaign</span>
-                      <p className="text-slate-500 font-semibold text-sm">Chưa tạo chiến dịch nào.</p>
-                      {isOwnProfile && (
-                        <a href="#/organizer/dashboard" className="text-[#006d37] hover:underline font-bold text-xs">Tạo chiến dịch đầu tiên</a>
                       )}
                     </div>
                   ) : (
-                    <div className="divide-y divide-slate-100 border border-slate-100 rounded-2xl overflow-hidden bg-slate-50">
-                      {orgActs.map(act => {
-                        const statusConfig: Record<string, { label: string; class: string }> = {
-                          'Draft': { label: 'Bản nháp', class: 'bg-slate-100 text-slate-600' },
-                          'Pending Review': { label: 'Chờ duyệt', class: 'bg-amber-100 text-amber-800' },
-                          'Open': { label: 'Đang mở', class: 'bg-emerald-100 text-emerald-800' },
-                          'Full': { label: 'Đã đầy', class: 'bg-teal-100 text-teal-800' },
-                          'Ongoing': { label: 'Đang diễn ra', class: 'bg-blue-100 text-blue-800' },
-                          'Completed': { label: 'Đã kết thúc', class: 'bg-[#bbcbbb] text-slate-700' },
-                          'Rejected': { label: 'Từ chối', class: 'bg-rose-100 text-rose-800' },
-                          'Cancelled': { label: 'Đã hủy', class: 'bg-slate-200 text-slate-700' }
-                        };
-                        const badge = statusConfig[act.status] || { label: act.status, class: 'bg-slate-100 text-slate-600' };
+                    <div className="bg-[#e8f5e9]/30 border border-[#006d37]/15 rounded-2xl p-5 flex flex-col sm:flex-row justify-between items-center gap-4 text-left">
+                      <div className="space-y-1">
+                        <h4 className="text-sm font-bold text-slate-800">Trở thành Nhà tổ chức (Organizer)</h4>
+                        <p className="text-slate-500 text-xs leading-relaxed max-w-[420px]">
+                          Bạn muốn tự đăng bài và quản lý chiến dịch cộng đồng của riêng mình? Đăng ký nâng cấp tài khoản ngay.
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setViewMode('upgrade');
+                          window.location.hash = '#/profile?tab=upgrade';
+                        }}
+                        className="bg-[#006d37] hover:bg-emerald-800 text-white font-bold px-4 py-2.5 rounded-xl transition-all text-xs shadow-sm whitespace-nowrap cursor-pointer shrink-0 animate-pulse hover:animate-none"
+                      >
+                        Đăng ký nâng quyền
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
 
-                        return (
-                          <div key={act._id} className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 hover:bg-white transition-colors">
-                            <div className="space-y-1">
-                              <h5 className="font-bold text-sm text-slate-800">{act.title}</h5>
-                              <p className="text-xs text-slate-500 font-medium">Bắt đầu: {new Date(act.start_date).toLocaleDateString('vi-VN')}</p>
-                            </div>
-                            <div className="flex items-center gap-3">
-                              <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase ${badge.class}`}>
-                                {badge.label}
-                              </span>
-                              <a 
-                                href={`#/activity/${act._id}`} 
-                                className="bg-white hover:bg-slate-50 border border-slate-200 text-[#006d37] font-bold px-3 py-1.5 rounded-lg text-[11px] transition-colors"
-                              >
-                                Xem chi tiết
-                              </a>
-                            </div>
-                          </div>
-                        );
-                      })}
+              {/* tab === edit: EDIT PROFILE FORM */}
+              {viewMode === 'edit' && (
+                <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm p-6 md:p-8 space-y-6">
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-800">Cập nhật thông tin cá nhân</h3>
+                    <p className="text-slate-400 text-xs mt-1">Thay đổi họ tên, số điện thoại liên lạc, giới tính và khu vực hoạt động.</p>
+                  </div>
+
+                  <form onSubmit={handleSaveProfile} className="space-y-5 text-left">
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Họ và tên</label>
+                      <input 
+                        type="text" 
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        required
+                        placeholder="Nguyễn Văn A"
+                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm font-semibold text-slate-800 bg-white transition-all"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Địa chỉ Email</label>
+                        <input 
+                          type="email" 
+                          value={email}
+                          disabled
+                          className="w-full px-4 py-2.5 border border-slate-100 rounded-xl text-sm bg-slate-50 text-slate-400 cursor-not-allowed focus:outline-none font-semibold"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Số điện thoại</label>
+                        <input 
+                          type="text" 
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                          required
+                          placeholder="Nhập số điện thoại..."
+                          className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm font-semibold text-slate-800 bg-white transition-all"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Khu vực hoạt động</label>
+                        <select
+                          value={areaOfInterest}
+                          onChange={(e) => setAreaOfInterest(e.target.value)}
+                          className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm font-semibold text-slate-800 bg-white transition-all cursor-pointer"
+                        >
+                          <option value="TP. Hồ Chí Minh">TP. Hồ Chí Minh</option>
+                          <option value="Hà Nội">Hà Nội</option>
+                          <option value="Đà Nẵng">Đà Nẵng</option>
+                          <option value="Cần Thơ">Cần Thơ</option>
+                          <option value="Hải Phòng">Hải Phòng</option>
+                        </select>
+                      </div>
+
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Tuổi</label>
+                        <input 
+                          type="number" 
+                          value={age}
+                          onChange={(e) => setAge(e.target.value === '' ? '' : Number(e.target.value))}
+                          placeholder="Nhập tuổi..."
+                          min={0}
+                          max={120}
+                          className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm font-semibold text-slate-800 bg-white transition-all"
+                        />
+                      </div>
+
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Giới tính</label>
+                        <select
+                          value={gender}
+                          onChange={(e) => setGender(e.target.value)}
+                          className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm font-semibold text-slate-800 bg-white transition-all cursor-pointer"
+                        >
+                          <option value="">Chưa chọn</option>
+                          <option value="Nam">Nam</option>
+                          <option value="Nữ">Nữ</option>
+                          <option value="Khác">Khác</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Kỹ năng nổi bật (Cách nhau bằng dấu phẩy)</label>
+                      <input 
+                        type="text" 
+                        value={skillsStr}
+                        onChange={(e) => setSkillsStr(e.target.value)}
+                        placeholder="Giao tiếp tiếng Anh, Dạy học, Vẽ tranh"
+                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm font-semibold text-slate-800 bg-white transition-all"
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Giới thiệu bản thân</label>
+                      <textarea 
+                        rows={3}
+                        value={bio}
+                        onChange={(e) => setBio(e.target.value)}
+                        placeholder="Nhập một vài dòng giới thiệu ngắn về bản thân..."
+                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm font-semibold text-slate-800 bg-white transition-all"
+                      />
+                    </div>
+
+                    <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+                      <button 
+                        type="button" 
+                        onClick={handleCancelEdit}
+                        className="px-5 py-2.5 border border-slate-200 text-slate-500 rounded-xl hover:bg-slate-50 transition-colors text-sm font-bold cursor-pointer"
+                      >
+                        Hủy
+                      </button>
+                      <button 
+                        type="submit"
+                        className="px-5 py-2.5 bg-[#006d37] hover:bg-emerald-800 text-white rounded-xl transition-colors text-sm font-bold shadow-sm cursor-pointer"
+                      >
+                        Lưu thay đổi
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
+
+              {/* tab === upgrade: ORGANIZER UPGRADE REQUEST FORM */}
+              {viewMode === 'upgrade' && (
+                <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm p-6 md:p-8 space-y-6">
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-800">Đăng ký tài khoản Organizer</h3>
+                    <p className="text-slate-400 text-xs mt-1">Cung cấp lý lịch hoạt động để Admin kiểm duyệt vai trò nhà tổ chức chiến dịch.</p>
+                  </div>
+
+                  <form onSubmit={handleSendRequest} className="space-y-5 text-left">
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Số điện thoại liên hệ khẩn cấp</label>
+                      <input 
+                        type="text" 
+                        value={requestContact}
+                        onChange={(e) => setRequestContact(e.target.value)}
+                        required
+                        placeholder="Nhập số điện thoại..."
+                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm font-semibold text-slate-800 bg-white transition-all"
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Kinh nghiệm hoạt động / Tổ chức đại diện</label>
+                      <textarea 
+                        rows={3}
+                        value={requestOrgName}
+                        onChange={(e) => setRequestOrgName(e.target.value)}
+                        required
+                        placeholder="Mô tả kinh nghiệm tình nguyện của bạn hoặc ghi tên câu lạc bộ/đội nhóm bạn làm đại diện..."
+                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm font-semibold text-slate-800 bg-white transition-all"
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Mục đích/Lý do nâng cấp quyền tổ chức</label>
+                      <textarea 
+                        rows={3}
+                        value={requestOrgDesc}
+                        onChange={(e) => setRequestOrgDesc(e.target.value)}
+                        required
+                        placeholder="Lý do và kế hoạch các hoạt động tình nguyện bạn dự định tạo lập trên hệ thống..."
+                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm font-semibold text-slate-800 bg-white transition-all"
+                      />
+                    </div>
+
+                    <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+                      <button 
+                        type="button" 
+                        onClick={() => setViewMode('details')}
+                        className="px-5 py-2.5 border border-slate-200 text-slate-500 rounded-xl hover:bg-slate-50 transition-colors text-sm font-bold cursor-pointer"
+                      >
+                        Hủy bỏ
+                      </button>
+                      <button 
+                        type="submit"
+                        className="px-5 py-2.5 bg-[#006d37] hover:bg-emerald-800 text-white rounded-xl transition-colors text-sm font-bold shadow-sm cursor-pointer"
+                      >
+                        Gửi yêu cầu duyệt
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
+
+              {/* tab === password: CHANGE PASSWORD */}
+              {viewMode === 'password' && (
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-8 space-y-6">
+                  <div className="text-center space-y-1">
+                    <h3 className="text-2xl font-bold text-gray-900">Đổi mật khẩu</h3>
+                    <p className="text-slate-400 text-xs">Cập nhật mật khẩu mới để bảo mật tài khoản cá nhân</p>
+                  </div>
+
+                  <form onSubmit={handleChangePassword} className="space-y-4 text-left">
+                    {/* Old password */}
+                    <div className="space-y-1">
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Mật khẩu hiện tại</label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                          <span className="material-symbols-outlined text-slate-400" style={{ fontSize: 18 }}>lock</span>
+                        </div>
+                        <input 
+                          type={showOldPassword ? "text" : "password"} 
+                          value={oldPassword}
+                          onChange={(e) => setOldPassword(e.target.value)}
+                          required
+                          placeholder="••••••••"
+                          className="w-full pl-9 pr-10 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm font-semibold text-slate-800 bg-white transition-all"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowOldPassword(!showOldPassword)}
+                          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors flex items-center justify-center p-1 cursor-pointer"
+                          tabIndex={-1}
+                        >
+                          <span className="material-symbols-outlined text-[18px]">
+                            {showOldPassword ? 'visibility_off' : 'visibility'}
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* New password */}
+                    <div className="space-y-1">
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Mật khẩu mới</label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                          <span className="material-symbols-outlined text-slate-400" style={{ fontSize: 18 }}>lock</span>
+                        </div>
+                        <input 
+                          type={showNewPassword ? "text" : "password"} 
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          required
+                          placeholder="••••••••"
+                          className="w-full pl-9 pr-10 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm font-semibold text-slate-800 bg-white transition-all"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowNewPassword(!showNewPassword)}
+                          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors flex items-center justify-center p-1 cursor-pointer"
+                          tabIndex={-1}
+                        >
+                          <span className="material-symbols-outlined text-[18px]">
+                            {showNewPassword ? 'visibility_off' : 'visibility'}
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Confirm password */}
+                    <div className="space-y-1">
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Xác nhận mật khẩu mới</label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                          <span className="material-symbols-outlined text-slate-400" style={{ fontSize: 18 }}>lock</span>
+                        </div>
+                        <input 
+                          type={showConfirmPassword ? "text" : "password"} 
+                          value={confirmNewPassword}
+                          onChange={(e) => setConfirmNewPassword(e.target.value)}
+                          required
+                          placeholder="••••••••"
+                          className="w-full pl-9 pr-10 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm font-semibold text-slate-800 bg-white transition-all"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors flex items-center justify-center p-1 cursor-pointer"
+                          tabIndex={-1}
+                        >
+                          <span className="material-symbols-outlined text-[18px]">
+                            {showConfirmPassword ? 'visibility_off' : 'visibility'}
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <button 
+                      type="submit"
+                      disabled={passwordLoading}
+                      className="w-full mt-2 bg-[#006d37] hover:bg-emerald-800 text-white font-semibold rounded-full py-2.5 text-sm transition-all shadow-sm cursor-pointer disabled:opacity-50"
+                    >
+                      {passwordLoading ? 'Đang thực hiện...' : 'Cập nhật mật khẩu'}
+                    </button>
+                  </form>
+                </div>
+              )}
+
+              {/* tab === participated: PARTICIPATED CAMPAIGNS */}
+              {viewMode === 'participated' && (
+                <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm p-6 md:p-8 space-y-6">
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-800">Lịch sử tham gia hoạt động</h3>
+                  </div>
+
+                  {myRegs.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-12 text-center space-y-3 bg-slate-50 border border-slate-100 rounded-2xl">
+                      <span className="material-symbols-outlined text-4xl text-slate-300">volunteer_activism</span>
+                      <p className="text-slate-500 font-semibold text-sm">Chưa có hoạt động tham gia nào.</p>
+                      <a href="#/activities" className="text-[#006d37] hover:underline font-bold text-xs">Khám phá hoạt động ngay</a>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto border border-slate-100 rounded-xl">
+                      <table className="w-full text-sm text-left border-collapse">
+                        <thead>
+                          <tr className="bg-slate-50/75 border-b border-slate-100 text-xs font-bold uppercase tracking-wider text-slate-400">
+                            <th className="px-6 py-4">HOẠT ĐỘNG</th>
+                            <th className="px-6 py-4">THỜI GIAN DIỄN RA</th>
+                            <th className="px-6 py-4">TRẠNG THÁI DUYỆT</th>
+                            <th className="px-6 py-4">KẾT QUẢ THAM GIA</th>
+                            <th className="px-6 py-4">THAO TÁC</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 text-slate-700">
+                          {myRegs.map(reg => {
+                            const act = activities.find(a => a._id === reg.activity_id);
+                            if (!act) return null;
+                            const dateObj = new Date(act.start_date);
+                            const formattedDate = `${dateObj.getDate()}/${dateObj.getMonth() + 1}/${dateObj.getFullYear()}`;
+                            const statusConfig: Record<string, { label: string; class: string }> = {
+                              'Pending': { label: 'Chờ duyệt', class: 'bg-amber-50 text-amber-800 border-amber-100/50' },
+                              'Approved': { label: 'Đã duyệt', class: 'bg-emerald-50 text-[#006d37] border-emerald-100/50' },
+                              'Rejected': { label: 'Từ chối', class: 'bg-rose-50 text-rose-800 border-rose-100/50' },
+                              'Completed': { label: 'Completed', class: 'bg-slate-100 text-slate-600 border border-slate-200/50' },
+                              'Absent': { label: 'Vắng mặt', class: 'bg-slate-100 text-slate-600 border-slate-200/50' },
+                              'Cancelled': { label: 'Đã hủy', class: 'bg-slate-50 text-slate-500 border-slate-100/50' }
+                            };
+                            const badge = statusConfig[reg.status] || { label: reg.status, class: 'bg-slate-50 text-slate-600' };
+
+                            let resultNode = <span className="text-slate-500 text-xs font-semibold">Chưa diễn ra</span>;
+                            if (reg.status === 'Completed') {
+                              resultNode = (
+                                <span className="bg-emerald-50 text-[#006d37] border border-emerald-100/50 px-2.5 py-0.5 rounded-lg text-xs font-bold whitespace-nowrap">
+                                  Có mặt
+                                </span>
+                              );
+                            } else if (reg.status === 'Absent') {
+                              resultNode = <span className="text-red-500 text-xs font-bold">Vắng mặt</span>;
+                            } else if (reg.status === 'Cancelled') {
+                              resultNode = <span className="text-slate-400 text-xs font-semibold">Đã hủy</span>;
+                            }
+
+                            return (
+                              <tr key={reg._id} className="hover:bg-slate-50/50 transition-colors">
+                                <td className="px-6 py-4 font-bold text-slate-800 max-w-[280px]">
+                                  <a href={`#/activity/${act._id}`} className="text-[#006d37] hover:underline whitespace-normal break-words line-clamp-2 leading-relaxed">
+                                    {act.title}
+                                  </a>
+                                </td>
+                                <td className="px-6 py-4 text-xs font-semibold text-slate-500 whitespace-nowrap">{formattedDate}</td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <span className={`text-[11px] px-2.5 py-1 rounded-full font-bold uppercase border ${badge.class}`}>
+                                    {badge.label}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">{resultNode}</td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <a href={`#/activity/${act._id}`} className="text-xs font-bold text-[#006d37] hover:underline">Chi tiết →</a>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
                     </div>
                   )}
                 </div>
-              </div>
-            )}
+              )}
+
+              {/* tab === org_management: ORGANIZER MANAGEMENT */}
+              {viewMode === 'org_management' && (
+                <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm p-6 md:p-8 space-y-6">
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-800">Quản lý tổ chức</h3>
+                    <p className="text-slate-400 text-xs mt-1">Thông tin chiến dịch và hoạt động quản trị của đơn vị tổ chức.</p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 text-center">
+                      <h4 className="text-3xl font-extrabold text-[#006d37]">{orgActs.length}</h4>
+                      <p className="text-slate-500 text-xs font-semibold mt-1">Tổng chiến dịch</p>
+                    </div>
+                    <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 text-center">
+                      <h4 className="text-3xl font-extrabold text-[#006d37]">{orgActs.filter(a => a.status === 'Open').length}</h4>
+                      <p className="text-slate-500 text-xs font-semibold mt-1">Chiến dịch đang mở</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <h4 className="font-bold text-xs text-slate-500 uppercase tracking-wider">Danh sách chiến dịch đã tạo</h4>
+                    {orgActs.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-10 text-center space-y-3 bg-slate-50 border border-slate-100 rounded-2xl">
+                        <span className="material-symbols-outlined text-4xl text-slate-300">campaign</span>
+                        <p className="text-slate-500 font-semibold text-sm">Chưa tạo chiến dịch nào.</p>
+                        {isOwnProfile && (
+                          <a href="#/organizer/dashboard" className="text-[#006d37] hover:underline font-bold text-xs">Tạo chiến dịch đầu tiên</a>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-slate-100 border border-slate-100 rounded-xl overflow-hidden bg-slate-50">
+                        {orgActs.map(act => {
+                          const statusConfig: Record<string, { label: string; class: string }> = {
+                            'Draft': { label: 'Bản nháp', class: 'bg-slate-100 text-slate-600' },
+                            'Pending Review': { label: 'Chờ duyệt', class: 'bg-amber-100 text-amber-800' },
+                            'Open': { label: 'Đang mở', class: 'bg-emerald-100 text-emerald-800' },
+                            'Full': { label: 'Đã đầy', class: 'bg-teal-100 text-teal-800' },
+                            'Ongoing': { label: 'Đang diễn ra', class: 'bg-blue-100 text-blue-800' },
+                            'Completed': { label: 'Đã kết thúc', class: 'bg-[#bbcbbb] text-slate-700' },
+                            'Rejected': { label: 'Từ chối', class: 'bg-rose-100 text-rose-800' },
+                            'Cancelled': { label: 'Đã hủy', class: 'bg-slate-200 text-slate-700' }
+                          };
+                          const badge = statusConfig[act.status] || { label: act.status, class: 'bg-slate-100 text-slate-600' };
+
+                          return (
+                            <div key={act._id} className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 hover:bg-white transition-colors">
+                              <div className="space-y-1">
+                                <h5 className="font-bold text-sm text-slate-800">{act.title}</h5>
+                                <p className="text-xs text-slate-500 font-medium">Bắt đầu: {new Date(act.start_date).toLocaleDateString('vi-VN')}</p>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase ${badge.class}`}>
+                                  {badge.label}
+                                </span>
+                                <a href={`#/activity/${act._id}`} className="bg-white hover:bg-slate-50 border border-slate-200 text-[#006d37] font-bold px-3 py-1.5 rounded-lg text-[11px] transition-colors">Xem chi tiết</a>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+            </div>
 
           </div>
         ) : (
