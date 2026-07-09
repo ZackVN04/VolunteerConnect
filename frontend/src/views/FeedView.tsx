@@ -160,7 +160,7 @@ export const FeedView: React.FC = () => {
   const { currentUser, users, activities, posts, createPost, likePost, showNotification } = useApp();
   const [currentPage, setCurrentPage] = useState(1);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const itemsPerPage = 2;
+  const itemsPerPage = 3;
 
   // Stats
   const totalCampaigns = activities.length;
@@ -257,9 +257,9 @@ export const FeedView: React.FC = () => {
             </div>
           ) : (
             <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {featuredActivities.map(act => (
-                  <div key={act._id} className="bg-white border border-surface-variant/40 rounded-3xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col">
+                  <div key={act._id} className="bg-white border border-surface-variant/40 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col">
                     <div className="relative h-[200px] shrink-0">
                       <img
                         src={act.image_url || 'https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=600'}
