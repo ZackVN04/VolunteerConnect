@@ -12,7 +12,9 @@ import LoginView from './views/LoginView';
 import RegisterView from './views/RegisterView';
 import OTPVerifyView from './views/OTPVerifyView';
 import ForgotPasswordView from './views/ForgotPasswordView';
+import PostsView from './views/PostsView';
 import './App.css';
+
 
 const PromptModalWrapper: React.FC<{
   dialog: { message: string; title?: string; placeholder?: string; onConfirm: (val: string) => void };
@@ -90,6 +92,16 @@ const AppContent: React.FC = () => {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
+  // Redirect logged-in users away from auth routes
+  useEffect(() => {
+    if (currentUser) {
+      const cleanHash = window.location.hash.split('?')[0];
+      if (['#/login', '#/register', '#/forgot-password'].includes(cleanHash)) {
+        window.location.hash = '#/feed';
+      }
+    }
+  }, [currentUser, currentHash]);
+
   // Parse Hash Route
   const getRouteView = () => {
     const cleanHash = currentHash.split('?')[0]; // strip params
@@ -107,6 +119,16 @@ const AppContent: React.FC = () => {
       const parts = cleanHash.split('/');
       const id = parts[2];
       return <ActivityDetailView activityId={id} />;
+    }
+
+    if (cleanHash === '#/posts') {
+      return <PostsView />;
+    }
+
+    // Protected Routes Check
+    if (!currentUser) {
+      window.location.hash = '#/login';
+      return <FeedView />;
     }
 
     if (cleanHash === '#/my-registrations') {
@@ -145,53 +167,65 @@ const AppContent: React.FC = () => {
   const isAdminDashboard = cleanHash === '#/admin/dashboard' && currentUser?.role === 'Admin';
 
   const renderMainContent = () => {
-    // If not logged in, show Login, Register, Forgot Password, or OTP verification screens
+    // If not logged in, allow viewing public pages, but show auth views if path matches
     if (!currentUser) {
-      if (currentHash === '#/forgot-password') {
+      const isAuthRoute = ['#/login', '#/register', '#/forgot-password'].includes(cleanHash) || otpVerifyPhone || otpVerifyEmail;
+      
+      if (isAuthRoute) {
+        if (currentHash === '#/forgot-password') {
+          return (
+            <ForgotPasswordView
+              onBackToLogin={() => {
+                window.location.hash = '#/login';
+              }}
+            />
+          );
+        }
+        if (otpVerifyPhone || otpVerifyEmail) {
+          return (
+            <OTPVerifyView
+              phoneNumber={otpVerifyPhone || otpVerifyEmail || ""}
+              email={otpVerifyEmail || undefined}
+              onVerifySuccess={() => {
+                setOtpVerifyPhone(null);
+                setOtpVerifyEmail(null);
+                setIsRegisterMode(false); // take back to login page
+                window.location.hash = '#/login';
+              }}
+              onBackToLogin={() => {
+                setOtpVerifyPhone(null);
+                setOtpVerifyEmail(null);
+                window.location.hash = '#/login';
+              }}
+            />
+          );
+        }
+        if (isRegisterMode || currentHash === '#/register') {
+          return (
+            <RegisterView
+              onNavigateToLogin={() => {
+                setIsRegisterMode(false);
+                window.location.hash = '#/login';
+              }}
+              onRegisterSuccess={(registeredPhone: string, email: string) => {
+                setOtpVerifyPhone(registeredPhone);
+                setOtpVerifyEmail(email);
+              }}
+            />
+          );
+        }
         return (
-          <ForgotPasswordView
-            onBackToLogin={() => {
-              window.location.hash = '#/feed';
+          <LoginView
+            onNavigateToRegister={() => {
+              setIsRegisterMode(true);
+              window.location.hash = '#/register';
             }}
-          />
-        );
-      }
-      if (otpVerifyPhone || otpVerifyEmail) {
-        return (
-          <OTPVerifyView
-            phoneNumber={otpVerifyPhone || otpVerifyEmail || ""}
-            email={otpVerifyEmail || undefined}
-            onVerifySuccess={() => {
-              setOtpVerifyPhone(null);
-              setOtpVerifyEmail(null);
-              setIsRegisterMode(false); // take back to login page
-            }}
-            onBackToLogin={() => {
-              setOtpVerifyPhone(null);
-              setOtpVerifyEmail(null);
-            }}
-          />
-        );
-      }
-      if (isRegisterMode) {
-        return (
-          <RegisterView
-            onNavigateToLogin={() => setIsRegisterMode(false)}
-            onRegisterSuccess={(registeredPhone: string, email: string) => {
-              setOtpVerifyPhone(registeredPhone);
+            onNavigateToOTP={(email) => {
               setOtpVerifyEmail(email);
             }}
           />
         );
       }
-      return (
-        <LoginView
-          onNavigateToRegister={() => setIsRegisterMode(true)}
-          onNavigateToOTP={(email) => {
-            setOtpVerifyEmail(email);
-          }}
-        />
-      );
     }
 
     if (isAdminDashboard) {
