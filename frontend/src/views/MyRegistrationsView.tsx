@@ -17,9 +17,14 @@ export const MyRegistrationsView: React.FC = () => {
   const handleCancel = (regId: string) => {
     showConfirm(
       'Bạn có chắc chắn muốn hủy đơn đăng ký tham gia hoạt động này?',
-      () => {
-        cancelOrRejectRegistration(regId);
-        showNotification('Đã hủy đơn đăng ký thành công!', 'success');
+      async () => {
+        const res = cancelOrRejectRegistration(regId);
+        const result = res instanceof Promise ? await res : res;
+        if (result && result.error) {
+          showNotification(result.error, 'error');
+        } else {
+          showNotification('Đã hủy đơn đăng ký thành công!', 'success');
+        }
       },
       'Hủy đăng ký tham gia'
     );
@@ -96,6 +101,16 @@ export const MyRegistrationsView: React.FC = () => {
       {/* Container */}
       <div className="max-w-[1280px] mx-auto px-4 md:px-8 py-8 space-y-8">
         
+        {/* Title block */}
+        <div>
+          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-slate-900 font-headline-md">
+            Đăng ký của tôi
+          </h1>
+          <p className="text-slate-500 text-sm md:text-base mt-1.5 font-semibold">
+            Theo dõi trạng thái và hành trình các hoạt động tình nguyện bạn đã đăng ký tham gia
+          </p>
+        </div>
+
         {/* Header stats row */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Card 1 */}
