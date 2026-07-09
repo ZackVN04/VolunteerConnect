@@ -381,7 +381,9 @@ export const userService = {
 // Admin Workflows Services
 export const adminService = {
   getOrganizerRequests: async (): Promise<OrganizerRequest[]> => {
-    return [];
+    const res = await rootApi.get('/admin/organizer-requests?limit=100');
+    const reqs = res.data?.data?.requests || [];
+    return reqs.map(mapOrganizerRequest);
   },
   approveOrganizerRequest: async (requestId: string, approve: boolean, feedback?: string): Promise<OrganizerRequest> => {
     const endpoint = approve ? `/admin/requests/${requestId}/approve` : `/admin/requests/${requestId}/reject`;
@@ -392,7 +394,9 @@ export const adminService = {
     return res.data;
   },
   getActivities: async (): Promise<Activity[]> => {
-    return [];
+    const res = await rootApi.get('/admin/activities?limit=100');
+    const acts = res.data?.data?.activities || [];
+    return acts.map(mapActivity);
   },
   approveActivity: async (activityId: string, approve: boolean): Promise<Activity> => {
     const res = await rootApi.patch(`/admin/activities/${activityId}/approve`, {
