@@ -764,99 +764,117 @@ export const ProfileView: React.FC = () => {
 
                 {/* VIEW 4: CHANGE PASSWORD */}
                 {viewMode === 'password' && (
-                  <div className="space-y-6">
-                    <div>
-                      <h3 className="text-xl font-bold text-slate-800">Thay đổi mật khẩu</h3>
-                      <p className="text-slate-400 text-xs mt-1">Cập nhật mật khẩu định kỳ để nâng cao bảo mật tài khoản cá nhân.</p>
-                    </div>
-
-                    <form onSubmit={handleChangePassword} className="space-y-5 text-left">
-                      <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Mật khẩu hiện tại</label>
-                        <div className="relative">
-                          <input 
-                            type={showOldPassword ? "text" : "password"} 
-                            value={oldPassword}
-                            onChange={(e) => setOldPassword(e.target.value)}
-                            required
-                            placeholder="••••••••"
-                            className="w-full pl-4 pr-12 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/20 text-sm font-semibold text-slate-800 bg-white transition-all shadow-sm"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowOldPassword(!showOldPassword)}
-                            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors flex items-center justify-center p-1 cursor-pointer"
-                          >
-                            <span className="material-symbols-outlined text-[20px]">
-                              {showOldPassword ? 'visibility_off' : 'visibility'}
-                            </span>
-                          </button>
-                        </div>
+                  <div className="max-w-md mx-auto py-8">
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-8 space-y-6">
+                      <div className="text-center space-y-1">
+                        <h3 className="text-2xl font-bold text-gray-900">Đổi mật khẩu</h3>
+                        <p className="text-slate-400 text-xs">Cập nhật mật khẩu mới để bảo mật tài khoản cá nhân</p>
                       </div>
 
-                      <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Mật khẩu mới (Tối thiểu 6 ký tự)</label>
-                        <div className="relative">
-                          <input 
-                            type={showNewPassword ? "text" : "password"} 
-                            value={newPassword}
-                            onChange={(e) => setNewPassword(e.target.value)}
-                            required
-                            placeholder="••••••••"
-                            className="w-full pl-4 pr-12 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/20 text-sm font-semibold text-slate-800 bg-white transition-all shadow-sm"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowNewPassword(!showNewPassword)}
-                            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors flex items-center justify-center p-1 cursor-pointer"
-                          >
-                            <span className="material-symbols-outlined text-[20px]">
-                              {showNewPassword ? 'visibility_off' : 'visibility'}
-                            </span>
-                          </button>
+                      <form onSubmit={handleChangePassword} className="space-y-4 text-left">
+                        {/* Old password */}
+                        <div className="space-y-1">
+                          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Mật khẩu hiện tại</label>
+                          <div className="relative">
+                            <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                              <span className="material-symbols-outlined text-slate-400" style={{ fontSize: 18 }}>lock</span>
+                            </div>
+                            <input 
+                              type={showOldPassword ? "text" : "password"} 
+                              value={oldPassword}
+                              onChange={(e) => setOldPassword(e.target.value)}
+                              required
+                              placeholder="••••••••"
+                              className="w-full pl-9 pr-10 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm font-semibold text-slate-800 bg-white transition-all"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowOldPassword(!showOldPassword)}
+                              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors flex items-center justify-center p-1 cursor-pointer"
+                              tabIndex={-1}
+                            >
+                              <span className="material-symbols-outlined text-[18px]">
+                                {showOldPassword ? 'visibility_off' : 'visibility'}
+                              </span>
+                            </button>
+                          </div>
                         </div>
-                      </div>
 
-                      <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Xác nhận mật khẩu mới</label>
-                        <div className="relative">
-                          <input 
-                            type={showConfirmPassword ? "text" : "password"} 
-                            value={confirmNewPassword}
-                            onChange={(e) => setConfirmNewPassword(e.target.value)}
-                            required
-                            placeholder="••••••••"
-                            className="w-full pl-4 pr-12 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/20 text-sm font-semibold text-slate-800 bg-white transition-all shadow-sm"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors flex items-center justify-center p-1 cursor-pointer"
-                          >
-                            <span className="material-symbols-outlined text-[20px]">
-                              {showConfirmPassword ? 'visibility_off' : 'visibility'}
-                            </span>
-                          </button>
+                        {/* New password */}
+                        <div className="space-y-1">
+                          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Mật khẩu mới</label>
+                          <div className="relative">
+                            <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                              <span className="material-symbols-outlined text-slate-400" style={{ fontSize: 18 }}>lock</span>
+                            </div>
+                            <input 
+                              type={showNewPassword ? "text" : "password"} 
+                              value={newPassword}
+                              onChange={(e) => setNewPassword(e.target.value)}
+                              required
+                              placeholder="••••••••"
+                              className="w-full pl-9 pr-10 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm font-semibold text-slate-800 bg-white transition-all"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowNewPassword(!showNewPassword)}
+                              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors flex items-center justify-center p-1 cursor-pointer"
+                              tabIndex={-1}
+                            >
+                              <span className="material-symbols-outlined text-[18px]">
+                                {showNewPassword ? 'visibility_off' : 'visibility'}
+                              </span>
+                            </button>
+                          </div>
                         </div>
-                      </div>
 
-                      <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
-                        <button 
-                          type="button" 
-                          onClick={() => setViewMode('details')}
-                          className="px-5 py-2.5 border border-slate-200 text-slate-500 rounded-xl hover:bg-slate-50 transition-colors text-sm font-bold cursor-pointer"
-                        >
-                          Hủy bỏ
-                        </button>
+                        {/* Confirm password */}
+                        <div className="space-y-1">
+                          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Xác nhận mật khẩu mới</label>
+                          <div className="relative">
+                            <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                              <span className="material-symbols-outlined text-slate-400" style={{ fontSize: 18 }}>lock</span>
+                            </div>
+                            <input 
+                              type={showConfirmPassword ? "text" : "password"} 
+                              value={confirmNewPassword}
+                              onChange={(e) => setConfirmNewPassword(e.target.value)}
+                              required
+                              placeholder="••••••••"
+                              className="w-full pl-9 pr-10 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm font-semibold text-slate-800 bg-white transition-all"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors flex items-center justify-center p-1 cursor-pointer"
+                              tabIndex={-1}
+                            >
+                              <span className="material-symbols-outlined text-[18px]">
+                                {showConfirmPassword ? 'visibility_off' : 'visibility'}
+                              </span>
+                            </button>
+                          </div>
+                        </div>
+
                         <button 
                           type="submit"
                           disabled={passwordLoading}
-                          className="px-5 py-2.5 bg-[#006d37] hover:bg-emerald-800 text-white rounded-xl transition-colors text-sm font-bold shadow-sm cursor-pointer disabled:opacity-50"
+                          className="w-full mt-2 bg-[#1a6c3a] hover:bg-[#155c30] text-white font-semibold rounded-full py-2.5 text-sm transition-all shadow-sm cursor-pointer disabled:opacity-50"
                         >
                           {passwordLoading ? 'Đang thực hiện...' : 'Cập nhật mật khẩu'}
                         </button>
+                      </form>
+
+                      <div className="text-center pt-2">
+                        <button 
+                          type="button" 
+                          onClick={() => { setViewMode('details'); window.location.hash = '#/profile'; }}
+                          className="text-sm text-[#1a6c3a] hover:underline font-semibold"
+                        >
+                          ← Quay lại Hồ sơ cá nhân
+                        </button>
                       </div>
-                    </form>
+                    </div>
                   </div>
                 )}
 
