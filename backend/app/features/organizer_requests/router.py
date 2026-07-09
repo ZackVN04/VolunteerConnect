@@ -16,18 +16,30 @@ async def request_upgrade(
     latest_request = await OrganizerRequest.find(
         OrganizerRequest.volunteer_id == current_user.id
     ).sort(-OrganizerRequest.created_at).first_or_none()
-    
+
     if latest_request:
+        # Guard 1: Block if already an organizer
         if latest_request.status == RequestStatus.APPROVED:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Account is already an organizer"
             )
-            
+
+        # Guard 2 (BUG FIX): Block if there is already a PENDING request.
+        # Previously, a pending request older than 7 days would bypass the cooldown
+        # check below, allowing unlimited pending requests to be created.
+        # Returning 409 Conflict signals the resource already exists in this state.
+        if latest_request.status == RequestStatus.PENDING:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="You already have a pending upgrade request. Please wait for the admin to review it."
+            )
+
+        # Guard 3: Cooldown — prevent re-submission too soon after a rejection
         now = datetime.now(timezone.utc)
         cooldown_period = timedelta(days=7)
         time_since_last_request = now - latest_request.created_at
-        
+
         if time_since_last_request < cooldown_period:
             remaining_time = cooldown_period - time_since_last_request
             days_left = remaining_time.days + 1
@@ -43,7 +55,7 @@ async def request_upgrade(
         contact_phone=request_data.contact_phone,
         status=RequestStatus.PENDING
     )
-    
+
     await new_request.insert()
     return new_request
 

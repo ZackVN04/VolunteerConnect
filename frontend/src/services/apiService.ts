@@ -218,6 +218,21 @@ export const postService = {
   }
 };
 
+// Comment Services
+export const commentService = {
+  getComments: async (postId: string, page = 1, limit = 10): Promise<any[]> => {
+    const res = await api.get(`/posts/${postId}/comments`, { params: { page, limit } });
+    return res.data.items || res.data.data?.items || res.data;
+  },
+  createComment: async (postId: string, content: string): Promise<any> => {
+    const res = await api.post(`/posts/${postId}/comments`, { content });
+    return res.data.data || res.data;
+  },
+  deleteComment: async (postId: string, commentId: string): Promise<void> => {
+    await api.delete(`/posts/${postId}/comments/${commentId}`);
+  }
+};
+
 // User Profile Services
 export const userService = {
   updateProfile: async (

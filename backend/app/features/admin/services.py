@@ -10,17 +10,22 @@ class AdminService:
     """
     
     @staticmethod
-    async def review_request(request_id: str, data: AdminReviewRequest) -> Optional[OrganizerRequest]:
+    async def review_request(
+        request_id: str,
+        data: AdminReviewRequest,
+        admin_id: str
+    ) -> Optional[OrganizerRequest]:
         """
         Validates the request and passes it to the repository for the ACID transaction.
         """
         request = await AdminRepository.get_request(request_id)
         if not request:
             return None
-        
+
         updated_request = await AdminRepository.process_approval(
-            request=request, 
-            status=data.status, 
+            request=request,
+            status=data.status,
+            admin_id=admin_id,
             reason=data.reason
         )
         return updated_request

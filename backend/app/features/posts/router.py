@@ -33,12 +33,17 @@ async def get_posts(
 @router.patch("/{post_id}/like", response_model=PostResponse)
 async def like_post(post_id: str, current_user: User = Depends(get_current_user)):
     """
-    Atomically increment the likes of a post to prevent race conditions.
+    Atomically like a post with deduplication.
+    Returns 409 Conflict if the current user has already liked this post.
     """
-    post = await PostService.like_post(post_id)
-    if not post:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found or invalid ID")
-    return post
+    try:
+        post = await PostService.like_post(post_id, user_id=str(current_user.id))
+        if not post:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found or invalid ID")
+        return post
+    except ValueError as e:
+        # Raised by repository when user has already liked this post
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
 
 @router.patch("/{post_id}/share", response_model=PostResponse)
 async def share_post(post_id: str, current_user: User = Depends(get_current_user)):
@@ -53,15 +58,22 @@ async def share_post(post_id: str, current_user: User = Depends(get_current_user
 @router.delete("/{post_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_post(post_id: str, current_user: User = Depends(get_current_user)):
     """
-    Delete a post (Checks ownership to prevent IDOR vulnerabilities).
+    Delete a post. Admins can delete any post; regular users can only delete their own.
+    IDOR protection: ownership is verified inside PostService.delete_post for non-admin users.
     """
     from app.shared.enums import UserRole
     if current_user.role == UserRole.ADMIN:
+        # Admin path: fetch the post first to get the real author_id.
+        # BUG FIX: if post does not exist, raise 404 immediately.
+        # Previously this fell back to str(current_user.id), which caused
+        # delete_post to run with the admin's own ID — incorrect and misleading.
         post = await Post.get(post_id)
-        author_id = post.author_id if post else str(current_user.id)
+        if not post:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found or invalid ID")
+        author_id = post.author_id
     else:
         author_id = str(current_user.id)
-        
+
     deleted = await PostService.delete_post(post_id, author_id)
     if not deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found or invalid ID")

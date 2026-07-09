@@ -6,7 +6,7 @@ from app.features.activities.models import Activity
 from app.features.activities.constants import ActivityStatus
 from beanie import Document
 from pydantic import Field
-from app.shared.enums import RequestStatus
+from app.shared.enums import RequestStatus, UserStatus
 
 from app.features.users.models import User
 from app.features.organizer_requests.models import OrganizerRequest
@@ -25,7 +25,12 @@ class AdminRepository:
             return None
 
     @staticmethod
-    async def process_approval(request: OrganizerRequest, status: RequestStatus, reason: Optional[str] = None) -> OrganizerRequest:
+    async def process_approval(
+        request: OrganizerRequest,
+        status: RequestStatus,
+        admin_id: str,
+        reason: Optional[str] = None
+    ) -> OrganizerRequest:
         """
         CRITICAL - ACID TRANSACTION:
         This method uses a MongoDB Client Session to execute a multi-document ACID Transaction.
@@ -45,11 +50,15 @@ class AdminRepository:
                 # 1. Update the request status and reason
                 request.status = status
                 if reason:
-                    # admin_feedback is used to preserve the volunteer's original reason
+                    # admin_feedback stores the admin's note/reason for the decision
                     request.admin_feedback = reason
-                
+
                 request.reviewed_at = datetime.now(timezone.utc)
-                
+
+                # AUDIT TRAIL FIX: Record which admin performed this action
+                from beanie import PydanticObjectId as BeanieObjectId
+                request.reviewed_by = BeanieObjectId(admin_id)
+
                 await request.save(session=session)
 
                 # 2. If approved, find the associated User and update their role
@@ -57,6 +66,13 @@ class AdminRepository:
                     # user_id was migrated to volunteer_id
                     user = await User.get(request.volunteer_id, session=session)
                     if user:
+                        # SECURITY FIX: Only grant role to ACTIVE users.
+                        # Prevents privilege escalation where a BANNED user could receive
+                        # organizer rights if an admin approves a pre-existing pending request.
+                        if user.status != UserStatus.ACTIVE:
+                            raise ValueError(
+                                f"Cannot grant organizer role: user account is '{user.status.value}', not active."
+                            )
                         if user.role != "organizer":
                             user.role = "organizer"
                             await user.save(session=session)
@@ -77,9 +93,17 @@ class AdminRepository:
         if not activity:
             return None
 
-        # State machine guard — raises ValueError intentionally; must NOT be caught here
-        if activity.status in [ActivityStatus.OPEN.value, ActivityStatus.REJECTED.value]:
-            raise ValueError(f"Cannot approve or reject an activity with status '{activity.status}'")
+        # State machine guard — uses a WHITELIST approach (safer than blacklist).
+        # Only activities in PENDING_REVIEW can be approved or rejected by an admin.
+        # Any other status (open, full, ongoing, completed, rejected, cancelled, draft)
+        # is considered either already processed or not yet submitted for review.
+        # NOTE: Whitelist is preferred over blacklist because new statuses added in the
+        # future are blocked by default, preventing accidental logic gaps.
+        if activity.status != ActivityStatus.PENDING_REVIEW.value:
+            raise ValueError(
+                f"Cannot approve or reject an activity with status '{activity.status}'. "
+                f"Only activities in '{ActivityStatus.PENDING_REVIEW.value}' status can be reviewed."
+            )
 
         activity.status = ActivityStatus.OPEN.value if is_approved else ActivityStatus.REJECTED.value
         await activity.save()

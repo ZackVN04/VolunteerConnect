@@ -14,6 +14,7 @@ class PostResponse(PostCreate):
     author_id: str = Field(..., description="ID of the user who created the post")
     likes: int = Field(default=0, ge=0, description="Number of likes")
     shares: int = Field(default=0, ge=0, description="Number of shares")
+    comment_count: int = Field(default=0, ge=0, description="Number of comments")
     created_at: datetime = Field(..., description="Creation timestamp")
     updated_at: datetime = Field(..., description="Last update timestamp")
 
