@@ -41,7 +41,20 @@ async def initialize_db():
             Post
         ]
     )
+    # Clean database before running each test case
+    await User.get_motor_collection().delete_many({})
+    await OrganizerRequest.get_motor_collection().delete_many({})
+    await Activity.get_motor_collection().delete_many({})
+    await Registration.get_motor_collection().delete_many({})
+    await Post.get_motor_collection().delete_many({})
     
     yield
+    
+    # Clean database after running each test case (Teardown)
+    await User.get_motor_collection().delete_many({})
+    await OrganizerRequest.get_motor_collection().delete_many({})
+    await Activity.get_motor_collection().delete_many({})
+    await Registration.get_motor_collection().delete_many({})
+    await Post.get_motor_collection().delete_many({})
     
     client.close()

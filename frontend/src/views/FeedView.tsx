@@ -265,7 +265,7 @@ export const FeedView: React.FC = () => {
     return new Date(dateStr).toLocaleDateString('vi-VN');
   };
 
-  const handleCreatePost = (title: string, content: string, images: string[], videoUrl: string, hashtags: string[]) => {
+  const handleCreatePost = (title: string, content: string, images: string[], _videoUrl: string, hashtags: string[]) => {
     if (!currentUser) return;
     const fullContent = title ? `${title}\n${content}` : content;
     createPost(fullContent, images, hashtags);
