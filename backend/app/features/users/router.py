@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from beanie import PydanticObjectId
 from app.features.users.models import User
 from app.features.users.schemas import UserProfileResponse, UserUpdate
 from app.features.auth.dependencies import get_current_user
@@ -33,3 +34,18 @@ async def update_my_profile(
 
     await current_user.save()
     return current_user
+
+@router.get("/{user_id}")
+async def get_user_by_id(user_id: str):
+    try:
+        obj_id = PydanticObjectId(user_id)
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="ID không hợp lệ")
+        
+    user = await User.get(obj_id)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Người dùng không tồn tại")
+        
+    # Exclude sensitive data
+    user_dict = user.dict(exclude={"hashed_password", "otp_code", "otp_expiry"})
+    return user_dict

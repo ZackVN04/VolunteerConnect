@@ -299,15 +299,15 @@ export const registrationService = {
     return mapRegistration(res.data?.data || res.data);
   },
   approve: async (registrationId: string): Promise<Registration> => {
-    const res = await api.post(`/registrations/${registrationId}/approve`);
+    const res = await api.patch(`/registrations/${registrationId}/approve`);
     return mapRegistration(res.data?.data || res.data);
   },
   reject: async (registrationId: string, reason?: string): Promise<Registration> => {
-    const res = await api.post(`/registrations/${registrationId}/reject`, { rejection_reason: reason });
+    const res = await api.patch(`/registrations/${registrationId}/reject`, { rejection_reason: reason });
     return mapRegistration(res.data?.data || res.data);
   },
   updateParticipation: async (registrationId: string, status: 'Completed' | 'Absent'): Promise<Registration> => {
-    const res = await api.post(`/registrations/${registrationId}/check-in`, { status: status.toLowerCase() });
+    const res = await api.patch(`/registrations/${registrationId}/attendance`, { status: status.toLowerCase() });
     return mapRegistration(res.data?.data || res.data);
   }
 };
