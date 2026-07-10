@@ -828,24 +828,23 @@ export const AdminDashboard: React.FC = () => {
                     <table className="w-full border-collapse text-left text-sm">
                       <thead>
                         <tr className="bg-[#f8f9fa] border-b border-surface-variant/40 text-on-surface-variant font-bold text-xs uppercase tracking-wider">
-                          <th className="px-6 py-4">Tên người dùng</th>
-                          <th className="px-6 py-4">Số điện thoại</th>
-                          <th className="px-6 py-4">Email</th>
-                          <th className="px-6 py-4">Vai trò</th>
-                          <th className="px-6 py-4">Cấp quyền vai trò</th>
-                          <th className="px-6 py-4">Trạng thái hoạt động</th>
+                          <th className="px-6 py-4 whitespace-nowrap">Tên người dùng</th>
+                          <th className="px-6 py-4 whitespace-nowrap">Số điện thoại</th>
+                          <th className="px-6 py-4 whitespace-nowrap">Email</th>
+                          <th className="px-6 py-4 whitespace-nowrap">Vai trò</th>
+                          <th className="px-6 py-4 whitespace-nowrap">Cấp quyền vai trò</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-surface-variant/30 text-on-surface">
                         {users.map(u => (
                           <tr key={u._id} className="hover:bg-slate-50 transition-colors">
-                            <td className="px-6 py-5 font-bold">{u.profile.full_name}</td>
-                            <td className="px-6 py-5 text-on-surface-variant">{u.phone}</td>
-                            <td className="px-6 py-5 text-on-surface-variant">{u.email || 'Chưa cập nhật'}</td>
-                            <td className="px-6 py-5">
+                            <td className="px-6 py-5 font-bold whitespace-nowrap">{u.profile.full_name}</td>
+                            <td className="px-6 py-5 text-on-surface-variant whitespace-nowrap">{u.phone}</td>
+                            <td className="px-6 py-5 text-on-surface-variant whitespace-nowrap">{u.email || 'Chưa cập nhật'}</td>
+                            <td className="px-6 py-5 whitespace-nowrap">
                               {getRoleBadge(u.role)}
                             </td>
-                            <td className="px-6 py-5">
+                            <td className="px-6 py-5 whitespace-nowrap">
                               <select
                                 value={u.role}
                                 onChange={(e) => {
@@ -859,19 +858,6 @@ export const AdminDashboard: React.FC = () => {
                                 <option value="Organizer">Ban Tổ Chức</option>
                                 {u.role === 'Admin' && <option value="Admin">Quản Trị Viên</option>}
                               </select>
-                            </td>
-                            <td className="px-6 py-5">
-                              {(u._id === currentUser?._id || u.profile.full_name.length % 5 === 2) ? (
-                                <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-600">
-                                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                                  Trực tuyến
-                                </div>
-                              ) : (
-                                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400">
-                                  <span className="w-2 h-2 rounded-full bg-slate-300"></span>
-                                  Ngoại tuyến
-                                </div>
-                              )}
                             </td>
                           </tr>
                         ))}
