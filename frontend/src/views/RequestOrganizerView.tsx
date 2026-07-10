@@ -44,7 +44,7 @@ export const RequestOrganizerView: React.FC = () => {
   return (
     <div className="w-full bg-[#f5f5f5] min-h-screen pb-16 text-left font-body-md">
       <div className="max-w-[1280px] mx-auto px-4 md:px-8 py-8">
-        
+
         {/* Link quay lại */}
         <button
           onClick={handleCancel}
@@ -58,15 +58,15 @@ export const RequestOrganizerView: React.FC = () => {
           <div className="space-y-1">
             <span className="text-xs font-bold text-slate-400">Hồ sơ cá nhân &gt; Xin quyền tổ chức</span>
             <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 font-headline-md tracking-tight pt-1">
-              Đăng ký quyền Ban tổ chức (Organizer)
+              Đăng ký quyền Ban tổ chức
             </h1>
             <p className="text-sm text-slate-500 leading-relaxed font-semibold pt-2">
-              Vui lòng cung cấp đầy đủ thông tin để Ban quản trị (Admin) kiểm duyệt năng lực tổ chức của bạn. Sau khi phê duyệt, vai trò tài khoản của bạn sẽ đổi thành Organizer và mở khóa chức năng tự tạo hoạt động.
+              Vui lòng cung cấp đầy đủ thông tin để Ban quản trị kiểm duyệt năng lực tổ chức của bạn. Sau khi phê duyệt, vai trò tài khoản của bạn sẽ đổi thành Organizer và mở khóa chức năng tự tạo hoạt động.
             </p>
           </div>
 
           <form onSubmit={handleSendRequest} className="space-y-6 pt-2">
-            
+
             {/* Field 1: SĐT */}
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Số điện thoại liên hệ khẩn cấp</label>

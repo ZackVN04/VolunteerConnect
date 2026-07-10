@@ -42,6 +42,7 @@ export interface User {
   created_at: string;
   updated_at: string;
   profile: UserProfile;
+  status?: string;
 }
 
 export interface LocationInfo {
@@ -317,8 +318,8 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           }
 
           // 2. Load activities from backend
+          let serverActs: Activity[] = [];
           try {
-            let serverActs: Activity[] = [];
             if (activeUser && activeUser.role === 'Admin') {
               // Admin cần load tất cả activities kể cả Pending Review
               const [allActs, adminActs, organizerReqsRes, adminUsersRes] = await Promise.allSettled([
@@ -366,6 +367,19 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                 setRegistrations(serverRegs);
               } catch (err) {
                 console.error("Lỗi lấy danh sách đăng ký từ server:", err);
+              }
+            }
+            if (activeUser.role === 'Organizer') {
+              try {
+                const orgActs = serverActs.filter((a: Activity) => a.organizer_id === activeUser._id);
+                const regsPromises = orgActs.map((act: Activity) =>
+                  registrationService.getActivityRegistrations(act._id).catch(() => [] as Registration[])
+                );
+                const regsLists = await Promise.all(regsPromises);
+                const allRegs = regsLists.flat();
+                setRegistrations(allRegs);
+              } catch (err) {
+                console.error("Lỗi lấy danh sách đăng ký cho Organizer:", err);
               }
             }
             if (activeUser.role === 'Admin') {

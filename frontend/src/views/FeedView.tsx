@@ -601,47 +601,105 @@ export const FeedView: React.FC = () => {
           )}
         </section>
 
-        {/* ===================== COMMUNITY RULES ===================== */}
-        <section className="bg-white border border-slate-200/80 rounded-2xl p-6 md:p-8 shadow-sm space-y-6">
-          <div className="space-y-1 text-left">
-            <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-              <span className="material-symbols-outlined text-[#006d37] text-2xl font-bold">gavel</span>
-              Quy tắc Cộng đồng
-            </h2>
-            <p className="text-slate-400 text-xs font-semibold">Giữ cho môi trường tình nguyện luôn văn minh, tích cực và tin cậy</p>
+        {/* ===================== LỢI ÍCH KHI THAM GIA ===================== */}
+        <section className="space-y-6 text-center py-4">
+          <div className="space-y-2">
+            <h2 className="text-2xl font-extrabold text-slate-900 font-headline-md">Lợi ích khi tham gia</h2>
+            <p className="text-slate-500 text-sm font-medium max-w-2xl mx-auto leading-relaxed">
+              Volunteer Connect mang đến nền tảng toàn diện để bạn dễ dàng bắt đầu hành trình tạo tác động xã hội.
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            <div className="bg-[#f0f9f4] rounded-2xl p-5 border border-emerald-500/10 space-y-2 text-left">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-[#006d37] bg-white border border-[#006d37]/20 px-2 py-0.5 rounded-md">01</span>
-                <span className="text-sm font-bold text-slate-800">Tôn trọng</span>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Card 1 */}
+            <div className="bg-white border border-slate-200/60 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col items-center md:items-start text-center md:text-left">
+              <div className="bg-[#e8f5e9] w-12 h-12 rounded-full flex items-center justify-center text-[#006d37] shrink-0 shadow-sm">
+                <span className="material-symbols-outlined text-2xl font-bold">search</span>
               </div>
-              <p className="text-xs text-slate-600 font-semibold leading-relaxed">Không sử dụng ngôn từ kích động thù địch, quấy rối hoặc thô tục dưới mọi hình thức.</p>
+              <h3 className="text-lg font-bold text-slate-900 mt-4">Tìm kiếm dễ dàng</h3>
+              <p className="text-xs text-slate-500 font-semibold leading-relaxed mt-2">
+                Khám phá và lọc các hoạt động tình nguyện theo sở thích cá nhân, kỹ năng chuyên môn, vị trí địa lý và thời gian rảnh rỗi của bạn chỉ với vài cú click.
+              </p>
             </div>
 
-            <div className="bg-[#f0f9f4] rounded-2xl p-5 border border-emerald-500/10 space-y-2 text-left">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-[#006d37] bg-white border border-[#006d37]/20 px-2 py-0.5 rounded-md">02</span>
-                <span className="text-sm font-bold text-slate-800">Xác thực</span>
+            {/* Card 2 */}
+            <div className="bg-white border border-slate-200/60 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col items-center md:items-start text-center md:text-left">
+              <div className="bg-[#e8f5e9] w-12 h-12 rounded-full flex items-center justify-center text-[#006d37] shrink-0 shadow-sm">
+                <span className="material-symbols-outlined text-2xl font-bold">trending_up</span>
               </div>
-              <p className="text-xs text-slate-600 font-semibold leading-relaxed">Chia sẻ hình ảnh và câu chuyện thực tế từ chiến dịch. Không đăng thông tin sai lệch.</p>
+              <h3 className="text-lg font-bold text-slate-900 mt-4">Theo dõi tác động</h3>
+              <p className="text-xs text-slate-500 font-semibold leading-relaxed mt-2">
+                Ghi nhận chính xác số giờ đóng góp, theo dõi các dự án đã tham gia và nhận chứng nhận để đánh giá trực quan mức độ ảnh hưởng của bạn đến cộng đồng.
+              </p>
             </div>
 
-            <div className="bg-[#f0f9f4] rounded-2xl p-5 border border-emerald-500/10 space-y-2 text-left">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-[#006d37] bg-white border border-[#006d37]/20 px-2 py-0.5 rounded-md">03</span>
-                <span className="text-sm font-bold text-slate-800">Tập trung</span>
+            {/* Card 3 */}
+            <div className="bg-white border border-slate-200/60 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col items-center md:items-start text-center md:text-left">
+              <div className="bg-[#e8f5e9] w-12 h-12 rounded-full flex items-center justify-center text-[#006d37] shrink-0 shadow-sm">
+                <span className="material-symbols-outlined text-2xl font-bold">groups</span>
               </div>
-              <p className="text-xs text-slate-600 font-semibold leading-relaxed">Đảm bảo nội dung bài viết luôn xoay quanh chủ đề tình nguyện và hoạt động xã hội.</p>
+              <h3 className="text-lg font-bold text-slate-900 mt-4">Cộng đồng năng động</h3>
+              <p className="text-xs text-slate-500 font-semibold leading-relaxed mt-2">
+                Kết nối sâu sắc với những cá nhân cùng chung chí hướng, trao đổi kinh nghiệm và xây dựng một mạng lưới quan hệ ý nghĩa, lâu dài.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* ===================== DÀNH CHO TỔ CHỨC ===================== */}
+        <section className="bg-white border border-slate-200/60 rounded-3xl p-6 md:p-10 shadow-sm">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+            {/* Left Info */}
+            <div className="lg:col-span-7 space-y-5 text-left flex flex-col">
+              <span className="bg-slate-100 text-slate-600 font-bold text-xs px-3 py-1.5 rounded-full w-fit shadow-sm">
+                Dành cho tổ chức
+              </span>
+              <div className="space-y-2">
+                <h3 className="text-2xl md:text-3xl font-extrabold text-slate-900 font-headline-md tracking-tight">
+                  Bạn là tổ chức phi lợi nhuận?
+                </h3>
+                <p className="text-sm text-slate-500 font-semibold leading-relaxed">
+                  Đăng tuyển tình nguyện viên dễ dàng, quản lý dự án hiệu quả và mở rộng tầm ảnh hưởng của tổ chức bạn tới hàng ngàn người trẻ nhiệt huyết trên nền tảng của chúng tôi.
+                </p>
+              </div>
+
+              {/* Checklist */}
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center gap-2.5">
+                  <span className="material-symbols-outlined text-[#006d37] text-xl font-bold">check_circle</span>
+                  <span className="text-xs font-bold text-slate-700">Tiếp cận nguồn tình nguyện viên dồi dào</span>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <span className="material-symbols-outlined text-[#006d37] text-xl font-bold">check_circle</span>
+                  <span className="text-xs font-bold text-slate-700">Công cụ quản lý sự kiện và người tham gia thông minh</span>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <span className="material-symbols-outlined text-[#006d37] text-xl font-bold">check_circle</span>
+                  <span className="text-xs font-bold text-slate-700">Cấp chứng nhận tự động</span>
+                </div>
+              </div>
+
+              {/* Action Button */}
+              <div className="pt-3">
+                <button 
+                  onClick={() => window.location.hash = '#/request-organizer'}
+                  className="bg-[#121212] hover:bg-[#2c2c2c] text-white font-bold rounded-xl py-3.5 px-6 text-xs transition-all shadow hover:shadow-md flex items-center gap-2 cursor-pointer"
+                >
+                  Đăng ký tổ chức
+                  <span className="material-symbols-outlined text-sm font-bold">arrow_forward</span>
+                </button>
+              </div>
             </div>
 
-            <div className="bg-[#f0f9f4] rounded-2xl p-5 border border-emerald-500/10 space-y-2 text-left">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-[#006d37] bg-white border border-[#006d37]/20 px-2 py-0.5 rounded-md">04</span>
-                <span className="text-sm font-bold text-slate-800">Bảo mật</span>
+            {/* Right Image */}
+            <div className="lg:col-span-5">
+              <div className="rounded-2xl overflow-hidden border border-slate-200 shadow-sm aspect-[4/3] bg-slate-50">
+                <img 
+                  src="https://images.unsplash.com/photo-1531403009284-440f080d1e12?q=80&w=800" 
+                  alt="Dành cho tổ chức" 
+                  className="w-full h-full object-cover" 
+                />
               </div>
-              <p className="text-xs text-slate-600 font-semibold leading-relaxed">Tuyệt đối không tự ý chia sẻ thông tin cá nhân của người khác khi chưa được cho phép.</p>
             </div>
           </div>
         </section>

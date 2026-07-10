@@ -58,7 +58,8 @@ export const mapBackendUserToFrontend = (beUser: any): User => {
       gender: beUser.gender || undefined
     },
     created_at: beUser.created_at,
-    updated_at: beUser.updated_at || beUser.created_at
+    updated_at: beUser.updated_at || beUser.created_at,
+    status: beUser.status || 'active'
   };
 };
 

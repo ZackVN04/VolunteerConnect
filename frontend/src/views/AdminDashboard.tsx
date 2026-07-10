@@ -19,7 +19,7 @@ const AdminAvatar: React.FC<{ name: string; src?: string | null }> = ({ name, sr
 export const AdminDashboard: React.FC = () => {
   const {
     currentUser, users, activities, registrations, organizerRequests,
-    reviewOrganizerRequest, reviewActivity, changeUserRole, loginAs, setCurrentUser,
+    reviewOrganizerRequest, reviewActivity, changeUserRole, setCurrentUser,
     showNotification, showPrompt
   } = useApp();
 
@@ -229,8 +229,8 @@ export const AdminDashboard: React.FC = () => {
             <button
               onClick={() => setActiveTab('overview')}
               className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${activeTab === 'overview'
-                  ? 'bg-[#006d37] text-white'
-                  : 'text-on-surface-variant hover:bg-slate-100 hover:text-on-surface'
+                ? 'bg-[#006d37] text-white'
+                : 'text-on-surface-variant hover:bg-slate-100 hover:text-on-surface'
                 }`}
             >
               <span className="flex items-center gap-2">
@@ -243,8 +243,8 @@ export const AdminDashboard: React.FC = () => {
             <button
               onClick={() => setActiveTab('organizers')}
               className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${activeTab === 'organizers'
-                  ? 'bg-[#006d37] text-white'
-                  : 'text-on-surface-variant hover:bg-slate-100 hover:text-on-surface'
+                ? 'bg-[#006d37] text-white'
+                : 'text-on-surface-variant hover:bg-slate-100 hover:text-on-surface'
                 }`}
             >
               <span className="flex items-center gap-2">
@@ -262,8 +262,8 @@ export const AdminDashboard: React.FC = () => {
             <button
               onClick={() => setActiveTab('activities')}
               className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${activeTab === 'activities'
-                  ? 'bg-[#006d37] text-white'
-                  : 'text-on-surface-variant hover:bg-slate-100 hover:text-on-surface'
+                ? 'bg-[#006d37] text-white'
+                : 'text-on-surface-variant hover:bg-slate-100 hover:text-on-surface'
                 }`}
             >
               <span className="flex items-center gap-2">
@@ -281,8 +281,8 @@ export const AdminDashboard: React.FC = () => {
             <button
               onClick={() => setActiveTab('users')}
               className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${activeTab === 'users'
-                  ? 'bg-[#006d37] text-white'
-                  : 'text-on-surface-variant hover:bg-slate-100 hover:text-on-surface'
+                ? 'bg-[#006d37] text-white'
+                : 'text-on-surface-variant hover:bg-slate-100 hover:text-on-surface'
                 }`}
             >
               <span className="flex items-center gap-2">
@@ -295,8 +295,8 @@ export const AdminDashboard: React.FC = () => {
             <button
               onClick={() => setActiveTab('stats')}
               className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${activeTab === 'stats'
-                  ? 'bg-[#006d37] text-white'
-                  : 'text-on-surface-variant hover:bg-slate-100 hover:text-on-surface'
+                ? 'bg-[#006d37] text-white'
+                : 'text-on-surface-variant hover:bg-slate-100 hover:text-on-surface'
                 }`}
             >
               <span className="flex items-center gap-2">
@@ -457,8 +457,8 @@ export const AdminDashboard: React.FC = () => {
                             className="bg-[#006d37] h-full"
                             style={{
                               width: `${activities.length > 0
-                                  ? (activities.filter(a => a.status === 'Open').length / activities.length) * 100
-                                  : 0
+                                ? (activities.filter(a => a.status === 'Open').length / activities.length) * 100
+                                : 0
                                 }%`
                             }}
                           ></div>
@@ -482,8 +482,8 @@ export const AdminDashboard: React.FC = () => {
                             className="bg-[#b06000] h-full"
                             style={{
                               width: `${activities.length > 0
-                                  ? (activities.filter(a => a.status === 'Pending Review').length / activities.length) * 100
-                                  : 0
+                                ? (activities.filter(a => a.status === 'Pending Review').length / activities.length) * 100
+                                : 0
                                 }%`
                             }}
                           ></div>
@@ -507,8 +507,8 @@ export const AdminDashboard: React.FC = () => {
                             className="bg-[#1e429f] h-full"
                             style={{
                               width: `${activities.length > 0
-                                  ? (activities.filter(a => a.status === 'Completed').length / activities.length) * 100
-                                  : 0
+                                ? (activities.filter(a => a.status === 'Completed').length / activities.length) * 100
+                                : 0
                                 }%`
                             }}
                           ></div>
@@ -802,52 +802,40 @@ export const AdminDashboard: React.FC = () => {
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full border-collapse text-left text-sm">
-                    <thead>
-                      <tr className="bg-[#f8f9fa] border-b border-surface-variant/40 text-on-surface-variant font-bold text-xs uppercase tracking-wider">
-                        <th className="px-6 py-4">Tên người dùng</th>
-                        <th className="px-6 py-4">Số điện thoại</th>
-                        <th className="px-6 py-4">Email</th>
-                        <th className="px-6 py-4">Vai trò hiện tại</th>
-                        <th className="px-6 py-4">Hành động</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-surface-variant/30 text-on-surface">
-                      {users.map(u => (
-                        <tr key={u._id} className="hover:bg-slate-50 transition-colors">
-                          <td className="px-6 py-5 font-bold">{u.profile.full_name}</td>
-                          <td className="px-6 py-5 text-on-surface-variant">{u.phone}</td>
-                          <td className="px-6 py-5 text-on-surface-variant">{u.email || 'Chưa cập nhật'}</td>
-                          <td className="px-6 py-5">
-                            <select
-                              value={u.role}
-                              onChange={(e) => {
-                                const newRole = e.target.value as 'Volunteer' | 'Organizer' | 'Admin';
-                                changeUserRole(u._id, newRole);
-                                showNotification(`Đã chuyển vai trò của ${u.profile.full_name} sang ${newRole}`, 'success');
-                              }}
-                              className="border border-surface-variant rounded-lg px-2 py-1 text-xs bg-white cursor-pointer"
-                            >
-                              <option value="Volunteer">Volunteer</option>
-                              <option value="Organizer">Organizer</option>
-                              <option value="Admin">Admin</option>
-                            </select>
-                          </td>
-                          <td className="px-6 py-5 whitespace-nowrap">
-                            <button
-                              onClick={() => {
-                                loginAs(u._id);
-                                showNotification(`Đã đổi phiên giả lập đăng nhập sang: ${u.profile.full_name}`, 'success');
-                              }}
-                              className="text-[#006d37] hover:underline font-bold text-xs border border-[#006d37]/30 px-3 py-1.5 rounded-lg hover:bg-[#e8f5e9]"
-                            >
-                              Giả lập đăng nhập
-                            </button>
-                          </td>
+                      <thead>
+                        <tr className="bg-[#f8f9fa] border-b border-surface-variant/40 text-on-surface-variant font-bold text-xs uppercase tracking-wider">
+                          <th className="px-6 py-4">Tên người dùng</th>
+                          <th className="px-6 py-4">Số điện thoại</th>
+                          <th className="px-6 py-4">Email</th>
+                          <th className="px-6 py-4">Vai trò hiện tại</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody className="divide-y divide-surface-variant/30 text-on-surface">
+                        {users.map(u => (
+                          <tr key={u._id} className="hover:bg-slate-50 transition-colors">
+                            <td className="px-6 py-5 font-bold">{u.profile.full_name}</td>
+                            <td className="px-6 py-5 text-on-surface-variant">{u.phone}</td>
+                            <td className="px-6 py-5 text-on-surface-variant">{u.email || 'Chưa cập nhật'}</td>
+                            <td className="px-6 py-5">
+                              <select
+                                value={u.role}
+                                onChange={(e) => {
+                                  const newRole = e.target.value as 'Volunteer' | 'Organizer' | 'Admin';
+                                  changeUserRole(u._id, newRole);
+                                  showNotification(`Đã chuyển vai trò của ${u.profile.full_name} sang ${newRole}`, 'success');
+                                }}
+                                className="border border-surface-variant rounded-lg px-2 py-1 text-xs bg-white cursor-pointer"
+                              >
+                                <option value="Volunteer">Tình Nguyện Viên</option>
+                                <option value="Organizer">Ban Tổ Chức</option>
+                                <option value="Admin">Quản Trị Viên</option>
+                              </select>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 )}
               </div>
             </div>
