@@ -828,23 +828,25 @@ export const AdminDashboard: React.FC = () => {
                     <table className="w-full border-collapse text-left text-sm">
                       <thead>
                         <tr className="bg-[#f8f9fa] border-b border-surface-variant/40 text-on-surface-variant font-bold text-xs uppercase tracking-wider">
-                          <th className="px-6 py-4 whitespace-nowrap">Tên người dùng</th>
-                          <th className="px-6 py-4 whitespace-nowrap">Số điện thoại</th>
-                          <th className="px-6 py-4 whitespace-nowrap">Email</th>
-                          <th className="px-6 py-4 whitespace-nowrap">Vai trò</th>
-                          <th className="px-6 py-4 whitespace-nowrap">Cấp quyền vai trò</th>
+                          <th className="px-4 py-3 whitespace-nowrap">Tên người dùng</th>
+                          <th className="px-4 py-3 whitespace-nowrap">Số điện thoại</th>
+                          <th className="px-4 py-3 whitespace-nowrap">Email</th>
+                          <th className="px-4 py-3 whitespace-nowrap">Vai trò</th>
+                          <th className="px-4 py-3 whitespace-nowrap">Cấp quyền vai trò</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-surface-variant/30 text-on-surface">
                         {users.map(u => (
                           <tr key={u._id} className="hover:bg-slate-50 transition-colors">
-                            <td className="px-6 py-5 font-bold whitespace-nowrap">{u.profile.full_name}</td>
-                            <td className="px-6 py-5 text-on-surface-variant whitespace-nowrap">{u.phone}</td>
-                            <td className="px-6 py-5 text-on-surface-variant whitespace-nowrap">{u.email || 'Chưa cập nhật'}</td>
-                            <td className="px-6 py-5 whitespace-nowrap">
+                            <td className="px-4 py-3.5 font-bold whitespace-nowrap">{u.profile.full_name}</td>
+                            <td className="px-4 py-3.5 text-on-surface-variant whitespace-nowrap">{u.phone}</td>
+                            <td className="px-4 py-3.5 text-on-surface-variant max-w-[200px] truncate" title={u.email || 'Chưa cập nhật'}>
+                              {u.email || 'Chưa cập nhật'}
+                            </td>
+                            <td className="px-4 py-3.5 whitespace-nowrap">
                               {getRoleBadge(u.role)}
                             </td>
-                            <td className="px-6 py-5 whitespace-nowrap">
+                            <td className="px-4 py-3.5 whitespace-nowrap">
                               <select
                                 value={u.role}
                                 onChange={(e) => {
