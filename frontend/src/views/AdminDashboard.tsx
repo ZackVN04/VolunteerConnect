@@ -851,6 +851,7 @@ export const AdminDashboard: React.FC = () => {
                                 value={u.role}
                                 onChange={(e) => {
                                   const newRole = e.target.value as 'Volunteer' | 'Organizer' | 'Admin';
+                                  if (newRole === u.role) return;
                                   const oldRoleName = u.role === 'Volunteer' ? 'Tình Nguyện Viên' : u.role === 'Organizer' ? 'Ban Tổ Chức' : 'Quản Trị Viên';
                                   const newRoleName = newRole === 'Volunteer' ? 'Tình Nguyện Viên' : newRole === 'Organizer' ? 'Ban Tổ Chức' : 'Quản Trị Viên';
                                   
