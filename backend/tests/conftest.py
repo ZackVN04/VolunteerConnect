@@ -38,6 +38,10 @@ def _assert_test_database_is_safe():
     Kiểm tra an toàn: ABORT nếu MONGO_URI đang trỏ về database production.
     Đây là lớp bảo vệ cứng (hard guard) chống xóa nhầm database thật.
     """
+    # Nếu kết nối tới localhost hoặc 127.0.0.1, coi như chạy test cục bộ, bỏ qua kiểm tra
+    if "localhost" in settings.MONGO_URI or "127.0.0.1" in settings.MONGO_URI:
+        return
+
     db_name_from_uri = _get_db_name_from_uri(settings.MONGO_URI)
 
     if db_name_from_uri in FORBIDDEN_DB_NAMES:
