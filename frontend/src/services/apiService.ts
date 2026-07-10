@@ -70,13 +70,13 @@ export const authService = {
     const res = await api.post('/auth/login', { email, password: password_raw });
     const token = res.data.access_token;
     const refreshToken = res.data.refresh_token;
-    
+
     // Immediately save tokens to localStorage for axios interceptor
     localStorage.setItem('token', token);
     if (refreshToken) {
       localStorage.setItem('refresh_token', refreshToken);
     }
-    
+
     // Fetch profile details
     const user = await authService.getCurrentUser();
     return { token, user };
@@ -84,9 +84,9 @@ export const authService = {
   register: async (fullname: string, email: string, phone: string, password_raw: string): Promise<{ message: string; user_id: string }> => {
     const formattedPhone = formatPhoneE164(phone);
     // Backend: POST /api/v1/auth/register, body: { email, password, phone_number, full_name }
-    const res = await api.post('/auth/register', { 
-      email, 
-      phone_number: formattedPhone, 
+    const res = await api.post('/auth/register', {
+      email,
+      phone_number: formattedPhone,
       password: password_raw,
       full_name: fullname
     });
@@ -94,9 +94,9 @@ export const authService = {
   },
   verifyOtp: async (email: string, otpCode: string): Promise<any> => {
     // Backend: POST /api/v1/auth/verify-otp, body: { email, otp_code }
-    const res = await api.post('/auth/verify-otp', { 
-      email, 
-      otp_code: otpCode 
+    const res = await api.post('/auth/verify-otp', {
+      email,
+      otp_code: otpCode
     });
     return res.data;
   },
@@ -112,10 +112,10 @@ export const authService = {
   },
   resetPassword: async (email: string, otpCode: string, newPasswordRaw: string): Promise<any> => {
     // Backend: POST /api/v1/auth/reset-password, body: { email, otp_code, new_password }
-    const res = await api.post('/auth/reset-password', { 
-      email, 
-      otp_code: otpCode, 
-      new_password: newPasswordRaw 
+    const res = await api.post('/auth/reset-password', {
+      email,
+      otp_code: otpCode,
+      new_password: newPasswordRaw
     });
     return res.data;
   },
@@ -125,11 +125,16 @@ export const authService = {
     return res.data;
   },
   refreshToken: async (token: string): Promise<any> => {
-    // Backend: POST /api/v1/auth/refresh-token, body: { refresh_token }
-    const res = await api.post('/auth/refresh-token', { refresh_token: token });
+    // Backend: POST /api/v1/auth/refresh, body: { refresh_token }
+    const res = await api.post('/auth/refresh', { refresh_token: token });
     return res.data;
   },
   logout: async (): Promise<void> => {
+    try {
+      await api.post('/auth/logout');
+    } catch (e) {
+      console.warn("Server logout failed", e);
+    }
     localStorage.removeItem('token');
     localStorage.removeItem('refresh_token');
   }
@@ -290,15 +295,15 @@ export const registrationService = {
     return mapRegistration(res.data?.data || res.data);
   },
   approve: async (registrationId: string): Promise<Registration> => {
-    const res = await api.patch(`/registrations/${registrationId}/approve`);
+    const res = await api.post(`/registrations/${registrationId}/approve`);
     return mapRegistration(res.data?.data || res.data);
   },
   reject: async (registrationId: string, reason?: string): Promise<Registration> => {
-    const res = await api.patch(`/registrations/${registrationId}/reject`, { rejection_reason: reason });
+    const res = await api.post(`/registrations/${registrationId}/reject`, { rejection_reason: reason });
     return mapRegistration(res.data?.data || res.data);
   },
   updateParticipation: async (registrationId: string, status: 'Completed' | 'Absent'): Promise<Registration> => {
-    const res = await api.patch(`/registrations/${registrationId}/attendance`, { status: status.toLowerCase() });
+    const res = await api.post(`/registrations/${registrationId}/check-in`, { status: status.toLowerCase() });
     return mapRegistration(res.data?.data || res.data);
   }
 };
@@ -319,7 +324,7 @@ export const organizerService = {
   submitRequest: async (reason: string, experience: string, contactPhone: string): Promise<any> => {
     const formattedPhone = formatPhoneE164(contactPhone);
     // Backend schema: OrganizerRequestCreate { reason, experience, contact_phone }
-    const res = await api.post('/organizer-requests/request-upgrade', { 
+    const res = await api.post('/organizer-requests/request-upgrade', {
       reason,
       experience,
       contact_phone: formattedPhone
@@ -335,8 +340,7 @@ export const postService = {
     const posts = res.data?.items || [];
     return posts.map(mapPost);
   },
-  create: async (content: string, images: string[], hashtags: string[]): Promise<Post> => {
-    const title = content.trim().split(/\s+/).slice(0, 8).join(' ').slice(0, 100) || 'Bài viết cộng đồng';
+  create: async (title: string, content: string, images: string[], hashtags: string[]): Promise<Post> => {
     const res = await rootApi.post('/posts/', { title, content, images, hashtags });
     return mapPost(res.data);
   },
@@ -374,7 +378,7 @@ export const userService = {
     updatedProfile: Partial<UserProfile> & { phone?: string; age?: number; gender?: string }
   ): Promise<User> => {
     // Backend: PUT /api/v1/users/me, body: { full_name, avatar_url, bio, skills, area_of_interest, phone_number, age, gender }
-    const res = await api.put('/users/me', { 
+    const res = await api.put('/users/me', {
       full_name: updatedProfile.full_name,
       avatar_url: updatedProfile.avatar_url,
       bio: updatedProfile.bio,
@@ -400,11 +404,11 @@ export const adminService = {
     const reqs = res.data?.data?.requests || [];
     return reqs.map(mapOrganizerRequest);
   },
-  approveOrganizerRequest: async (requestId: string, approve: boolean, feedback?: string): Promise<OrganizerRequest> => {
+  approveOrganizerRequest: async (requestId: string, approve: boolean, feedback?: string): Promise<any> => {
     const endpoint = approve ? `/admin/requests/${requestId}/approve` : `/admin/requests/${requestId}/reject`;
     const res = await rootApi.patch(endpoint, {
       status: approve ? 'approved' : 'rejected',
-      reason: feedback
+      reason: feedback || ""
     });
     return res.data;
   },
@@ -413,9 +417,10 @@ export const adminService = {
     const acts = res.data?.data?.activities || [];
     return acts.map(mapActivity);
   },
-  approveActivity: async (activityId: string, approve: boolean): Promise<Activity> => {
+  approveActivity: async (activityId: string, approve: boolean, feedback?: string): Promise<any> => {
     const res = await rootApi.patch(`/admin/activities/${activityId}/approve`, {
-      is_approved: approve
+      is_approved: approve,
+      reason: feedback
     });
     return res.data;
   },

@@ -73,6 +73,7 @@ const AppContent: React.FC = () => {
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [otpVerifyPhone, setOtpVerifyPhone] = useState<string | null>(null);
   const [otpVerifyEmail, setOtpVerifyEmail] = useState<string | null>(null);
+  const [showIncompleteBanner, setShowIncompleteBanner] = useState(false);
 
   // Hash Routing Listener
   useEffect(() => {
@@ -97,8 +98,27 @@ const AppContent: React.FC = () => {
     if (currentUser) {
       const cleanHash = window.location.hash.split('?')[0];
       if (['#/login', '#/register', '#/forgot-password'].includes(cleanHash)) {
-        window.location.hash = '#/feed';
+        if (currentUser.role === 'Admin') {
+          window.location.hash = '#/admin/dashboard';
+        } else {
+          window.location.hash = '#/feed';
+        }
       }
+    }
+  }, [currentUser, currentHash]);
+
+  // Check if profile is incomplete and banner is not dismissed in current session
+  useEffect(() => {
+    if (currentUser) {
+      const isDismissed = sessionStorage.getItem('dismissedProfileReminder') === 'true';
+      const isIncomplete = !currentUser.phone || 
+        !currentUser.profile.area_of_interest || 
+        !currentUser.profile.skills || 
+        currentUser.profile.skills.length === 0;
+      
+      setShowIncompleteBanner(isIncomplete && !isDismissed);
+    } else {
+      setShowIncompleteBanner(false);
     }
   }, [currentUser, currentHash]);
 
@@ -236,6 +256,39 @@ const AppContent: React.FC = () => {
       <div className="min-h-screen flex flex-col bg-background text-on-surface antialiased transition-all">
         {/* Top Navigation Bar */}
         <Navbar />
+
+        {/* Profile Incomplete Banner */}
+        {showIncompleteBanner && (
+          <div className="w-full max-w-[1280px] mx-auto px-4 md:px-8 mt-4 animate-fadeIn">
+            <div className="bg-[#fff9e6] border border-amber-200/60 rounded-2xl p-4 flex flex-col sm:flex-row justify-between items-center gap-3 shadow-sm">
+              <div className="flex items-center gap-2.5 text-amber-800 text-sm font-semibold text-left">
+                <span className="material-symbols-outlined text-amber-600 shrink-0">warning</span>
+                <span>Thông tin cá nhân của bạn chưa hoàn thiện. Vui lòng hoàn thành hồ sơ cá nhân của mình để hoạt động hiệu quả hơn.</span>
+              </div>
+              <div className="flex items-center gap-3 shrink-0 self-end sm:self-auto">
+                <a 
+                  href="#/profile?tab=edit"
+                  onClick={() => {
+                    window.location.hash = '#/profile?tab=edit';
+                  }}
+                  className="text-xs bg-[#006d37] hover:bg-[#005027] text-white font-bold px-4 py-2 rounded-xl transition-all shadow-sm"
+                >
+                  Cập nhật ngay
+                </a>
+                <button 
+                  onClick={() => {
+                    sessionStorage.setItem('dismissedProfileReminder', 'true');
+                    setShowIncompleteBanner(false);
+                  }}
+                  className="text-amber-600 hover:text-amber-800 p-1 flex items-center justify-center cursor-pointer"
+                  aria-label="Đóng thông báo"
+                >
+                  <span className="material-symbols-outlined text-lg block">close</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Main Content Area */}
         <main className="flex-grow w-full">

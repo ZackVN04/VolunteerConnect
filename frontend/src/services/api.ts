@@ -6,7 +6,7 @@ if (typeof window !== 'undefined' && window.location) {
   const hostname = window.location.hostname;
   if (hostname.endsWith('.run.app') && hostname.includes('volunteer-connect-frontend')) {
     const backendHostname = hostname.replace('volunteer-connect-frontend', 'volunteer-connect-backend');
-    baseURL = `https://${backendHostname}/api/v1`;
+    baseURL = `https://${backendHostname}`;
   }
 }
 
@@ -104,7 +104,7 @@ const setupResponseInterceptor = (axiosInstance: any) => {
 
       const isAuthUrl = originalRequest.url && (
         originalRequest.url.includes('/auth/login') ||
-        originalRequest.url.includes('/auth/refresh-token')
+        originalRequest.url.includes('/auth/refresh')
       );
 
       if (error.response && error.response.status === 401 && !isAuthUrl && !originalRequest._retry) {
@@ -134,7 +134,7 @@ const setupResponseInterceptor = (axiosInstance: any) => {
         isRefreshing = true;
 
         try {
-          const res = await refreshClient.post('/auth/refresh-token', {
+          const res = await refreshClient.post('/auth/refresh', {
             refresh_token: refreshToken,
           });
 

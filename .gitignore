@@ -2,6 +2,8 @@
 node_modules/
 __pycache__/
 .env
+.env.*
+*.env*
 .venv/
 venv/
 env/

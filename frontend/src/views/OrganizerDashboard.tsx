@@ -26,14 +26,14 @@ const LOCATION_DATA: Record<string, string[]> = {
 // Status badge helper matches mockup badge designs
 const ActivityStatusBadge: React.FC<{ status: string }> = ({ status }) => {
   const map: Record<string, { label: string; cls: string }> = {
-    'Draft':          { label: 'Bản nháp',      cls: 'bg-slate-100 text-slate-600 border border-slate-200/50' },
-    'Pending Review': { label: 'Chờ duyệt',     cls: 'bg-[#fef7e0] text-[#b06000] border border-[#b06000]/10' },
-    'Open':           { label: 'Đang tuyển',    cls: 'bg-emerald-50 text-[#006d37] border border-emerald-100/50' },
-    'Full':           { label: 'Đã đầy',        cls: 'bg-teal-50 text-teal-800 border border-teal-100/50' },
-    'Ongoing':        { label: 'Đang diễn ra',  cls: 'bg-blue-50 text-blue-800 border border-blue-100/50' },
-    'Completed':      { label: 'Đã kết thúc',   cls: 'bg-slate-100 text-slate-600 border border-slate-200/50' }, // gray background matches mockup
-    'Rejected':       { label: 'Bị từ chối',    cls: 'bg-red-50 text-red-700 border border-red-200/50' },
-    'Cancelled':      { label: 'Đã hủy',        cls: 'bg-slate-50 text-slate-500 border border-slate-100/50' },
+    'Draft': { label: 'Bản nháp', cls: 'bg-slate-100 text-slate-600 border border-slate-200/50' },
+    'Pending Review': { label: 'Chờ duyệt', cls: 'bg-[#fef7e0] text-[#b06000] border border-[#b06000]/10' },
+    'Open': { label: 'Đang tuyển', cls: 'bg-emerald-50 text-[#006d37] border border-emerald-100/50' },
+    'Full': { label: 'Đã đầy', cls: 'bg-teal-50 text-teal-800 border border-teal-100/50' },
+    'Ongoing': { label: 'Đang diễn ra', cls: 'bg-blue-50 text-blue-800 border border-blue-100/50' },
+    'Completed': { label: 'Đã kết thúc', cls: 'bg-slate-100 text-slate-600 border border-slate-200/50' }, // gray background matches mockup
+    'Rejected': { label: 'Bị từ chối', cls: 'bg-red-50 text-red-700 border border-red-200/50' },
+    'Cancelled': { label: 'Đã hủy', cls: 'bg-slate-50 text-slate-500 border border-slate-100/50' },
   };
   const s = map[status] || { label: status, cls: 'bg-slate-100 text-slate-600' };
   return <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide border ${s.cls}`}>{s.label}</span>;
@@ -273,10 +273,9 @@ export const OrganizerDashboard: React.FC = () => {
 
   // Tab button style helper (Matches mockup style)
   const tabCls = (tab: string) =>
-    `pb-3 px-1 font-bold text-sm transition-all border-b-2 whitespace-nowrap cursor-pointer ${
-      activeTab === tab
-        ? 'border-[#006d37] text-[#006d37]'
-        : 'border-transparent text-gray-500 hover:text-gray-800'
+    `pb-3 px-1 font-bold text-sm transition-all border-b-2 whitespace-nowrap cursor-pointer ${activeTab === tab
+      ? 'border-[#006d37] text-[#006d37]'
+      : 'border-transparent text-gray-500 hover:text-gray-800'
     }`;
 
   return (
@@ -637,36 +636,33 @@ export const OrganizerDashboard: React.FC = () => {
           <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm">
             {/* Sub-tabs Segmented Control + Search */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between p-5 border-b border-slate-100 gap-3">
-              
+
               {/* Segmented style filter buttons matching mockup */}
               <div className="bg-[#e8f5e9]/50 p-1 rounded-2xl flex gap-1 border border-emerald-100/50">
                 <button
                   onClick={() => setRegSubTab('pending')}
-                  className={`px-5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                    regSubTab === 'pending'
+                  className={`px-5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${regSubTab === 'pending'
                       ? 'bg-white text-[#006d37] shadow-sm'
                       : 'text-slate-500 hover:text-slate-700'
-                  }`}
+                    }`}
                 >
                   Chờ duyệt ({pendingCount})
                 </button>
                 <button
                   onClick={() => setRegSubTab('approved')}
-                  className={`px-5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                    regSubTab === 'approved'
+                  className={`px-5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${regSubTab === 'approved'
                       ? 'bg-white text-[#006d37] shadow-sm'
                       : 'text-slate-500 hover:text-slate-700'
-                  }`}
+                    }`}
                 >
                   Đã chấp nhận ({approvedCount})
                 </button>
                 <button
                   onClick={() => setRegSubTab('rejected')}
-                  className={`px-5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                    regSubTab === 'rejected'
+                  className={`px-5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${regSubTab === 'rejected'
                       ? 'bg-white text-[#006d37] shadow-sm'
                       : 'text-slate-500 hover:text-slate-700'
-                  }`}
+                    }`}
                 >
                   Từ chối ({rejectedCount})
                 </button>
@@ -802,11 +798,10 @@ export const OrganizerDashboard: React.FC = () => {
                             <td className="px-6 py-4 font-bold text-slate-800">{reg.denormalized_volunteer.name}</td>
                             <td className="px-6 py-4 text-slate-500 font-semibold">{reg.denormalized_volunteer.phone || '—'}</td>
                             <td className="px-6 py-4">
-                              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border ${
-                                reg.status === 'Approved' ? 'bg-emerald-50 text-[#006d37] border-emerald-100/50' :
-                                reg.status === 'Completed' ? 'bg-blue-50 text-blue-800 border-blue-100/50' :
-                                'bg-red-50 text-red-750 border-red-100/50'
-                              }`}>
+                              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border ${reg.status === 'Approved' ? 'bg-emerald-50 text-[#006d37] border-emerald-100/50' :
+                                  reg.status === 'Completed' ? 'bg-blue-50 text-blue-800 border-blue-100/50' :
+                                    'bg-red-50 text-red-750 border-red-100/50'
+                                }`}>
                                 {reg.status === 'Approved' ? 'Đã duyệt' : reg.status === 'Completed' ? 'Đã tham gia' : 'Vắng mặt'}
                               </span>
                             </td>
