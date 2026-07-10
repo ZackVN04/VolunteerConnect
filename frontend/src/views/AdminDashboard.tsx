@@ -20,7 +20,7 @@ export const AdminDashboard: React.FC = () => {
   const {
     currentUser, users, activities, registrations, organizerRequests,
     reviewOrganizerRequest, reviewActivity, changeUserRole, setCurrentUser,
-    showNotification, showPrompt
+    showNotification, showPrompt, showConfirm
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'overview' | 'organizers' | 'activities' | 'users' | 'stats'>('overview');
@@ -851,8 +851,16 @@ export const AdminDashboard: React.FC = () => {
                                 value={u.role}
                                 onChange={(e) => {
                                   const newRole = e.target.value as 'Volunteer' | 'Organizer' | 'Admin';
-                                  changeUserRole(u._id, newRole);
-                                  showNotification(`Đã chuyển vai trò của ${u.profile.full_name} sang ${newRole}`, 'success');
+                                  const oldRoleName = u.role === 'Volunteer' ? 'Tình Nguyện Viên' : u.role === 'Organizer' ? 'Ban Tổ Chức' : 'Quản Trị Viên';
+                                  const newRoleName = newRole === 'Volunteer' ? 'Tình Nguyện Viên' : newRole === 'Organizer' ? 'Ban Tổ Chức' : 'Quản Trị Viên';
+                                  
+                                  showConfirm(
+                                    `Bạn có chắc chắn muốn thay đổi vai trò của người dùng "${u.profile.full_name}" từ "${oldRoleName}" sang "${newRoleName}" không?`,
+                                    () => {
+                                      changeUserRole(u._id, newRole);
+                                      showNotification(`Đã chuyển vai trò của ${u.profile.full_name} sang ${newRoleName}`, 'success');
+                                    }
+                                  );
                                 }}
                                 className="border border-surface-variant rounded-lg px-2 py-1 text-xs bg-white cursor-pointer font-semibold"
                               >
