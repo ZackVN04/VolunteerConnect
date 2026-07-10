@@ -13,6 +13,7 @@ import RegisterView from './views/RegisterView';
 import OTPVerifyView from './views/OTPVerifyView';
 import ForgotPasswordView from './views/ForgotPasswordView';
 import PostsView from './views/PostsView';
+import RequestOrganizerView from './views/RequestOrganizerView';
 import './App.css';
 
 
@@ -161,6 +162,14 @@ const AppContent: React.FC = () => {
 
     if (cleanHash === '#/profile') {
       return <ProfileView />;
+    }
+
+    if (cleanHash === '#/request-organizer') {
+      if (currentUser?.role !== 'Volunteer') {
+        window.location.hash = '#/feed';
+        return <FeedView />;
+      }
+      return <RequestOrganizerView />;
     }
 
     if (cleanHash === '#/organizer/dashboard') {

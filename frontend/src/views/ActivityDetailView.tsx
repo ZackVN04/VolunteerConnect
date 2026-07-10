@@ -229,7 +229,7 @@ export const ActivityDetailView: React.FC<ActivityDetailViewProps> = ({ activity
               <div className="flex flex-col gap-1.5">
                 <span className="text-xs font-semibold text-on-surface-variant">Trạng thái hiện tại:</span>
                 <span className={`px-4 py-2.5 rounded-xl text-xs font-bold text-center border border-surface-variant/30 ${statusClass}`}>
-                  Trạng thái: {statusText}
+                  {statusText}
                 </span>
               </div>
 
