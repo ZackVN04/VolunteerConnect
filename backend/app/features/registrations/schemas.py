@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import datetime
 from app.features.registrations.constants import RegistrationStatus, ReviewAction
 from typing import List, Optional
@@ -80,10 +80,10 @@ class BulkApproveRequest(BaseModel):
 
 class BulkRejectRequest(BaseModel):
     registration_ids: List[str]
-    rejection_reason: Optional[str] = None
+    rejection_reason: str = Field(..., min_length=5, max_length=500, description="Lý do từ chối bắt buộc phải có")
 
 class RejectRequest(BaseModel):
-    rejection_reason: Optional[str] = None
+    rejection_reason: str = Field(..., min_length=5, max_length=500, description="Lý do từ chối bắt buộc phải có")
 
 class BulkReviewResponse(BaseModel):
     processed: int
