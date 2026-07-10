@@ -653,6 +653,7 @@ export const ProfileView: React.FC = () => {
                           onChange={(e) => setAreaOfInterest(e.target.value)}
                           className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm font-semibold text-slate-800 bg-white transition-all cursor-pointer"
                         >
+                          <option value="">Chọn khu vực hoạt động</option>
                           <option value="TP. Hồ Chí Minh">TP. Hồ Chí Minh</option>
                           <option value="Hà Nội">Hà Nội</option>
                           <option value="Đà Nẵng">Đà Nẵng</option>
