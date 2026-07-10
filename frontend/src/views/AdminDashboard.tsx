@@ -20,7 +20,7 @@ export const AdminDashboard: React.FC = () => {
   const {
     currentUser, users, activities, registrations, organizerRequests,
     reviewOrganizerRequest, reviewActivity, changeUserRole, setCurrentUser,
-    showNotification, showPrompt, showConfirm
+    showNotification, showPrompt, showConfirm, confirmDialog
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'overview' | 'organizers' | 'activities' | 'users' | 'stats'>('overview');
@@ -852,6 +852,9 @@ export const AdminDashboard: React.FC = () => {
                                 onChange={(e) => {
                                   const newRole = e.target.value as 'Volunteer' | 'Organizer' | 'Admin';
                                   if (newRole === u.role) return;
+                                  if (confirmDialog) return;
+                                  e.target.blur();
+                                  
                                   const oldRoleName = u.role === 'Volunteer' ? 'Tình Nguyện Viên' : u.role === 'Organizer' ? 'Ban Tổ Chức' : 'Quản Trị Viên';
                                   const newRoleName = newRole === 'Volunteer' ? 'Tình Nguyện Viên' : newRole === 'Organizer' ? 'Ban Tổ Chức' : 'Quản Trị Viên';
                                   

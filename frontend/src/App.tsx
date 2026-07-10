@@ -368,7 +368,11 @@ const AppContent: React.FC = () => {
               </button>
               <button 
                 onClick={() => {
-                  confirmDialog.onConfirm();
+                  try {
+                    confirmDialog.onConfirm();
+                  } catch (e) {
+                    console.error("Error during confirm action:", e);
+                  }
                   closeConfirm();
                 }}
                 className="px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors cursor-pointer"
