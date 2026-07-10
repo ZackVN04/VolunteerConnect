@@ -58,7 +58,7 @@ export const Navbar: React.FC = () => {
               {/* Action button based on role */}
               {currentUser.role === 'Volunteer' && (
                 <a 
-                  href="#/profile?tab=upgrade"
+                  href="#/request-organizer"
                   className="border border-[#006d37] text-[#006d37] hover:bg-[#e8f5e9] px-4 py-1.5 rounded-full text-xs font-semibold transition-all active:scale-95 shadow-sm"
                 >
                   Xin quyền Tổ chức
@@ -243,7 +243,7 @@ export const Navbar: React.FC = () => {
                 <a 
                   onClick={() => setMobileMenuOpen(false)}
                   className="block text-center border border-[#006d37] text-[#006d37] py-2 rounded-lg text-sm font-semibold hover:bg-emerald-50"
-                  href="#/profile?tab=upgrade"
+                  href="#/request-organizer"
                 >
                   Xin quyền Tổ chức
                 </a>

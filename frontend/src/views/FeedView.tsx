@@ -272,8 +272,15 @@ export const FeedView: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
   const [openMenuPostId, setOpenMenuPostId] = useState<string | null>(null);
-  const [openSharePostId, setOpenSharePostId] = useState<string | null>(null);
   const itemsPerPage = 3;
+
+  // Community Feed Pagination states
+  const [feedPage, setFeedPage] = useState(1);
+  const postsPerPage = 5;
+
+  useEffect(() => {
+    setFeedPage(1);
+  }, [searchQuery]);
 
   // Comments states
   const [commentsMap, setCommentsMap] = useState<Record<string, PostComment[]>>({});
@@ -383,10 +390,8 @@ export const FeedView: React.FC = () => {
     return contentMatch || hashtagMatch;
   });
 
-  // Trending hashtags (aggregate from posts)
-  const hashtagCounts: Record<string, number> = {};
-  posts.forEach(p => (p.hashtags || []).forEach(h => { hashtagCounts[h] = (hashtagCounts[h] || 0) + 1; }));
-  const trendingTags = Object.entries(hashtagCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const totalFeedPages = Math.ceil(filteredPosts.length / postsPerPage);
+  const paginatedPosts = filteredPosts.slice((feedPage - 1) * postsPerPage, feedPage * postsPerPage);
 
   // Relative time helper
   const formatRelativeTime = (dateStr: string): string => {
@@ -412,22 +417,6 @@ export const FeedView: React.FC = () => {
     }
   };
 
-  const performShareAction = async (postId: string, actionType: 'copy' | 'facebook' | 'telegram') => {
-    sharePost(postId);
-    const shareUrl = `${window.location.origin}${window.location.pathname}#/feed?postId=${postId}`;
-
-    if (actionType === 'copy') {
-      await navigator.clipboard.writeText(shareUrl).catch(() => { });
-      showNotification('Đã sao chép liên kết bài viết!', 'success');
-    } else if (actionType === 'facebook') {
-      window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`, '_blank', 'noopener,noreferrer');
-      showNotification('Đang chuyển hướng sang Facebook...', 'info');
-    } else if (actionType === 'telegram') {
-      window.open(`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent('Xem bài viết này trên Volunteer Connect!')}`, '_blank', 'noopener,noreferrer');
-      showNotification('Đang chuyển hướng sang Telegram...', 'info');
-    }
-    setOpenSharePostId(null);
-  };
 
   const handleDelete = async (postId: string) => {
     setOpenMenuPostId(null);
@@ -604,318 +593,320 @@ export const FeedView: React.FC = () => {
           )}
         </section>
 
-        {/* ===================== BẢNG TIN CỘNG ĐỒNG (2 cols) ===================== */}
-        <section className="space-y-4">
+        {/* ===================== COMMUNITY RULES ===================== */}
+        <section className="bg-white border border-slate-200/80 rounded-2xl p-6 md:p-8 shadow-sm space-y-6">
+          <div className="space-y-1 text-left">
+            <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+              <span className="material-symbols-outlined text-[#006d37] text-2xl font-bold">gavel</span>
+              Quy tắc Cộng đồng
+            </h2>
+            <p className="text-slate-400 text-xs font-semibold">Giữ cho môi trường tình nguyện luôn văn minh, tích cực và tin cậy</p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            <div className="bg-[#f0f9f4] rounded-2xl p-5 border border-emerald-500/10 space-y-2 text-left">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-[#006d37] bg-white border border-[#006d37]/20 px-2 py-0.5 rounded-md">01</span>
+                <span className="text-sm font-bold text-slate-800">Tôn trọng</span>
+              </div>
+              <p className="text-xs text-slate-600 font-semibold leading-relaxed">Không sử dụng ngôn từ kích động thù địch, quấy rối hoặc thô tục dưới mọi hình thức.</p>
+            </div>
+
+            <div className="bg-[#f0f9f4] rounded-2xl p-5 border border-emerald-500/10 space-y-2 text-left">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-[#006d37] bg-white border border-[#006d37]/20 px-2 py-0.5 rounded-md">02</span>
+                <span className="text-sm font-bold text-slate-800">Xác thực</span>
+              </div>
+              <p className="text-xs text-slate-600 font-semibold leading-relaxed">Chia sẻ hình ảnh và câu chuyện thực tế từ chiến dịch. Không đăng thông tin sai lệch.</p>
+            </div>
+
+            <div className="bg-[#f0f9f4] rounded-2xl p-5 border border-emerald-500/10 space-y-2 text-left">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-[#006d37] bg-white border border-[#006d37]/20 px-2 py-0.5 rounded-md">03</span>
+                <span className="text-sm font-bold text-slate-800">Tập trung</span>
+              </div>
+              <p className="text-xs text-slate-600 font-semibold leading-relaxed">Đảm bảo nội dung bài viết luôn xoay quanh chủ đề tình nguyện và hoạt động xã hội.</p>
+            </div>
+
+            <div className="bg-[#f0f9f4] rounded-2xl p-5 border border-emerald-500/10 space-y-2 text-left">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-[#006d37] bg-white border border-[#006d37]/20 px-2 py-0.5 rounded-md">04</span>
+                <span className="text-sm font-bold text-slate-800">Bảo mật</span>
+              </div>
+              <p className="text-xs text-slate-600 font-semibold leading-relaxed">Tuyệt đối không tự ý chia sẻ thông tin cá nhân của người khác khi chưa được cho phép.</p>
+            </div>
+          </div>
+        </section>
+
+        {/* ===================== BẢNG TIN CỘNG ĐỒNG ===================== */}
+        <section id="community-feed-section" className="space-y-4">
           <div className="border-b border-surface-variant/40 pb-4">
             <h2 className="text-2xl font-bold text-on-surface font-headline-md">Bảng tin cộng đồng</h2>
             <p className="text-on-surface-variant text-sm mt-1">Chia sẻ những khoảnh khắc, câu chuyện ý nghĩa và cùng nhau lan tỏa các chiến dịch tình nguyện</p>
           </div>
 
-          <div className="grid grid-cols-12 gap-8 items-start">
-
-            {/* ---- LEFT: Post search + feed ---- */}
-            <div className="col-span-12 lg:col-span-8 space-y-5">
-              {/* Search Box */}
-              <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm flex items-center gap-3 p-4">
-                <span className="material-symbols-outlined text-slate-400 text-xl">search</span>
+          <div className="max-w-[850px] mx-auto w-full space-y-5">
+            {/* Search Box & Add Post Button */}
+            <div className="flex flex-col sm:flex-row gap-3 items-stretch">
+              <div className="flex-1 bg-white border border-slate-200/80 rounded-xl flex items-center gap-2.5 px-3.5 py-2 shadow-sm focus-within:border-[#006d37] focus-within:ring-2 focus-within:ring-[#006d37]/10 transition-all">
+                <span className="material-symbols-outlined text-slate-400 text-lg">search</span>
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  placeholder="Tìm kiếm bài viết theo từ khóa hoặc hashtag..."
-                  className="flex-1 bg-slate-50 hover:bg-slate-100/80 focus:bg-white text-slate-700 text-sm font-semibold px-4 py-2.5 rounded-full border border-slate-200/60 focus:outline-none focus:border-[#006d37] transition-all"
+                  placeholder="Tìm kiếm hoặc lọc theo hashtag (ví dụ: MuaHeXanh)..."
+                  className="flex-1 bg-transparent text-slate-700 text-xs md:text-sm font-semibold focus:outline-none placeholder-slate-400"
                 />
-                <button
-                  className="shrink-0 bg-[#006d37] hover:bg-emerald-800 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition-all shadow-sm cursor-pointer"
-                >
-                  Tìm kiếm
-                </button>
               </div>
+              {currentUser && (
+                <button
+                  onClick={() => setShowCreateModal(true)}
+                  className="shrink-0 bg-[#006d37] hover:bg-emerald-800 text-white font-bold text-xs md:text-sm px-5 py-2.5 rounded-xl transition-all shadow-sm cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <span className="material-symbols-outlined text-base">add</span>
+                  Đăng bài viết mới
+                </button>
+              )}
+            </div>
 
-              {/* Posts list */}
-              <div className="space-y-5">
-                {filteredPosts.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12 text-center space-y-3 bg-white border border-slate-200/80 rounded-2xl">
-                    <span className="material-symbols-outlined text-5xl text-slate-300">chat_bubble_outline</span>
-                    <p className="text-slate-500 font-semibold text-sm">Không tìm thấy bài viết phù hợp.</p>
-                  </div>
-                ) : (
-                  filteredPosts.map(post => {
-                    const authorUser = users.find(u => u._id === post.author_id);
-                    const authorName = authorUser?.profile.full_name || post.denormalized_author?.name || 'Thành viên';
-                    const avatarUrl = authorUser?.profile.avatar_url;
-                    const isLiked = currentUser && post.likedByUserIds?.includes(currentUser._id);
-                    const authorRole = post.denormalized_author?.role === 'Organizer' ? 'Ban tổ chức' : (post.denormalized_author?.role === 'Admin' ? 'Quản trị viên' : 'Tình nguyện viên');
-                    const canDelete = currentUser && (post.author_id === currentUser._id || currentUser.role === 'Admin');
-                    const isDeleting = deletingPostId === post._id;
+            {/* Posts list */}
+            <div className="space-y-5">
+              {filteredPosts.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center space-y-3 bg-white border border-slate-200/80 rounded-2xl">
+                  <span className="material-symbols-outlined text-5xl text-slate-300">chat_bubble_outline</span>
+                  <p className="text-slate-500 font-semibold text-sm">Không tìm thấy bài viết phù hợp.</p>
+                </div>
+              ) : (
+                paginatedPosts.map(post => {
+                  const authorUser = users.find(u => u._id === post.author_id);
+                  const authorName = authorUser?.profile.full_name || post.denormalized_author?.name || 'Thành viên';
+                  const avatarUrl = authorUser?.profile.avatar_url;
+                  const isLiked = currentUser && post.likedByUserIds?.includes(currentUser._id);
+                  const authorRole = post.denormalized_author?.role === 'Organizer' ? 'Ban tổ chức' : (post.denormalized_author?.role === 'Admin' ? 'Quản trị viên' : 'Tình nguyện viên');
+                  const canDelete = currentUser && (post.author_id === currentUser._id || currentUser.role === 'Admin');
+                  const isDeleting = deletingPostId === post._id;
 
-                    // Split title (first line) and body content
-                    const contentLines = post.content.split('\n');
-                    const postTitle = contentLines.length > 1 ? contentLines[0] : null;
-                    const postBody = contentLines.length > 1 ? contentLines.slice(1).join('\n') : post.content;
+                  // Split title (first line) and body content
+                  const contentLines = post.content.split('\n');
+                  const postTitle = contentLines.length > 1 ? contentLines[0] : null;
+                  const postBody = contentLines.length > 1 ? contentLines.slice(1).join('\n') : post.content;
 
-                    return (
-                      <div
-                        key={post._id}
-                        className={`bg-white border border-slate-200/80 rounded-2xl shadow-sm p-6 space-y-4 hover:shadow-md transition-all relative ${isDeleting ? 'opacity-50 pointer-events-none' : ''}`}
-                      >
-                        {/* Post Header */}
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <PostAvatar name={authorName} src={avatarUrl} size={44} />
-                            <div>
-                              <p className="font-bold text-sm text-slate-800">{authorName}</p>
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-[#006d37]">{authorRole}</span>
-                                <span className="text-slate-300 text-[10px]">•</span>
-                                <span className="text-[10px] text-slate-400 font-semibold">{formatRelativeTime(post.created_at)}</span>
-                              </div>
+                  return (
+                    <div
+                      key={post._id}
+                      className={`bg-white border border-slate-200/80 rounded-2xl shadow-sm p-6 space-y-4 hover:shadow-md transition-all relative ${isDeleting ? 'opacity-50 pointer-events-none' : ''}`}
+                    >
+                      {/* Post Header */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <PostAvatar name={authorName} src={avatarUrl} size={44} />
+                          <div>
+                            <p className="font-bold text-sm text-slate-800">{authorName}</p>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-[#006d37]">{authorRole}</span>
+                              <span className="text-slate-300 text-[10px]">•</span>
+                              <span className="text-[10px] text-slate-400 font-semibold">{formatRelativeTime(post.created_at)}</span>
                             </div>
                           </div>
-
-                          {/* 3-dot menu for owner/admin */}
-                          {canDelete && (
-                            <div className="relative">
-                              <button
-                                onClick={() => setOpenMenuPostId(openMenuPostId === post._id ? null : post._id)}
-                                className="p-1.5 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
-                              >
-                                <span className="material-symbols-outlined text-xl">more_horiz</span>
-                              </button>
-                              {openMenuPostId === post._id && (
-                                <>
-                                  <div
-                                    className="fixed inset-0 z-10"
-                                    onClick={() => setOpenMenuPostId(null)}
-                                  />
-                                  <div className="absolute right-0 mt-1 w-40 bg-white border border-slate-200 rounded-xl shadow-lg py-1.5 z-20 animate-fadeIn">
-                                    <button
-                                      onClick={() => handleDelete(post._id)}
-                                      className="w-full flex items-center gap-2.5 px-4 py-2 text-red-600 hover:bg-red-50 text-xs font-bold transition-colors cursor-pointer text-left"
-                                    >
-                                      <span className="material-symbols-outlined text-sm text-red-500">delete</span>
-                                      Xóa bài viết
-                                    </button>
-                                  </div>
-                                </>
-                              )}
-                            </div>
-                          )}
                         </div>
 
-                        {/* Post Title (if exists) */}
-                        {postTitle && (
-                          <h3 className="font-bold text-base text-slate-900 leading-snug">{postTitle}</h3>
-                        )}
 
-                        {/* Post Body */}
-                        <p className="text-slate-700 text-sm leading-relaxed whitespace-pre-line font-medium">{postBody}</p>
-
-                        {/* Post images */}
-                        {post.images && post.images.length > 0 && (
-                          <div className={`rounded-xl overflow-hidden border border-slate-100 ${post.images.length > 1 ? 'grid grid-cols-2 gap-1' : 'max-h-[320px]'}`}>
-                            {post.images.slice(0, 4).map((img, idx) => (
-                              <img
-                                key={idx}
-                                src={img}
-                                alt={`Post image ${idx + 1}`}
-                                className="w-full object-cover"
-                                style={{ maxHeight: post.images.length > 1 ? '180px' : '320px' }}
-                              />
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Hashtags */}
-                        {post.hashtags && post.hashtags.length > 0 && (
-                          <div className="flex flex-wrap gap-1.5">
-                            {post.hashtags.map((tag, idx) => (
-                              <button
-                                key={idx}
-                                onClick={() => setSearchQuery(tag)}
-                                className="bg-emerald-50 text-[#006d37] border border-emerald-100/50 px-2 py-0.5 rounded-lg text-xs font-bold hover:bg-emerald-100 transition-colors cursor-pointer"
-                              >
-                                #{tag}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Actions: Like, Comment, Share */}
-                        <div className="flex items-center gap-3 text-xs text-slate-500 font-bold border-t border-slate-100 pt-3">
-                          <button
-                            onClick={() => likePost(post._id)}
-                            className={`flex items-center gap-1.5 py-1.5 px-3 rounded-xl hover:bg-slate-50 transition-all cursor-pointer ${isLiked ? 'text-rose-500 bg-rose-50' : 'hover:text-slate-700'}`}
-                          >
-                            <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: isLiked ? "'FILL' 1" : "'FILL' 0" }}>favorite</span>
-                            <span>{post.like_count || 0} Thích</span>
-                          </button>
-
-                          <button
-                            onClick={() => setShowCommentsPostId(showCommentsPostId === post._id ? null : post._id)}
-                            className={`flex items-center gap-1.5 py-1.5 px-3 rounded-xl hover:bg-slate-50 transition-all cursor-pointer ${showCommentsPostId === post._id ? 'text-[#006d37] bg-[#e8f5e9]/50' : 'hover:text-slate-700'}`}
-                          >
-                            <span className="material-symbols-outlined text-lg">chat_bubble</span>
-                            <span>{post.comment_count || 0} Bình luận</span>
-                          </button>
-
+                        {/* 3-dot menu for owner/admin */}
+                        {canDelete && (
                           <div className="relative">
                             <button
-                              onClick={() => setOpenSharePostId(openSharePostId === post._id ? null : post._id)}
-                              className={`flex items-center gap-1.5 py-1.5 px-3 rounded-xl hover:bg-slate-50 transition-all cursor-pointer ${openSharePostId === post._id ? 'text-[#006d37] bg-[#e8f5e9]/50' : 'hover:text-slate-700'}`}
+                              onClick={() => setOpenMenuPostId(openMenuPostId === post._id ? null : post._id)}
+                              className="p-1.5 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
                             >
-                              <span className="material-symbols-outlined text-lg">share</span>
-                              <span>{post.share_count || 0} Chia sẻ</span>
+                              <span className="material-symbols-outlined text-xl">more_horiz</span>
                             </button>
-
-                            {openSharePostId === post._id && (
+                            {openMenuPostId === post._id && (
                               <>
                                 <div
-                                  className="fixed inset-0 z-30 bg-transparent"
-                                  onClick={() => setOpenSharePostId(null)}
+                                  className="fixed inset-0 z-10"
+                                  onClick={() => setOpenMenuPostId(null)}
                                 />
-                                <div className="absolute left-0 mt-2 w-44 bg-white border border-slate-200 rounded-xl shadow-lg py-2 z-40 animate-fadeIn text-left text-xs font-semibold">
+                                <div className="absolute right-0 mt-1 w-40 bg-white border border-slate-200 rounded-xl shadow-lg py-1.5 z-20 animate-fadeIn">
                                   <button
-                                    onClick={() => performShareAction(post._id, 'copy')}
-                                    className="w-full flex items-center gap-2.5 px-4 py-2.5 text-slate-700 hover:bg-slate-50 transition-colors text-left font-bold"
+                                    onClick={() => handleDelete(post._id)}
+                                    className="w-full flex items-center gap-2.5 px-4 py-2 text-red-600 hover:bg-red-50 text-xs font-bold transition-colors cursor-pointer text-left"
                                   >
-                                    <span className="material-symbols-outlined text-sm text-slate-500">link</span>
-                                    Sao chép liên kết
-                                  </button>
-                                  <hr className="border-slate-100 my-1" />
-                                  <button
-                                    onClick={() => performShareAction(post._id, 'facebook')}
-                                    className="w-full flex items-center gap-2.5 px-4 py-2.5 text-slate-700 hover:bg-slate-50 transition-colors text-left font-bold"
-                                  >
-                                    <span className="material-symbols-outlined text-sm text-[#1877f2]">share_reviews</span>
-                                    Chia sẻ lên Facebook
-                                  </button>
-                                  <hr className="border-slate-100 my-1" />
-                                  <button
-                                    onClick={() => performShareAction(post._id, 'telegram')}
-                                    className="w-full flex items-center gap-2.5 px-4 py-2.5 text-slate-700 hover:bg-slate-50 transition-colors text-left font-bold"
-                                  >
-                                    <span className="material-symbols-outlined text-sm text-[#0088cc]">send</span>
-                                    Chia sẻ qua Telegram
+                                    <span className="material-symbols-outlined text-sm text-red-500">delete</span>
+                                    Xóa bài viết
                                   </button>
                                 </div>
                               </>
                             )}
                           </div>
-                        </div>
-
-                        {/* Comments Section */}
-                        {showCommentsPostId === post._id && (
-                          <div className="border-t border-slate-100 pt-4 space-y-4 animate-fadeIn text-left">
-                            {/* Comment Input */}
-                            {currentUser ? (
-                              <div className="flex items-start gap-3">
-                                <PostAvatar name={currentUser.profile.full_name} src={currentUser.profile.avatar_url} size={36} />
-                                <div className="flex-1 flex gap-2">
-                                  <input
-                                    type="text"
-                                    placeholder="Viết bình luận của bạn..."
-                                    value={newCommentTexts[post._id] || ''}
-                                    onChange={(e) => setNewCommentTexts({
-                                      ...newCommentTexts,
-                                      [post._id]: e.target.value
-                                    })}
-                                    onKeyDown={(e) => {
-                                      if (e.key === 'Enter') {
-                                        handleAddComment(post._id);
-                                      }
-                                    }}
-                                    className="flex-1 px-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] bg-slate-50/50 font-semibold"
-                                  />
-                                  <button
-                                    onClick={() => handleAddComment(post._id)}
-                                    className="bg-[#006d37] hover:bg-[#005027] text-white font-bold text-xs px-4 py-2 rounded-xl transition-all shadow-sm cursor-pointer"
-                                  >
-                                    Gửi
-                                  </button>
-                                </div>
-                              </div>
-                            ) : (
-                              <p className="text-xs text-slate-400 font-semibold italic">Vui lòng đăng nhập để viết bình luận.</p>
-                            )}
-
-                            {/* Comments List */}
-                            <div className="space-y-3.5 max-h-[250px] overflow-y-auto pr-1">
-                              {(commentsMap[post._id] || []).length === 0 ? (
-                                <p className="text-xs text-slate-400 italic">Chưa có bình luận nào cho bài viết này.</p>
-                              ) : (
-                                (commentsMap[post._id] || []).map((comment) => (
-                                  <div key={comment._id} className="flex gap-3 text-xs bg-slate-50/50 p-3 rounded-xl border border-slate-100/50">
-                                    <PostAvatar name={comment.author_name} src={comment.author_avatar} size={32} />
-                                    <div className="flex-1 space-y-1">
-                                      <div className="flex items-center justify-between">
-                                        <span className="font-bold text-slate-800">{comment.author_name}</span>
-                                        <span className="text-[10px] text-slate-400 font-semibold">{formatRelativeTime(comment.created_at)}</span>
-                                      </div>
-                                      <p className="text-slate-600 font-semibold leading-relaxed">{comment.content}</p>
-                                    </div>
-                                  </div>
-                                ))
-                              )}
-                            </div>
-                          </div>
                         )}
                       </div>
-                    );
-                  })
-                )}
-              </div>
-            </div>
 
-            {/* ---- RIGHT: Sidebar widgets ---- */}
-            <div className="col-span-12 lg:col-span-4 hidden lg:flex flex-col gap-5">
-              {/* Share card */}
-              <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm p-5 space-y-3">
-                <p className="text-sm text-slate-600 font-semibold leading-snug">
-                  Bạn có những khoảnh khắc tình nguyện ý nghĩa? Hãy chia sẻ ngay với cộng đồng!
-                </p>
-                {currentUser ? (
-                  <button
-                    onClick={() => setShowCreateModal(true)}
-                    className="w-full bg-[#1a6c3a] hover:bg-[#155c30] text-white font-bold py-2.5 rounded-xl text-sm transition-all shadow-sm cursor-pointer"
-                  >
-                    Đăng bài viết mới
-                  </button>
-                ) : (
-                  <a href="#/login" className="block w-full text-center bg-[#1a6c3a] hover:bg-[#155c30] text-white font-bold py-2.5 rounded-xl text-sm transition-all shadow-sm">
-                    Đăng nhập để chia sẻ
-                  </a>
-                )}
-              </div>
+                      {/* Post Title (if exists) */}
+                      {postTitle && (
+                        <h3 className="font-bold text-base text-slate-900 leading-snug">{postTitle}</h3>
+                      )}
 
-              {/* Trending Hashtags */}
-              <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm p-5 space-y-3">
-                <h4 className="font-bold text-slate-800 text-sm border-b border-slate-100 pb-2">Hashtags thịnh hành</h4>
-                {trendingTags.length === 0 ? (
-                  <p className="text-xs text-slate-400 italic">Chưa có hashtags nào.</p>
-                ) : (
-                  <div className="space-y-2">
-                    {trendingTags.map(([tag, count], i) => (
-                      <div key={i} className="flex justify-between items-center text-xs">
-                        <span className="text-[#006d37] font-bold">#{tag}</span>
-                        <span className="text-slate-400 font-semibold">{count}</span>
+                      {/* Post Body */}
+                      <p className="text-slate-700 text-sm leading-relaxed whitespace-pre-line font-medium">{postBody}</p>
+
+                      {/* Post images */}
+                      {post.images && post.images.length > 0 && (
+                        <div className={`rounded-xl overflow-hidden border border-slate-100 ${post.images.length > 1 ? 'grid grid-cols-2 gap-1' : 'max-h-[320px]'}`}>
+                          {post.images.slice(0, 4).map((img, idx) => (
+                            <img
+                              key={idx}
+                              src={img}
+                              alt={`Post image ${idx + 1}`}
+                              className="w-full object-cover"
+                              style={{ maxHeight: post.images.length > 1 ? '180px' : '320px' }}
+                            />
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Hashtags */}
+                      {post.hashtags && post.hashtags.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5">
+                          {post.hashtags.map((tag, idx) => (
+                            <button
+                              key={idx}
+                              onClick={() => setSearchQuery(tag)}
+                              className="bg-emerald-50 text-[#006d37] border border-emerald-100/50 px-2 py-0.5 rounded-lg text-xs font-bold hover:bg-emerald-100 transition-colors cursor-pointer"
+                            >
+                              #{tag}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Actions: Like, Comment, Share */}
+                      <div className="flex items-center gap-3 text-xs text-slate-500 font-bold border-t border-slate-100 pt-3">
+                        <button
+                          onClick={() => likePost(post._id)}
+                          className={`flex items-center gap-1.5 py-1.5 px-3 rounded-xl hover:bg-slate-50 transition-all cursor-pointer ${isLiked ? 'text-rose-500 bg-rose-50' : 'hover:text-slate-700'}`}
+                        >
+                          <span className="material-symbols-outlined text-lg pointer-events-none" style={{ fontVariationSettings: isLiked ? "'FILL' 1" : "'FILL' 0", color: isLiked ? '#f43f5e' : 'inherit' }}>favorite</span>
+                          <span>{isLiked ? 'Đã thích' : 'Thích'} ({post.like_count || 0})</span>
+                        </button>
+
+                        <button
+                          onClick={() => setShowCommentsPostId(showCommentsPostId === post._id ? null : post._id)}
+                          className="flex items-center gap-1.5 py-1.5 px-3 rounded-xl hover:bg-slate-50 hover:text-slate-700 transition-all cursor-pointer"
+                        >
+                          <span className="material-symbols-outlined text-lg">chat_bubble</span>
+                          <span>Bình luận ({post.comment_count || 0})</span>
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            sharePost(post._id);
+                            // Show standard browser share dialogue or copy link
+                            if (navigator.share) {
+                              navigator.share({
+                                title: postTitle || 'Volunteer Connect Post',
+                                text: postBody,
+                                url: window.location.href,
+                              }).catch(err => console.log(err));
+                            } else {
+                              navigator.clipboard.writeText(`${window.location.href}/posts`);
+                              showNotification('Đã sao chép liên kết bài viết!', 'success');
+                            }
+                          }}
+                          className="flex items-center gap-1.5 py-1.5 px-3 rounded-xl hover:bg-slate-50 hover:text-slate-700 transition-all cursor-pointer"
+                        >
+                          <span className="material-symbols-outlined text-lg">share</span>
+                          <span>Chia sẻ ({post.share_count || 0})</span>
+                        </button>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
 
-              {/* Community Rules */}
-              <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm p-5 space-y-3">
-                <h4 className="font-bold text-slate-800 text-sm border-b border-slate-100 pb-2">Quy tắc cộng đồng</h4>
-                <ul className="space-y-1.5 text-xs text-slate-600 font-medium list-disc list-inside leading-relaxed">
-                  <li>Tôn trọng: Không sử dụng ngôn ngữ kích động hay phân biệt đối xử.</li>
-                  <li>Xác thực: Chia sẻ kinh nghiệm thật và các câu chuyện thật về thiện dịch.</li>
-                  <li>Tập trung: Nội dung phải liên quan đến chủ đề tình nguyện và cộng đồng.</li>
-                  <li>Bảo mật: Không chia sẻ cá thông tin cá nhân nhạy cảm của người khác.</li>
-                </ul>
-              </div>
+                      {/* Comments Section */}
+                      {showCommentsPostId === post._id && (
+                        <div className="border-t border-slate-100 pt-4 space-y-4 animate-fadeIn text-left">
+                          {/* Comment Input */}
+                          {currentUser ? (
+                            <div className="flex items-start gap-3">
+                              <PostAvatar name={currentUser.profile.full_name} src={currentUser.profile.avatar_url} size={36} />
+                              <div className="flex-1 flex gap-2">
+                                <input
+                                  type="text"
+                                  placeholder="Viết bình luận của bạn..."
+                                  value={newCommentTexts[post._id] || ''}
+                                  onChange={(e) => setNewCommentTexts({
+                                    ...newCommentTexts,
+                                    [post._id]: e.target.value
+                                  })}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      handleAddComment(post._id);
+                                    }
+                                  }}
+                                  className="flex-1 px-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] bg-slate-50/50 font-semibold"
+                                />
+                                <button
+                                  onClick={() => handleAddComment(post._id)}
+                                  className="bg-[#006d37] hover:bg-[#005027] text-white font-bold text-xs px-4 py-2 rounded-xl transition-all shadow-sm cursor-pointer"
+                                >
+                                  Gửi
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-xs text-slate-400 font-semibold italic">Vui lòng đăng nhập để viết bình luận.</p>
+                          )}
+
+                          {/* Comments List */}
+                          <div className="space-y-3.5 max-h-[250px] overflow-y-auto pr-1">
+                            {(commentsMap[post._id] || []).length === 0 ? (
+                              <p className="text-xs text-slate-400 italic">Chưa có bình luận nào cho bài viết này.</p>
+                            ) : (
+                              (commentsMap[post._id] || []).map((comment) => (
+                                <div key={comment._id} className="flex gap-3 text-xs bg-slate-50/50 p-3 rounded-xl border border-slate-100/50">
+                                  <PostAvatar name={comment.author_name} src={comment.author_avatar} size={32} />
+                                  <div className="flex-1 space-y-1">
+                                    <div className="flex items-center justify-between">
+                                      <span className="font-bold text-slate-800">{comment.author_name}</span>
+                                      <span className="text-[10px] text-slate-400 font-semibold">{formatRelativeTime(comment.created_at)}</span>
+                                    </div>
+                                    <p className="text-slate-600 font-semibold leading-relaxed">{comment.content}</p>
+                                  </div>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
             </div>
+
+            {/* Community Feed Pagination */}
+            {totalFeedPages > 1 && (
+              <div className="flex justify-center gap-2 pt-6">
+                {Array.from({ length: totalFeedPages }, (_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => {
+                      setFeedPage(i + 1);
+                      const postsContainer = document.getElementById('community-feed-section');
+                      if (postsContainer) {
+                        postsContainer.scrollIntoView({ behavior: 'smooth' });
+                      } else {
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }
+                    }}
+                    className={`w-8 h-8 rounded-full text-sm font-bold transition-all ${
+                      feedPage === i + 1
+                        ? 'bg-[#006d37] text-white'
+                        : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    {i + 1}
+                  </button>
+                ))}
+              </div>
+            )}
 
           </div>
         </section>

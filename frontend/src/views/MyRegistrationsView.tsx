@@ -2,7 +2,7 @@ import React from 'react';
 import { useApp } from '../context/AppContext';
 
 export const MyRegistrationsView: React.FC = () => {
-  const { currentUser, registrations, cancelOrRejectRegistration, showConfirm, showNotification } = useApp();
+  const { currentUser, registrations } = useApp();
 
   if (!currentUser) return null;
 
@@ -14,21 +14,6 @@ export const MyRegistrationsView: React.FC = () => {
   const approvedCount = userRegs.filter(r => r.status === 'Approved').length;
   const completedCount = userRegs.filter(r => r.status === 'Completed').length;
 
-  const handleCancel = (regId: string) => {
-    showConfirm(
-      'Bạn có chắc chắn muốn hủy đơn đăng ký tham gia hoạt động này?',
-      async () => {
-        const res = cancelOrRejectRegistration(regId);
-        const result = res instanceof Promise ? await res : res;
-        if (result && result.error) {
-          showNotification(result.error, 'error');
-        } else {
-          showNotification('Đã hủy đơn đăng ký thành công!', 'success');
-        }
-      },
-      'Hủy đăng ký tham gia'
-    );
-  };
 
   const formatDate = (dateStr: string) => {
     try {
@@ -157,8 +142,6 @@ export const MyRegistrationsView: React.FC = () => {
             </div>
           ) : (
             userRegs.map(reg => {
-              const isCancellable = reg.status === 'Pending' || reg.status === 'Approved';
-              
               return (
                 <div 
                   key={reg._id} 
@@ -191,15 +174,6 @@ export const MyRegistrationsView: React.FC = () => {
                       >
                         Xem chi tiết
                       </a>
-                      
-                      {isCancellable && (
-                        <button
-                          onClick={() => handleCancel(reg._id)}
-                          className="border border-red-200 hover:border-red-600 text-red-600 hover:bg-red-50 px-4 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer"
-                        >
-                          Hủy đăng ký
-                        </button>
-                      )}
                     </div>
                   </div>
                 </div>
