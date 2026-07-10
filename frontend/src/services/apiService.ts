@@ -100,6 +100,10 @@ export const authService = {
     });
     return res.data;
   },
+  verifyResetOtp: async (email: string, otpCode: string): Promise<any> => {
+    const res = await api.post('/auth/verify-reset-otp', { email, otp_code: otpCode });
+    return res.data;
+  },
   getCurrentUser: async (): Promise<User> => {
     // Backend: GET /api/v1/users/me
     const res = await api.get('/users/me');
@@ -427,6 +431,11 @@ export const adminService = {
   getStatistics: async (): Promise<any> => {
     const res = await rootApi.get('/admin/statistics');
     return res.data;
+  },
+  getUsers: async (): Promise<User[]> => {
+    const res = await rootApi.get('/admin/users?limit=100');
+    const users = res.data?.data?.users || [];
+    return users.map(mapBackendUserToFrontend);
   }
 };
 

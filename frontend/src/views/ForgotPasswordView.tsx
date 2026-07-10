@@ -52,6 +52,31 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBackTo
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const verifyOtpCode = async (code: string) => {
+    setLoading(true);
+    setErrorMsg('');
+    try {
+      if (USE_REAL_BACKEND) {
+        await authService.verifyResetOtp(email.trim(), code);
+      } else {
+        if (code !== simulatedOtp) {
+          throw new Error('Mã OTP không chính xác.');
+        }
+      }
+      setStep(3); // transition to new password screen when OTP is verified
+    } catch (err: any) {
+      let msg = 'Mã OTP không chính xác hoặc đã hết hạn.';
+      const detail = err.response?.data?.detail;
+      if (typeof detail === 'string') msg = detail;
+      else if (Array.isArray(detail)) msg = detail.map((d: any) => d.msg).join('\n');
+      else if (err.response?.data?.message) msg = err.response.data.message;
+      else if (err.message) msg = err.message;
+      setErrorMsg(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleOtpChange = (index: number, value: string) => {
     const v = value.replace(/\D/g, '').slice(-1);
     const newDigits = [...otpDigits];
@@ -64,7 +89,7 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBackTo
     const code = newDigits.join('');
     if (code.length === 6) {
       setErrorMsg('');
-      setStep(3); // transition to new password screen when OTP is filled
+      verifyOtpCode(code); // [FIXED] API verify instead of setStep(3)
     }
   };
 
@@ -81,7 +106,7 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBackTo
       otpRefs.current[5]?.focus();
       e.preventDefault();
       setErrorMsg('');
-      setStep(3);
+      verifyOtpCode(pasted); // [FIXED] API verify instead of setStep(3)
     }
   };
 

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import { mediaService } from '../services/apiService';
+import { mediaService, commentService } from '../services/apiService';
 
 // Avatar helper
 const PostAvatar: React.FC<{ name: string; src?: string | null; size?: number }> = ({ name, src, size = 44 }) => {
@@ -280,17 +280,32 @@ export const FeedView: React.FC = () => {
   const [showCommentsPostId, setShowCommentsPostId] = useState<string | null>(null);
   const [newCommentTexts, setNewCommentTexts] = useState<Record<string, string>>({});
 
-  // Load comments from localStorage on mount
+  // Load comments when opening a post
   useEffect(() => {
-    const savedComments = localStorage.getItem('volunteer_connect_comments');
-    if (savedComments) {
-      try {
-        setCommentsMap(JSON.parse(savedComments));
-      } catch (e) {
-        console.error(e);
-      }
+    if (showCommentsPostId) {
+      const fetchComments = async () => {
+        try {
+          const fetched = await commentService.getComments(showCommentsPostId);
+          const mappedComments = fetched.map((c: any) => ({
+            _id: c.id || c._id,
+            post_id: showCommentsPostId,
+            author_name: c.author_name || 'Thành viên',
+            author_avatar: c.author_avatar,
+            content: c.content,
+            created_at: c.created_at
+          }));
+          
+          setCommentsMap(prev => ({
+            ...prev,
+            [showCommentsPostId]: mappedComments
+          }));
+        } catch (e) {
+          console.error("Lỗi lấy bình luận:", e);
+        }
+      };
+      fetchComments();
     }
-  }, []);
+  }, [showCommentsPostId]);
 
   // Banner slide state
   const bannerImages = [
@@ -308,34 +323,44 @@ export const FeedView: React.FC = () => {
     return () => clearInterval(timer);
   }, []);
 
-  const handleAddComment = (postId: string) => {
+  const handleAddComment = async (postId: string) => {
     const text = newCommentTexts[postId]?.trim();
     if (!text) return;
 
-    const newComment: PostComment = {
-      _id: `comment_${Date.now()}`,
-      post_id: postId,
-      author_name: currentUser?.profile.full_name || 'Thành viên',
-      author_avatar: currentUser?.profile.avatar_url,
-      content: text,
-      created_at: new Date().toISOString()
-    };
+    try {
+      const createdComment = await commentService.createComment(postId, text);
+      const newComment: PostComment = {
+        _id: createdComment.id || createdComment._id || `comment_${Date.now()}`,
+        post_id: postId,
+        author_name: currentUser?.profile.full_name || 'Thành viên',
+        author_avatar: currentUser?.profile.avatar_url,
+        content: text,
+        created_at: new Date().toISOString()
+      };
 
-    const postComments = commentsMap[postId] || [];
-    const updatedComments = [...postComments, newComment];
-    const updatedMap = {
-      ...commentsMap,
-      [postId]: updatedComments
-    };
+      const postComments = commentsMap[postId] || [];
+      const updatedComments = [...postComments, newComment];
+      const updatedMap = {
+        ...commentsMap,
+        [postId]: updatedComments
+      };
 
-    setCommentsMap(updatedMap);
-    localStorage.setItem('volunteer_connect_comments', JSON.stringify(updatedMap));
+      setCommentsMap(updatedMap);
 
-    // Clear comment input
-    setNewCommentTexts({
-      ...newCommentTexts,
-      [postId]: ''
-    });
+      // Clear comment input
+      setNewCommentTexts({
+        ...newCommentTexts,
+        [postId]: ''
+      });
+      // Optionally update local post count to reflect immediate change
+      const postIndex = posts.findIndex(p => p._id === postId);
+      if (postIndex !== -1) {
+        posts[postIndex].comment_count = (posts[postIndex].comment_count || 0) + 1;
+      }
+    } catch (error) {
+      console.error('Lỗi khi thêm bình luận', error);
+      showNotification('Lỗi khi gửi bình luận.', 'error');
+    }
   };
 
   // Stats
@@ -731,7 +756,7 @@ export const FeedView: React.FC = () => {
                             className={`flex items-center gap-1.5 py-1.5 px-3 rounded-xl hover:bg-slate-50 transition-all cursor-pointer ${showCommentsPostId === post._id ? 'text-[#006d37] bg-[#e8f5e9]/50' : 'hover:text-slate-700'}`}
                           >
                             <span className="material-symbols-outlined text-lg">chat_bubble</span>
-                            <span>{((commentsMap[post._id] || []).length + (post.comment_count || 0))} Bình luận</span>
+                            <span>{post.comment_count || 0} Bình luận</span>
                           </button>
 
                           <div className="relative">

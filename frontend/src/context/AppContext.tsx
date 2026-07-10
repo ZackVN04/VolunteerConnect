@@ -307,10 +307,11 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             let serverActs: Activity[] = [];
             if (activeUser && activeUser.role === 'Admin') {
               // Admin cần load tất cả activities kể cả Pending Review
-              const [allActs, adminActs, organizerReqsRes] = await Promise.allSettled([
+              const [allActs, adminActs, organizerReqsRes, adminUsersRes] = await Promise.allSettled([
                 activityService.getAll(),
                 adminService.getActivities(),
-                adminService.getOrganizerRequests()
+                adminService.getOrganizerRequests(),
+                adminService.getUsers()
               ]);
               const mergedMap = new Map<string, Activity>();
               if (allActs.status === 'fulfilled') {
@@ -321,6 +322,9 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
               }
               if (organizerReqsRes.status === 'fulfilled') {
                 setOrganizerRequests(organizerReqsRes.value);
+              }
+              if (adminUsersRes.status === 'fulfilled') {
+                setUsers(adminUsersRes.value);
               }
               serverActs = Array.from(mergedMap.values());
             } else if (activeUser && activeUser.role === 'Organizer') {

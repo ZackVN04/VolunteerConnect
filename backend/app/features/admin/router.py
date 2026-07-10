@@ -100,3 +100,20 @@ async def get_activities(
     from app.features.activities.models import Activity
     activities = await Activity.find_all().sort("-created_at").skip(skip).limit(limit).to_list()
     return {"success": True, "data": {"activities": activities}}
+
+@router.get("/users")
+async def get_users(
+    limit: int = Query(50, ge=1, le=500, description="Max records to return (capped at 500 for OOM safety)"),
+    skip: int = Query(0, ge=0, description="Number of records to skip")
+):
+    """
+    Get users for admin with mandatory pagination.
+    """
+    import json
+    from app.features.users.models import User
+    try:
+        users = await User.find_all().sort("-created_at").skip(skip).limit(limit).to_list()
+        serialized = [json.loads(u.model_dump_json(exclude={"hashed_password"})) for u in users]
+        return {"success": True, "data": {"users": serialized}}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Serialization error: {type(e).__name__}: {str(e)}")
