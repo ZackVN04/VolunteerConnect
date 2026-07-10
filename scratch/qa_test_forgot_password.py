@@ -8,6 +8,8 @@ from dotenv import load_dotenv
 # Tải biến môi trường
 load_dotenv("backend/.env")
 MONGO_URL = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
+# SAFETY: Script này chỉ xóa đúng 1 email test cụ thể (TEST_EMAIL).
+# KHÔNG BAO GIỜ thay TEST_EMAIL bằng "*" hay để trống.
 DB_NAME = os.getenv("DATABASE_NAME", "volunteer_connect")
 
 BASE_URL = "http://localhost:8000/api/v1"
