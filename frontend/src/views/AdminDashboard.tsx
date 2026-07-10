@@ -45,11 +45,12 @@ export const AdminDashboard: React.FC = () => {
     showPrompt(
       'Nhập lý do từ chối nâng cấp:',
       async (feedback) => {
-        if (!feedback.trim()) {
-          showNotification('Vui lòng nhập lý do từ chối.', 'error');
+        const trimmed = feedback.trim();
+        if (trimmed.length < 5 || trimmed.length > 500) {
+          showNotification('Lý do từ chối phải từ 5 đến 500 ký tự (AC-ADM-02.07).', 'error');
           return;
         }
-        const res = await reviewOrganizerRequest(reqId, false, feedback);
+        const res = await reviewOrganizerRequest(reqId, false, trimmed);
         if (res.success) {
           showNotification('Đã từ chối yêu cầu nâng cấp.', 'success');
         } else {
