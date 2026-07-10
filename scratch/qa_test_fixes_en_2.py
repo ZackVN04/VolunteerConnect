@@ -1,32 +1,28 @@
-import httpx
 import asyncio
-import json
+from app.features.admin.schemas import AdminReviewRequest
+from app.shared.enums import RequestStatus
 
-BASE_URL = "http://localhost:8000/api/v1"
+def test_validation():
+    print("--- TESTING < 5 CHARACTERS ---")
+    try:
+        req = AdminReviewRequest(status=RequestStatus.REJECTED, reason="No")
+        print("FAIL: Accepted 'No'")
+    except ValueError as e:
+        print("PASS: Rejected 'No'", e)
 
-async def qa_test():
-    results = {}
-    async with httpx.AsyncClient() as client:
-        # --- TEST BUG 1: FORGOT PASSWORD OTP VERIFICATION ---
-        email_test = "nguyenloccaoson@gmail.com"
-        # Since I don't know the exact OTP, I will just trigger forgot password
-        res_forgot = await client.post(f"{BASE_URL}/auth/forgot-password", json={"email": email_test})
-        
-        # Then try to verify with a wrong OTP to see if it bypasses the PENDING_OTP block
-        # We expect 400 Bad Request: "Mã OTP không chính xác" (Wrong OTP) instead of "Tài khoản đã được xác thực..."
-        res_verify = await client.post(f"{BASE_URL}/auth/verify-reset-otp", json={
-            "email": email_test,
-            "otp_code": "000000"
-        })
-        
-        results["bug1_fixed"] = {
-            "forgot_status": res_forgot.status_code,
-            "verify_status": res_verify.status_code,
-            "verify_response": res_verify.text
-        }
-        
-    with open("scratch/qa_results_2.json", "w", encoding="utf-8") as f:
-        json.dump(results, f, indent=4)
+    print("\n--- TESTING EXACTLY 500 CHARACTERS ---")
+    try:
+        req = AdminReviewRequest(status=RequestStatus.REJECTED, reason="A" * 500)
+        print("PASS: Accepted 500 characters")
+    except ValueError as e:
+        print("FAIL: Rejected 500 characters", e)
+
+    print("\n--- TESTING 501 CHARACTERS ---")
+    try:
+        req = AdminReviewRequest(status=RequestStatus.REJECTED, reason="A" * 501)
+        print("FAIL: Accepted 501 characters")
+    except ValueError as e:
+        print("PASS: Rejected 501 characters", e)
 
 if __name__ == "__main__":
-    asyncio.run(qa_test())
+    test_validation()
