@@ -864,18 +864,22 @@ export const FeedView: React.FC = () => {
                         </button>
 
                         <button
-                          onClick={() => {
-                            sharePost(post._id);
-                            // Show standard browser share dialogue or copy link
-                            if (navigator.share) {
-                              navigator.share({
-                                title: postTitle || 'Volunteer Connect Post',
-                                text: postBody,
-                                url: window.location.href,
-                              }).catch(err => console.log(err));
-                            } else {
-                              navigator.clipboard.writeText(`${window.location.href}/posts`);
-                              showNotification('Đã sao chép liên kết bài viết!', 'success');
+                          onClick={async () => {
+                            try {
+                              if (navigator.share) {
+                                await navigator.share({
+                                  title: postTitle || 'Volunteer Connect Post',
+                                  text: postBody,
+                                  url: window.location.href,
+                                });
+                                sharePost(post._id);
+                              } else {
+                                await navigator.clipboard.writeText(`${window.location.href}/posts`);
+                                showNotification('Đã sao chép liên kết bài viết!', 'success');
+                                sharePost(post._id);
+                              }
+                            } catch (err) {
+                              console.log('Chia sẻ bị hủy hoặc gặp lỗi:', err);
                             }
                           }}
                           className="flex items-center gap-1.5 py-1.5 px-3 rounded-xl hover:bg-slate-50 hover:text-slate-700 transition-all cursor-pointer"
