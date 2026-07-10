@@ -395,7 +395,15 @@ export const FeedView: React.FC = () => {
 
   // Relative time helper
   const formatRelativeTime = (dateStr: string): string => {
-    const diff = Date.now() - new Date(dateStr).getTime();
+    if (!dateStr) return '';
+    let cleanDateStr = dateStr;
+    // Force naive ISO strings to be treated as UTC
+    if (cleanDateStr.includes('T') && !cleanDateStr.endsWith('Z') && !/[+-]\d{2}:\d{2}$/.test(cleanDateStr)) {
+      cleanDateStr += 'Z';
+    } else if (!cleanDateStr.includes('T') && !cleanDateStr.includes('Z')) {
+      cleanDateStr = cleanDateStr.replace(' ', 'T') + 'Z';
+    }
+    const diff = Date.now() - new Date(cleanDateStr).getTime();
     const mins = Math.floor(diff / 60000);
     if (mins < 1) return 'Vừa xong';
     if (mins < 60) return `${mins} phút trước`;
@@ -403,7 +411,7 @@ export const FeedView: React.FC = () => {
     if (hrs < 24) return `${hrs} giờ trước`;
     const days = Math.floor(hrs / 24);
     if (days < 7) return `${days} ngày trước`;
-    return new Date(dateStr).toLocaleDateString('vi-VN');
+    return new Date(cleanDateStr).toLocaleDateString('vi-VN');
   };
 
   const handleCreatePost = async (title: string, content: string, images: string[], _videoUrl: string, hashtags: string[]) => {
