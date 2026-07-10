@@ -46,20 +46,20 @@ async def initialize_db():
             Post
         ]
     )
-    # Clean database before running each test case
-    await _get_collection(User).delete_many({})
-    await _get_collection(OrganizerRequest).delete_many({})
-    await _get_collection(Activity).delete_many({})
-    await _get_collection(Registration).delete_many({})
-    await _get_collection(Post).delete_many({})
+    # [Đã tắt] Clean database before running each test case để tránh vô tình xóa db chính
+    # await _get_collection(User).delete_many({})
+    # await _get_collection(OrganizerRequest).delete_many({})
+    # await _get_collection(Activity).delete_many({})
+    # await _get_collection(Registration).delete_many({})
+    # await _get_collection(Post).delete_many({})
     
     yield
     
-    # Clean database after running each test case (Teardown)
-    await _get_collection(User).delete_many({})
-    await _get_collection(OrganizerRequest).delete_many({})
-    await _get_collection(Activity).delete_many({})
-    await _get_collection(Registration).delete_many({})
-    await _get_collection(Post).delete_many({})
+    # [Đã tắt] Clean database after running each test case (Teardown)
+    # await _get_collection(User).delete_many({})
+    # await _get_collection(OrganizerRequest).delete_many({})
+    # await _get_collection(Activity).delete_many({})
+    # await _get_collection(Registration).delete_many({})
+    # await _get_collection(Post).delete_many({})
     
     client.close()
