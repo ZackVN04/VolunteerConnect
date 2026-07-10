@@ -828,7 +828,7 @@ export const AdminDashboard: React.FC = () => {
                               >
                                 <option value="Volunteer">Tình Nguyện Viên</option>
                                 <option value="Organizer">Ban Tổ Chức</option>
-                                <option value="Admin">Quản Trị Viên</option>
+                                {u.role === 'Admin' && <option value="Admin">Quản Trị Viên</option>}
                               </select>
                             </td>
                           </tr>
