@@ -212,6 +212,20 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setPromptDialog(null);
   };
 
+  const injectLikedStatus = (serverPosts: Post[], userId: string | undefined): Post[] => {
+    if (!userId) return serverPosts;
+    const storageKey = `liked_posts_${userId}`;
+    const likedListStr = localStorage.getItem(storageKey);
+    const likedPostIds: string[] = likedListStr ? JSON.parse(likedListStr) : [];
+    return serverPosts.map(p => {
+      if (likedPostIds.includes(p._id)) {
+        return { ...p, likedByUserIds: [userId] };
+      } else {
+        return { ...p, likedByUserIds: [] };
+      }
+    });
+  };
+
   const loadLocalStorageData = () => {
     const savedDb = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (savedDb) {
@@ -307,10 +321,11 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             let serverActs: Activity[] = [];
             if (activeUser && activeUser.role === 'Admin') {
               // Admin cần load tất cả activities kể cả Pending Review
-              const [allActs, adminActs, organizerReqsRes] = await Promise.allSettled([
+              const [allActs, adminActs, organizerReqsRes, adminUsersRes] = await Promise.allSettled([
                 activityService.getAll(),
                 adminService.getActivities(),
-                adminService.getOrganizerRequests()
+                adminService.getOrganizerRequests(),
+                adminService.getUsers()
               ]);
               const mergedMap = new Map<string, Activity>();
               if (allActs.status === 'fulfilled') {
@@ -321,6 +336,9 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
               }
               if (organizerReqsRes.status === 'fulfilled') {
                 setOrganizerRequests(organizerReqsRes.value);
+              }
+              if (adminUsersRes.status === 'fulfilled') {
+                setUsers(adminUsersRes.value);
               }
               serverActs = Array.from(mergedMap.values());
             } else if (activeUser && activeUser.role === 'Organizer') {
@@ -363,7 +381,8 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           // 4. Load posts from backend
           try {
             const serverPosts = await postService.getAll();
-            setPosts(serverPosts);
+            const mappedPosts = injectLikedStatus(serverPosts, activeUser?._id);
+            setPosts(mappedPosts);
           } catch (err) {
             console.error("Lỗi lấy danh sách bài viết từ server:", err);
           }
@@ -1101,7 +1120,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       try {
         await postService.create(title, content, images, hashtags);
         const pts = await postService.getAll();
-        setPosts(pts);
+        setPosts(injectLikedStatus(pts, currentUser?._id));
         return { success: true };
       } catch (e: any) {
         console.error(e);
@@ -1151,20 +1170,60 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   // Like Community Post Toggle
   const likePost = (postId: string) => {
+    if (!currentUser) return;
+
     if (USE_REAL_BACKEND) {
       (async () => {
         try {
-          await postService.like(postId);
-          const pts = await postService.getAll();
-          setPosts(pts);
+          const storageKey = `liked_posts_${currentUser._id}`;
+          const likedListStr = localStorage.getItem(storageKey);
+          let likedPostIds: string[] = likedListStr ? JSON.parse(likedListStr) : [];
+          const isAlreadyLiked = likedPostIds.includes(postId);
+
+          if (isAlreadyLiked) {
+            // Unlike: Remove from local storage list
+            likedPostIds = likedPostIds.filter(id => id !== postId);
+            localStorage.setItem(storageKey, JSON.stringify(likedPostIds));
+
+            // Adjust counts locally
+            setPosts(prev => prev.map(p => {
+              if (p._id === postId) {
+                return {
+                  ...p,
+                  like_count: Math.max(0, p.like_count - 1),
+                  likedByUserIds: []
+                };
+              }
+              return p;
+            }));
+          } else {
+            // Like: Add to local storage list
+            likedPostIds.push(postId);
+            localStorage.setItem(storageKey, JSON.stringify(likedPostIds));
+
+            // Call backend to persist
+            await postService.like(postId).catch(err => {
+              console.log("Persist like error (already liked on server):", err);
+            });
+
+            // Adjust counts locally
+            setPosts(prev => prev.map(p => {
+              if (p._id === postId) {
+                return {
+                  ...p,
+                  like_count: p.like_count + 1,
+                  likedByUserIds: [currentUser._id]
+                };
+              }
+              return p;
+            }));
+          }
         } catch (e) {
-          console.error(e);
+          console.error("Error toggling post like:", e);
         }
       })();
       return;
     }
-
-    if (!currentUser) return;
 
     const postIndex = posts.findIndex(p => p._id === postId);
     if (postIndex === -1) return;
@@ -1205,7 +1264,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         try {
           await postService.share(postId);
           const pts = await postService.getAll();
-          setPosts(pts);
+          setPosts(injectLikedStatus(pts, currentUser?._id));
         } catch (e) {
           console.error(e);
         }
@@ -1236,7 +1295,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       try {
         await postService.delete(postId);
         const pts = await postService.getAll();
-        setPosts(pts);
+        setPosts(injectLikedStatus(pts, currentUser?._id));
         return { success: true };
       } catch (e: any) {
         const msg = e?.response?.data?.detail || 'Xóa bài viết thất bại.';

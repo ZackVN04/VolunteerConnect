@@ -100,6 +100,10 @@ export const authService = {
     });
     return res.data;
   },
+  verifyResetOtp: async (email: string, otpCode: string): Promise<any> => {
+    const res = await api.post('/auth/verify-reset-otp', { email, otp_code: otpCode });
+    return res.data;
+  },
   getCurrentUser: async (): Promise<User> => {
     // Backend: GET /api/v1/users/me
     const res = await api.get('/users/me');
@@ -295,15 +299,15 @@ export const registrationService = {
     return mapRegistration(res.data?.data || res.data);
   },
   approve: async (registrationId: string): Promise<Registration> => {
-    const res = await api.post(`/registrations/${registrationId}/approve`);
+    const res = await api.patch(`/registrations/${registrationId}/approve`);
     return mapRegistration(res.data?.data || res.data);
   },
   reject: async (registrationId: string, reason?: string): Promise<Registration> => {
-    const res = await api.post(`/registrations/${registrationId}/reject`, { rejection_reason: reason });
+    const res = await api.patch(`/registrations/${registrationId}/reject`, { rejection_reason: reason });
     return mapRegistration(res.data?.data || res.data);
   },
   updateParticipation: async (registrationId: string, status: 'Completed' | 'Absent'): Promise<Registration> => {
-    const res = await api.post(`/registrations/${registrationId}/check-in`, { status: status.toLowerCase() });
+    const res = await api.patch(`/registrations/${registrationId}/attendance`, { status: status.toLowerCase() });
     return mapRegistration(res.data?.data || res.data);
   }
 };
@@ -354,6 +358,21 @@ export const postService = {
   share: async (postId: string): Promise<Post> => {
     const res = await rootApi.patch(`/posts/${postId}/share`);
     return mapPost(res.data);
+  }
+};
+
+// Comment Services
+export const commentService = {
+  getComments: async (postId: string, page = 1, limit = 10): Promise<any[]> => {
+    const res = await api.get(`/posts/${postId}/comments`, { params: { page, limit } });
+    return res.data.items || res.data.data?.items || res.data;
+  },
+  createComment: async (postId: string, content: string): Promise<any> => {
+    const res = await api.post(`/posts/${postId}/comments`, { content });
+    return res.data.data || res.data;
+  },
+  deleteComment: async (postId: string, commentId: string): Promise<void> => {
+    await api.delete(`/posts/${postId}/comments/${commentId}`);
   }
 };
 
@@ -412,6 +431,11 @@ export const adminService = {
   getStatistics: async (): Promise<any> => {
     const res = await rootApi.get('/admin/statistics');
     return res.data;
+  },
+  getUsers: async (): Promise<User[]> => {
+    const res = await rootApi.get('/admin/users?limit=100');
+    const users = res.data?.data?.users || [];
+    return users.map(mapBackendUserToFrontend);
   }
 };
 

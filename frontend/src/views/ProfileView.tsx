@@ -31,12 +31,12 @@ const fixImageUrl = (url: string | null | undefined): string | null => {
   return url.replace('http://localhost:3000/', 'http://localhost:8000/');
 };
 
-const InfoItem: React.FC<{ 
-  icon: string; 
-  iconColorClass: string; 
-  bgClass: string; 
-  label: string; 
-  value: React.ReactNode 
+const InfoItem: React.FC<{
+  icon: string;
+  iconColorClass: string;
+  bgClass: string;
+  label: string;
+  value: React.ReactNode
 }> = ({ icon, iconColorClass, bgClass, label, value }) => (
   <div className="flex gap-4 p-4 bg-slate-50 border border-slate-100 rounded-2xl items-center hover:shadow-sm transition-all duration-150">
     <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${bgClass} shrink-0`}>
@@ -50,8 +50,8 @@ const InfoItem: React.FC<{
 );
 
 export const ProfileView: React.FC = () => {
-  const { currentUser, users, activities, registrations, organizerRequests, submitOrganizerRequest, updateProfile, showNotification, changePassword } = useApp();
-  
+  const { currentUser, users, activities, registrations, organizerRequests, updateProfile, showNotification, changePassword } = useApp();
+
   // View mode state: 'details' (default), 'edit', 'upgrade', 'password', 'participated', 'org_management'
   const [viewMode, setViewMode] = useState<'details' | 'edit' | 'upgrade' | 'password' | 'participated' | 'org_management'>('details');
 
@@ -65,11 +65,6 @@ export const ProfileView: React.FC = () => {
   const [avatarUrl, setAvatarUrl] = useState(currentUser?.profile.avatar_url || '');
   const [age, setAge] = useState<number | ''>(currentUser?.profile.age ?? '');
   const [gender, setGender] = useState(currentUser?.profile.gender || '');
-
-  // Form states for Organizer Upgrade
-  const [requestOrgName, setRequestOrgName] = useState('');
-  const [requestOrgDesc, setRequestOrgDesc] = useState('');
-  const [requestContact, setRequestContact] = useState(currentUser?.phone || '');
 
   // Form states for Change Password
   const [oldPassword, setOldPassword] = useState('');
@@ -85,7 +80,7 @@ export const ProfileView: React.FC = () => {
     const handleHashChange = () => {
       const hash = window.location.hash;
       if (hash.includes('tab=upgrade')) {
-        setViewMode('upgrade');
+        window.location.hash = '#/request-organizer';
       } else if (hash.includes('tab=password')) {
         setViewMode('password');
       } else if (hash.includes('tab=edit')) {
@@ -156,7 +151,6 @@ export const ProfileView: React.FC = () => {
       setAvatarUrl(fixImageUrl(currentUser.profile.avatar_url) || currentUser.profile.avatar_url || '');
       setAge(currentUser.profile.age ?? '');
       setGender(currentUser.profile.gender || '');
-      setRequestContact(currentUser.phone || '');
     }
   }, [currentUser, isOwnProfile]);
 
@@ -217,15 +211,15 @@ export const ProfileView: React.FC = () => {
       .filter(s => s.length > 0);
 
     updateProfile(
-      { 
-        full_name: fullName, 
-        skills, 
+      {
+        full_name: fullName,
+        skills,
         bio,
         avatar_url: avatarUrl,
         age: age !== '' ? Number(age) : undefined,
         gender: gender || undefined
-      }, 
-      email || '', 
+      },
+      email || '',
       areaOfInterest || '',
       phone
     );
@@ -249,24 +243,6 @@ export const ProfileView: React.FC = () => {
     window.location.hash = '#/profile';
   };
 
-  const handleSendRequest = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!requestOrgDesc.trim() || !requestOrgName.trim() || !requestContact.trim()) {
-      showNotification('Vui lòng nhập đầy đủ thông tin yêu cầu.', 'error');
-      return;
-    }
-
-    const res = submitOrganizerRequest(requestOrgDesc, requestOrgName, requestContact);
-    const result = res instanceof Promise ? await res : res;
-    if (result.success) {
-      showNotification('Gửi yêu cầu nâng cấp tài khoản thành công!', 'success');
-      setRequestOrgDesc('');
-      setRequestOrgName('');
-      setViewMode('details');
-    } else {
-      showNotification(result.error || 'Có lỗi xảy ra khi gửi yêu cầu', 'error');
-    }
-  };
 
   const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!currentUser) return;
@@ -282,18 +258,18 @@ export const ProfileView: React.FC = () => {
       showNotification('Đang tải ảnh đại diện lên...', 'info');
       const uploadRes = await mediaService.upload(file);
       const publicUrl = fixImageUrl(uploadRes.url) || uploadRes.url;
-      
+
       setAvatarUrl(publicUrl);
       updateProfile(
-        { 
+        {
           avatar_url: publicUrl,
           full_name: currentUser.profile.full_name,
           skills: currentUser.profile.skills,
           bio: currentUser.profile.bio,
           age: currentUser.profile.age,
           gender: currentUser.profile.gender
-        }, 
-        currentUser.email || '', 
+        },
+        currentUser.email || '',
         currentUser.profile.area_of_interest || '',
         phone
       );
@@ -347,8 +323,8 @@ export const ProfileView: React.FC = () => {
               {isOwnProfile ? 'Hồ sơ tài khoản' : 'Hồ sơ đối tác'}
             </h1>
             <p className="text-slate-500 text-sm mt-1.5 font-medium">
-              {isOwnProfile 
-                ? 'Quản lý thông tin bảo mật, chỉnh sửa các chi tiết hồ sơ cá nhân và theo dõi hoạt động cộng đồng.' 
+              {isOwnProfile
+                ? 'Quản lý thông tin bảo mật, chỉnh sửa các chi tiết hồ sơ cá nhân và theo dõi hoạt động cộng đồng.'
                 : 'Thông tin liên hệ, giới thiệu và lịch sử cống hiến của thành viên.'
               }
             </p>
@@ -367,18 +343,18 @@ export const ProfileView: React.FC = () => {
         {isOwnProfile ? (
           /* OWN PROFILE: 2-COLUMN LAYOUT (hồ sơ cá nhân.jpg) */
           <div className="grid grid-cols-12 gap-8 items-start">
-            
+
             {/* ================= COLUMN 1: LEFT SIDEBAR (Avatar Card & Tab Menus) ================= */}
             <div className="col-span-12 md:col-span-4 space-y-6">
-              
+
               {/* Avatar & Basic Info Card */}
               <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm p-6 text-center space-y-4">
                 <div className="flex flex-col items-center">
                   <div className="relative group w-32 h-32 rounded-full overflow-hidden border-4 border-[#006d37] shrink-0 bg-slate-50 shadow-sm">
                     {avatarUrl ? (
-                      <img 
-                        src={avatarUrl} 
-                        alt="User Avatar" 
+                      <img
+                        src={avatarUrl}
+                        alt="User Avatar"
                         className="w-full h-full object-cover"
                       />
                     ) : (
@@ -387,11 +363,11 @@ export const ProfileView: React.FC = () => {
                     <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white text-[10px] font-bold uppercase transition-all duration-200 cursor-pointer">
                       <span className="material-symbols-outlined text-xl mb-1">photo_camera</span>
                       Đổi ảnh
-                      <input 
-                        type="file" 
-                        accept="image/*" 
-                        onChange={handleAvatarFileChange} 
-                        className="hidden" 
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleAvatarFileChange}
+                        className="hidden"
                       />
                     </label>
                   </div>
@@ -408,11 +384,10 @@ export const ProfileView: React.FC = () => {
                 <div className="pt-4 border-t border-slate-100 flex flex-col gap-1">
                   <button
                     onClick={() => { setViewMode('details'); window.location.hash = '#/profile'; }}
-                    className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
-                      viewMode === 'details'
-                        ? 'bg-[#e8f5e9] text-[#006d37] font-bold'
-                        : 'text-slate-600 hover:bg-slate-50'
-                    }`}
+                    className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${viewMode === 'details'
+                      ? 'bg-[#e8f5e9] text-[#006d37] font-bold'
+                      : 'text-slate-600 hover:bg-slate-50'
+                      }`}
                   >
                     <span className="material-symbols-outlined text-lg">account_circle</span>
                     Thông tin hồ sơ
@@ -420,11 +395,10 @@ export const ProfileView: React.FC = () => {
 
                   <button
                     onClick={() => { setViewMode('edit'); window.location.hash = '#/profile?tab=edit'; }}
-                    className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
-                      viewMode === 'edit'
-                        ? 'bg-[#e8f5e9] text-[#006d37] font-bold'
-                        : 'text-slate-600 hover:bg-slate-50'
-                    }`}
+                    className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${viewMode === 'edit'
+                      ? 'bg-[#e8f5e9] text-[#006d37] font-bold'
+                      : 'text-slate-600 hover:bg-slate-50'
+                      }`}
                   >
                     <span className="material-symbols-outlined text-lg">edit_square</span>
                     Chỉnh sửa thông tin
@@ -432,11 +406,10 @@ export const ProfileView: React.FC = () => {
 
                   <button
                     onClick={() => { setViewMode('password'); window.location.hash = '#/profile?tab=password'; }}
-                    className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
-                      viewMode === 'password'
-                        ? 'bg-[#e8f5e9] text-[#006d37] font-bold'
-                        : 'text-slate-600 hover:bg-slate-50'
-                    }`}
+                    className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${viewMode === 'password'
+                      ? 'bg-[#e8f5e9] text-[#006d37] font-bold'
+                      : 'text-slate-600 hover:bg-slate-50'
+                      }`}
                   >
                     <span className="material-symbols-outlined text-lg">lock</span>
                     Đổi mật khẩu
@@ -445,11 +418,10 @@ export const ProfileView: React.FC = () => {
                   {displayUser.role === 'Volunteer' && (
                     <button
                       onClick={() => { setViewMode('participated'); window.location.hash = '#/profile?tab=participated'; }}
-                      className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
-                        viewMode === 'participated'
-                          ? 'bg-[#e8f5e9] text-[#006d37] font-bold'
-                          : 'text-slate-600 hover:bg-slate-50'
-                      }`}
+                      className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${viewMode === 'participated'
+                        ? 'bg-[#e8f5e9] text-[#006d37] font-bold'
+                        : 'text-slate-600 hover:bg-slate-50'
+                        }`}
                     >
                       <span className="material-symbols-outlined text-lg">volunteer_activism</span>
                       Hoạt động tham gia
@@ -459,11 +431,10 @@ export const ProfileView: React.FC = () => {
                   {displayUser.role === 'Organizer' && (
                     <button
                       onClick={() => { setViewMode('org_management'); window.location.hash = '#/profile?tab=org_management'; }}
-                      className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
-                        viewMode === 'org_management'
-                          ? 'bg-[#e8f5e9] text-[#006d37] font-bold'
-                          : 'text-slate-600 hover:bg-slate-50'
-                      }`}
+                      className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${viewMode === 'org_management'
+                        ? 'bg-[#e8f5e9] text-[#006d37] font-bold'
+                        : 'text-slate-600 hover:bg-slate-50'
+                        }`}
                     >
                       <span className="material-symbols-outlined text-lg">campaign</span>
                       Quản lý tổ chức
@@ -475,11 +446,11 @@ export const ProfileView: React.FC = () => {
 
             {/* ================= COLUMN 2: RIGHT DETAIL CONTENT ================= */}
             <div className="col-span-12 md:col-span-8 space-y-6">
-              
+
               {/* tab === details: VIEW PROFILE DETAILS */}
               {viewMode === 'details' && (() => {
-                const displaySkills: string[] = isOwnProfile 
-                  ? (skillsStr ? skillsStr.split(',').map(s => s.trim()).filter(Boolean) : []) 
+                const displaySkills: string[] = isOwnProfile
+                  ? (skillsStr ? skillsStr.split(',').map(s => s.trim()).filter(Boolean) : [])
                   : (displayUser.profile.skills || []);
                 const displayAge = isOwnProfile ? age : displayUser.profile.age;
                 const displayGender = isOwnProfile ? gender : displayUser.profile.gender;
@@ -494,40 +465,40 @@ export const ProfileView: React.FC = () => {
 
                     {/* 2-Column Info Grid */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <InfoItem 
-                        icon="mail" 
-                        iconColorClass="text-blue-600" 
-                        bgClass="bg-blue-50" 
-                        label="Địa chỉ Email" 
-                        value={displayUser.email || "Chưa cập nhật"} 
+                      <InfoItem
+                        icon="mail"
+                        iconColorClass="text-blue-600"
+                        bgClass="bg-blue-50"
+                        label="Địa chỉ Email"
+                        value={displayUser.email || "Chưa cập nhật"}
                       />
-                      <InfoItem 
-                        icon="call" 
-                        iconColorClass="text-emerald-600" 
-                        bgClass="bg-emerald-50" 
-                        label="Số điện thoại" 
-                        value={displayUser.phone || "Chưa cập nhật"} 
+                      <InfoItem
+                        icon="call"
+                        iconColorClass="text-emerald-600"
+                        bgClass="bg-emerald-50"
+                        label="Số điện thoại"
+                        value={displayUser.phone || "Chưa cập nhật"}
                       />
-                      <InfoItem 
-                        icon="location_on" 
-                        iconColorClass="text-rose-600" 
-                        bgClass="bg-rose-50" 
-                        label="Khu vực hoạt động" 
-                        value={displayAreaOfInterest || "Chưa cập nhật"} 
+                      <InfoItem
+                        icon="location_on"
+                        iconColorClass="text-rose-600"
+                        bgClass="bg-rose-50"
+                        label="Khu vực hoạt động"
+                        value={displayAreaOfInterest || "Chưa cập nhật"}
                       />
-                      <InfoItem 
-                        icon="cake" 
-                        iconColorClass="text-amber-600" 
-                        bgClass="bg-amber-50" 
-                        label="Tuổi" 
-                        value={displayAge ? `${displayAge} tuổi` : "Chưa cập nhật"} 
+                      <InfoItem
+                        icon="cake"
+                        iconColorClass="text-amber-600"
+                        bgClass="bg-amber-50"
+                        label="Tuổi"
+                        value={displayAge ? `${displayAge} tuổi` : "Chưa cập nhật"}
                       />
-                      <InfoItem 
-                        icon="wc" 
-                        iconColorClass="text-purple-600" 
-                        bgClass="bg-purple-50" 
-                        label="Giới tính" 
-                        value={displayGender || "Chưa cập nhật"} 
+                      <InfoItem
+                        icon="wc"
+                        iconColorClass="text-purple-600"
+                        bgClass="bg-purple-50"
+                        label="Giới tính"
+                        value={displayGender || "Chưa cập nhật"}
                       />
                     </div>
 
@@ -576,18 +547,17 @@ export const ProfileView: React.FC = () => {
 
                     {/* Organizer upgrade banner if Volunteer */}
                     {displayUser.role === 'Volunteer' && (userRequest ? (
-                      <div className={`p-4 rounded-xl border text-sm text-left ${
-                        isPending ? 'bg-[#fef7e0] border-[#b06000]/30 text-[#b06000]' :
+                      <div className={`p-4 rounded-xl border text-sm text-left ${isPending ? 'bg-[#fef7e0] border-[#b06000]/30 text-[#b06000]' :
                         isApproved ? 'bg-[#e8f5e9] border-[#006d37]/30 text-[#006d37]' :
-                        'bg-red-50 border-red-200 text-red-700'
-                      }`}>
+                          'bg-red-50 border-red-200 text-red-700'
+                        }`}>
                         <div className="font-bold flex items-center gap-1.5">
                           <span className="material-symbols-outlined text-lg">
                             {isPending ? 'hourglass_empty' : isApproved ? 'verified' : 'cancel'}
                           </span>
                           Trạng thái đơn nâng quyền: {
                             isPending ? 'Đang chờ Admin duyệt' :
-                            isApproved ? 'Đã duyệt thành công' : 'Bị từ chối'
+                              isApproved ? 'Đã duyệt thành công' : 'Bị từ chối'
                           }
                         </div>
                         <p className="mt-1 text-xs opacity-90">Gửi ngày: {new Date(userRequest.created_at).toLocaleDateString('vi-VN')}</p>
@@ -611,7 +581,7 @@ export const ProfileView: React.FC = () => {
                     ) : (
                       <div className="bg-[#e8f5e9]/30 border border-[#006d37]/15 rounded-2xl p-5 flex flex-col sm:flex-row justify-between items-center gap-4 text-left">
                         <div className="space-y-1">
-                          <h4 className="text-sm font-bold text-slate-800">Trở thành Nhà tổ chức (Organizer)</h4>
+                          <h4 className="text-sm font-bold text-slate-800">Trở thành Ban Tổ Chức</h4>
                           <p className="text-slate-500 text-xs leading-relaxed max-w-[420px]">
                             Bạn muốn tự đăng bài và quản lý chiến dịch cộng đồng của riêng mình? Đăng ký nâng cấp tài khoản ngay.
                           </p>
@@ -642,8 +612,8 @@ export const ProfileView: React.FC = () => {
                   <form onSubmit={handleSaveProfile} className="space-y-5 text-left">
                     <div className="flex flex-col gap-1.5">
                       <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Họ và tên</label>
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
                         required
@@ -655,8 +625,8 @@ export const ProfileView: React.FC = () => {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="flex flex-col gap-1.5">
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Địa chỉ Email</label>
-                        <input 
-                          type="email" 
+                        <input
+                          type="email"
                           value={email}
                           disabled
                           className="w-full px-4 py-2.5 border border-slate-100 rounded-xl text-sm bg-slate-50 text-slate-400 cursor-not-allowed focus:outline-none font-semibold"
@@ -664,8 +634,8 @@ export const ProfileView: React.FC = () => {
                       </div>
                       <div className="flex flex-col gap-1.5">
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Số điện thoại</label>
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           value={phone}
                           onChange={(e) => setPhone(e.target.value)}
                           required
@@ -693,8 +663,8 @@ export const ProfileView: React.FC = () => {
 
                       <div className="flex flex-col gap-1.5">
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Tuổi</label>
-                        <input 
-                          type="number" 
+                        <input
+                          type="number"
                           value={age}
                           onChange={(e) => setAge(e.target.value === '' ? '' : Number(e.target.value))}
                           placeholder="Nhập tuổi..."
@@ -721,8 +691,8 @@ export const ProfileView: React.FC = () => {
 
                     <div className="flex flex-col gap-1.5">
                       <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Kỹ năng nổi bật (Cách nhau bằng dấu phẩy)</label>
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         value={skillsStr}
                         onChange={(e) => setSkillsStr(e.target.value)}
                         placeholder="Giao tiếp tiếng Anh, Dạy học, Vẽ tranh"
@@ -732,7 +702,7 @@ export const ProfileView: React.FC = () => {
 
                     <div className="flex flex-col gap-1.5">
                       <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Giới thiệu bản thân</label>
-                      <textarea 
+                      <textarea
                         rows={3}
                         value={bio}
                         onChange={(e) => setBio(e.target.value)}
@@ -742,14 +712,14 @@ export const ProfileView: React.FC = () => {
                     </div>
 
                     <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
-                      <button 
-                        type="button" 
+                      <button
+                        type="button"
                         onClick={handleCancelEdit}
                         className="px-5 py-2.5 border border-slate-200 text-slate-500 rounded-xl hover:bg-slate-50 transition-colors text-sm font-bold cursor-pointer"
                       >
                         Hủy
                       </button>
-                      <button 
+                      <button
                         type="submit"
                         className="px-5 py-2.5 bg-[#006d37] hover:bg-emerald-800 text-white rounded-xl transition-colors text-sm font-bold shadow-sm cursor-pointer"
                       >
@@ -760,69 +730,6 @@ export const ProfileView: React.FC = () => {
                 </div>
               )}
 
-              {/* tab === upgrade: ORGANIZER UPGRADE REQUEST FORM */}
-              {viewMode === 'upgrade' && (
-                <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm p-6 md:p-8 space-y-6">
-                  <div>
-                    <h3 className="text-xl font-bold text-slate-800">Đăng ký tài khoản Organizer</h3>
-                    <p className="text-slate-400 text-xs mt-1">Cung cấp lý lịch hoạt động để Admin kiểm duyệt vai trò nhà tổ chức chiến dịch.</p>
-                  </div>
-
-                  <form onSubmit={handleSendRequest} className="space-y-5 text-left">
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Số điện thoại liên hệ khẩn cấp</label>
-                      <input 
-                        type="text" 
-                        value={requestContact}
-                        onChange={(e) => setRequestContact(e.target.value)}
-                        required
-                        placeholder="Nhập số điện thoại..."
-                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm font-semibold text-slate-800 bg-white transition-all"
-                      />
-                    </div>
-
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Kinh nghiệm hoạt động / Tổ chức đại diện</label>
-                      <textarea 
-                        rows={3}
-                        value={requestOrgName}
-                        onChange={(e) => setRequestOrgName(e.target.value)}
-                        required
-                        placeholder="Mô tả kinh nghiệm tình nguyện của bạn hoặc ghi tên câu lạc bộ/đội nhóm bạn làm đại diện..."
-                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm font-semibold text-slate-800 bg-white transition-all"
-                      />
-                    </div>
-
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Mục đích/Lý do nâng cấp quyền tổ chức</label>
-                      <textarea 
-                        rows={3}
-                        value={requestOrgDesc}
-                        onChange={(e) => setRequestOrgDesc(e.target.value)}
-                        required
-                        placeholder="Lý do và kế hoạch các hoạt động tình nguyện bạn dự định tạo lập trên hệ thống..."
-                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm font-semibold text-slate-800 bg-white transition-all"
-                      />
-                    </div>
-
-                    <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
-                      <button 
-                        type="button" 
-                        onClick={() => setViewMode('details')}
-                        className="px-5 py-2.5 border border-slate-200 text-slate-500 rounded-xl hover:bg-slate-50 transition-colors text-sm font-bold cursor-pointer"
-                      >
-                        Hủy bỏ
-                      </button>
-                      <button 
-                        type="submit"
-                        className="px-5 py-2.5 bg-[#006d37] hover:bg-emerald-800 text-white rounded-xl transition-colors text-sm font-bold shadow-sm cursor-pointer"
-                      >
-                        Gửi yêu cầu duyệt
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              )}
 
               {/* tab === password: CHANGE PASSWORD */}
               {viewMode === 'password' && (
@@ -840,8 +747,8 @@ export const ProfileView: React.FC = () => {
                         <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
                           <span className="material-symbols-outlined text-slate-400" style={{ fontSize: 18 }}>lock</span>
                         </div>
-                        <input 
-                          type={showOldPassword ? "text" : "password"} 
+                        <input
+                          type={showOldPassword ? "text" : "password"}
                           value={oldPassword}
                           onChange={(e) => setOldPassword(e.target.value)}
                           required
@@ -868,8 +775,8 @@ export const ProfileView: React.FC = () => {
                         <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
                           <span className="material-symbols-outlined text-slate-400" style={{ fontSize: 18 }}>lock</span>
                         </div>
-                        <input 
-                          type={showNewPassword ? "text" : "password"} 
+                        <input
+                          type={showNewPassword ? "text" : "password"}
                           value={newPassword}
                           onChange={(e) => setNewPassword(e.target.value)}
                           required
@@ -896,8 +803,8 @@ export const ProfileView: React.FC = () => {
                         <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
                           <span className="material-symbols-outlined text-slate-400" style={{ fontSize: 18 }}>lock</span>
                         </div>
-                        <input 
-                          type={showConfirmPassword ? "text" : "password"} 
+                        <input
+                          type={showConfirmPassword ? "text" : "password"}
                           value={confirmNewPassword}
                           onChange={(e) => setConfirmNewPassword(e.target.value)}
                           required
@@ -917,7 +824,7 @@ export const ProfileView: React.FC = () => {
                       </div>
                     </div>
 
-                    <button 
+                    <button
                       type="submit"
                       disabled={passwordLoading}
                       className="w-full mt-2 bg-[#006d37] hover:bg-emerald-800 text-white font-semibold rounded-full py-2.5 text-sm transition-all shadow-sm cursor-pointer disabled:opacity-50"
@@ -1083,9 +990,9 @@ export const ProfileView: React.FC = () => {
             {/* Avatar Column */}
             <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-[#006d37]/80 shrink-0 bg-slate-50 shadow-md">
               {displayUser.profile.avatar_url ? (
-                <img 
-                  src={displayUser.profile.avatar_url} 
-                  alt="User Avatar" 
+                <img
+                  src={displayUser.profile.avatar_url}
+                  alt="User Avatar"
                   className="w-full h-full object-cover"
                 />
               ) : (
@@ -1110,40 +1017,40 @@ export const ProfileView: React.FC = () => {
 
               {/* Details grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <InfoItem 
-                  icon="mail" 
-                  iconColorClass="text-blue-600" 
-                  bgClass="bg-blue-50" 
-                  label="Địa chỉ Email" 
-                  value={displayUser.email || "Chưa cập nhật"} 
+                <InfoItem
+                  icon="mail"
+                  iconColorClass="text-blue-600"
+                  bgClass="bg-blue-50"
+                  label="Địa chỉ Email"
+                  value={displayUser.email || "Chưa cập nhật"}
                 />
-                <InfoItem 
-                  icon="call" 
-                  iconColorClass="text-emerald-600" 
-                  bgClass="bg-emerald-50" 
-                  label="Số điện thoại" 
-                  value={displayUser.phone || "Chưa cập nhật"} 
+                <InfoItem
+                  icon="call"
+                  iconColorClass="text-emerald-600"
+                  bgClass="bg-emerald-50"
+                  label="Số điện thoại"
+                  value={displayUser.phone || "Chưa cập nhật"}
                 />
-                <InfoItem 
-                  icon="location_on" 
-                  iconColorClass="text-rose-600" 
-                  bgClass="bg-rose-50" 
-                  label="Khu vực hoạt động" 
-                  value={displayUser.profile.area_of_interest || "TP. Hồ Chí Minh"} 
+                <InfoItem
+                  icon="location_on"
+                  iconColorClass="text-rose-600"
+                  bgClass="bg-rose-50"
+                  label="Khu vực hoạt động"
+                  value={displayUser.profile.area_of_interest || "TP. Hồ Chí Minh"}
                 />
-                <InfoItem 
-                  icon="cake" 
-                  iconColorClass="text-amber-600" 
-                  bgClass="bg-amber-50" 
-                  label="Tuổi" 
-                  value={displayUser.profile.age !== undefined && displayUser.profile.age !== null ? `${displayUser.profile.age} tuổi` : "Chưa cập nhật"} 
+                <InfoItem
+                  icon="cake"
+                  iconColorClass="text-amber-600"
+                  bgClass="bg-amber-50"
+                  label="Tuổi"
+                  value={displayUser.profile.age !== undefined && displayUser.profile.age !== null ? `${displayUser.profile.age} tuổi` : "Chưa cập nhật"}
                 />
-                <InfoItem 
-                  icon="wc" 
-                  iconColorClass="text-purple-600" 
-                  bgClass="bg-purple-50" 
-                  label="Giới tính" 
-                  value={displayUser.profile.gender || "Chưa cập nhật"} 
+                <InfoItem
+                  icon="wc"
+                  iconColorClass="text-purple-600"
+                  bgClass="bg-purple-50"
+                  label="Giới tính"
+                  value={displayUser.profile.gender || "Chưa cập nhật"}
                 />
               </div>
 

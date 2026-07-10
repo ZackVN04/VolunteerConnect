@@ -6,6 +6,13 @@ export const ActivityListView: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('Open/Full');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 9;
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedCategory, statusFilter]);
 
   // Load navbar search query if present in URL hash params
   useEffect(() => {
@@ -55,6 +62,12 @@ export const ActivityListView: React.FC = () => {
     return true;
   });
 
+  const totalPages = Math.ceil(filteredActivities.length / itemsPerPage);
+  const paginatedActivities = filteredActivities.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
   return (
     <div className="w-full bg-[#f8f9fa] min-h-screen pb-16">
       {/* Container */}
@@ -71,15 +84,15 @@ export const ActivityListView: React.FC = () => {
         </div>
 
         {/* Filter Bar Card */}
-        <div className="bg-white border border-surface-variant/40 rounded-2xl shadow-sm p-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white border border-emerald-500/20 hover:border-emerald-500/40 focus-within:border-[#006d37] transition-all duration-300 ring-offset-2 focus-within:ring-2 focus-within:ring-[#006d37]/20 rounded-2xl shadow-sm p-6">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
             {/* Search Input */}
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2 md:col-span-6">
               <label className="text-xs font-bold text-on-surface uppercase tracking-wider">Tìm kiếm</label>
               <div className="relative">
                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-base">search</span>
                 <input 
-                  type="text"
+                  type="text" 
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Tên hoạt động hoặc địa điểm..."
@@ -89,7 +102,7 @@ export const ActivityListView: React.FC = () => {
             </div>
 
             {/* Category Dropdown */}
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2 md:col-span-3">
               <label className="text-xs font-bold text-on-surface uppercase tracking-wider">Lĩnh vực hoạt động</label>
               <select
                 value={selectedCategory}
@@ -106,7 +119,7 @@ export const ActivityListView: React.FC = () => {
             </div>
 
             {/* Status Dropdown */}
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2 md:col-span-3">
               <label className="text-xs font-bold text-on-surface uppercase tracking-wider">Trạng thái</label>
               <select
                 value={statusFilter}
@@ -140,15 +153,14 @@ export const ActivityListView: React.FC = () => {
           )}
         </div>
 
-        {/* Cards Grid */}
         {filteredActivities.length === 0 ? (
           <div className="bg-white rounded-3xl p-16 border border-surface-variant/40 text-center space-y-4 shadow-sm">
             <span className="material-symbols-outlined text-outline text-5xl">search_off</span>
             <p className="text-sm text-on-surface-variant italic">Không tìm thấy hoạt động nào phù hợp.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {filteredActivities.map(act => (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {paginatedActivities.map(act => (
               <div 
                 key={act._id} 
                 onClick={() => { window.location.hash = `#/activity/${act._id}`; }}
@@ -173,7 +185,7 @@ export const ActivityListView: React.FC = () => {
                   <div className="space-y-4">
                     <h3 className="text-xl font-bold text-on-surface line-clamp-1 leading-tight">
                        {act.title}
-                    </h3>
+                     </h3>
                     
                     <div className="space-y-2 text-sm text-on-surface-variant">
                       <div className="flex items-center gap-2">
@@ -208,6 +220,28 @@ export const ActivityListView: React.FC = () => {
                   </div>
                 </div>
               </div>
+            ))}
+          </div>
+        )}
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="flex justify-center gap-2 pt-6">
+            {Array.from({ length: totalPages }, (_, i) => (
+              <button
+                key={i}
+                onClick={() => {
+                  setCurrentPage(i + 1);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className={`w-8 h-8 rounded-full text-sm font-bold transition-all ${
+                  currentPage === i + 1
+                    ? 'bg-[#006d37] text-white'
+                    : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                {i + 1}
+              </button>
             ))}
           </div>
         )}

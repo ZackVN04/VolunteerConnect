@@ -134,7 +134,7 @@ const setupResponseInterceptor = (axiosInstance: any) => {
         isRefreshing = true;
 
         try {
-          const res = await refreshClient.post('/auth/refresh', {
+          const res = await refreshClient.post('/auth/refresh-token', {
             refresh_token: refreshToken,
           });
 

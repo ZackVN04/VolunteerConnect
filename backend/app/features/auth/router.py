@@ -249,6 +249,29 @@ async def forgot_password(request: ForgotPasswordRequest):
 
     return GENERIC_RESPONSE
 
+@router.post("/verify-reset-otp", status_code=status.HTTP_200_OK)
+async def verify_reset_otp(otp_data: VerifyOTP):
+    user = await User.find_one(User.email == otp_data.email)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Người dùng không tồn tại")
+        
+    # KIỂM TRA EXPIRY: Kiểm tra thời gian hết hạn của OTP
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    otp_expiry = user.otp_expiry.replace(tzinfo=None) if user.otp_expiry else None
+    
+    if not otp_expiry or now > otp_expiry:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail="Mã OTP đã hết hạn. Vui lòng yêu cầu cấp lại mã mới."
+        )
+        
+    # Kiểm tra tính chính xác của OTP
+    if user.otp_code != otp_data.otp_code:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Mã OTP không chính xác")
+        
+    # Do NOT clear the OTP yet, it will be checked again at reset_password
+    return {"message": "OTP hợp lệ"}
+
 @router.post("/reset-password", status_code=status.HTTP_200_OK)
 async def reset_password(request: ResetPasswordRequest):
     user = await User.find_one(User.email == request.email)

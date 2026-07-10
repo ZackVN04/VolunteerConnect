@@ -793,8 +793,14 @@ export const AdminDashboard: React.FC = () => {
               </h2>
 
               <div className="bg-white border border-surface-variant/40 rounded-2xl shadow-sm overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse text-left text-sm">
+                {users.length === 0 ? (
+                  <div className="p-16 text-center space-y-3">
+                    <span className="material-symbols-outlined text-outline text-5xl">group</span>
+                    <p className="text-sm text-on-surface-variant italic">Không có người dùng nào trong hệ thống</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse text-left text-sm">
                     <thead>
                       <tr className="bg-[#f8f9fa] border-b border-surface-variant/40 text-on-surface-variant font-bold text-xs uppercase tracking-wider">
                         <th className="px-6 py-4">Tên người dùng</th>
@@ -841,6 +847,7 @@ export const AdminDashboard: React.FC = () => {
                     </tbody>
                   </table>
                 </div>
+                )}
               </div>
             </div>
           )}
