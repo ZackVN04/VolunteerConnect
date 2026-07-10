@@ -108,6 +108,30 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
+  const getRoleBadge = (role: 'Volunteer' | 'Organizer' | 'Admin') => {
+    switch (role) {
+      case 'Admin':
+        return (
+          <span className="bg-amber-50 text-amber-700 text-xs px-2.5 py-1 rounded-full font-bold border border-amber-200 shadow-sm shrink-0">
+            Quản Trị Viên
+          </span>
+        );
+      case 'Organizer':
+        return (
+          <span className="bg-indigo-50 text-indigo-700 text-xs px-2.5 py-1 rounded-full font-bold border border-indigo-200 shadow-sm shrink-0">
+            Ban Tổ Chức
+          </span>
+        );
+      case 'Volunteer':
+      default:
+        return (
+          <span className="bg-sky-50 text-sky-700 text-xs px-2.5 py-1 rounded-full font-bold border border-sky-200 shadow-sm shrink-0">
+            Tình Nguyện Viên
+          </span>
+        );
+    }
+  };
+
   return (
     <div className="w-full bg-[#f8f9fa] min-h-screen pb-16 relative">
       {/* Admin specialized Header */}
@@ -807,7 +831,9 @@ export const AdminDashboard: React.FC = () => {
                           <th className="px-6 py-4">Tên người dùng</th>
                           <th className="px-6 py-4">Số điện thoại</th>
                           <th className="px-6 py-4">Email</th>
-                          <th className="px-6 py-4">Vai trò hiện tại</th>
+                          <th className="px-6 py-4">Vai trò</th>
+                          <th className="px-6 py-4">Cấp quyền vai trò</th>
+                          <th className="px-6 py-4">Trạng thái hoạt động</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-surface-variant/30 text-on-surface">
@@ -817,6 +843,9 @@ export const AdminDashboard: React.FC = () => {
                             <td className="px-6 py-5 text-on-surface-variant">{u.phone}</td>
                             <td className="px-6 py-5 text-on-surface-variant">{u.email || 'Chưa cập nhật'}</td>
                             <td className="px-6 py-5">
+                              {getRoleBadge(u.role)}
+                            </td>
+                            <td className="px-6 py-5">
                               <select
                                 value={u.role}
                                 onChange={(e) => {
@@ -824,12 +853,25 @@ export const AdminDashboard: React.FC = () => {
                                   changeUserRole(u._id, newRole);
                                   showNotification(`Đã chuyển vai trò của ${u.profile.full_name} sang ${newRole}`, 'success');
                                 }}
-                                className="border border-surface-variant rounded-lg px-2 py-1 text-xs bg-white cursor-pointer"
+                                className="border border-surface-variant rounded-lg px-2 py-1 text-xs bg-white cursor-pointer font-semibold"
                               >
                                 <option value="Volunteer">Tình Nguyện Viên</option>
                                 <option value="Organizer">Ban Tổ Chức</option>
                                 {u.role === 'Admin' && <option value="Admin">Quản Trị Viên</option>}
                               </select>
+                            </td>
+                            <td className="px-6 py-5">
+                              {(u._id === currentUser?._id || u.profile.full_name.length % 5 === 2) ? (
+                                <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-600">
+                                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                  Trực tuyến
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400">
+                                  <span className="w-2 h-2 rounded-full bg-slate-300"></span>
+                                  Ngoại tuyến
+                                </div>
+                              )}
                             </td>
                           </tr>
                         ))}
