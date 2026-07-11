@@ -384,10 +384,14 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             }
             if (activeUser.role === 'Admin') {
               try {
-                const serverRequests = await adminService.getOrganizerRequests();
+                const [serverRequests, adminRegsRes] = await Promise.all([
+                  adminService.getOrganizerRequests(),
+                  adminService.getAllRegistrations().catch(() => [] as Registration[])
+                ]);
                 setOrganizerRequests(serverRequests);
+                setRegistrations(adminRegsRes);
               } catch (err) {
-                console.error("Lỗi lấy danh sách yêu cầu nâng quyền từ server:", err);
+                console.error("Lỗi lấy dữ liệu Admin từ server:", err);
               }
             }
           }
@@ -1377,9 +1381,12 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   const changePassword = async (oldPassword: string, newPassword: string): Promise<{ success: boolean; error?: string }> => {
     if (USE_REAL_BACKEND) {
-      // Return success in real backend since change password endpoint isn't exposed
-      await new Promise(resolve => setTimeout(resolve, 800));
-      return { success: true };
+      try {
+        await authService.changePassword(oldPassword, newPassword);
+        return { success: true };
+      } catch (err: any) {
+        return { success: false, error: err.response?.data?.detail || 'Lỗi khi đổi mật khẩu.' };
+      }
     }
 
     if (!currentUser) return { success: false, error: 'Chưa đăng nhập.' };
