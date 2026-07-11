@@ -286,6 +286,7 @@ export const FeedView: React.FC = () => {
   const [commentsMap, setCommentsMap] = useState<Record<string, PostComment[]>>({});
   const [showCommentsPostId, setShowCommentsPostId] = useState<string | null>(null);
   const [newCommentTexts, setNewCommentTexts] = useState<Record<string, string>>({});
+  const fetchingPostIds = useRef<Set<string>>(new Set());
 
   // Load comments when opening a post
   useEffect(() => {
@@ -395,7 +396,8 @@ export const FeedView: React.FC = () => {
   // Pre-load comment counts for visible posts to work around the backend comment_count bug
   useEffect(() => {
     paginatedPosts.forEach(post => {
-      if (commentsMap[post._id] === undefined) {
+      if (commentsMap[post._id] === undefined && !fetchingPostIds.current.has(post._id)) {
+        fetchingPostIds.current.add(post._id);
         const fetchComments = async () => {
           try {
             const fetched = await commentService.getComments(post._id);
@@ -413,6 +415,7 @@ export const FeedView: React.FC = () => {
             }));
           } catch (e) {
             console.error("Lỗi lấy bình luận:", e);
+            fetchingPostIds.current.delete(post._id); // Allow retry on error
           }
         };
         fetchComments();
