@@ -66,6 +66,10 @@ export const mapBackendUserToFrontend = (beUser: any): User => {
 
 // Auth Services
 export const authService = {
+  changePassword: async (old_password: string, new_password: string): Promise<any> => {
+    const res = await api.post('/auth/change-password', { old_password, new_password });
+    return res.data;
+  },
   login: async (email: string, password_raw: string): Promise<{ token: string; user: User }> => {
     // Backend: POST /api/v1/auth/login, body: { email, password }
     const res = await api.post('/auth/login', { email, password: password_raw });
@@ -404,6 +408,11 @@ export const userService = {
 
 // Admin Workflows Services
 export const adminService = {
+  getAllRegistrations: async (): Promise<Registration[]> => {
+    const res = await rootApi.get('/admin/registrations?limit=500');
+    const regs = res.data?.data?.registrations || [];
+    return regs.map(mapRegistration);
+  },
   getOrganizerRequests: async (): Promise<OrganizerRequest[]> => {
     const res = await rootApi.get('/admin/organizer-requests?limit=100');
     const reqs = res.data?.data?.requests || [];

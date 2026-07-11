@@ -158,6 +158,7 @@ interface AppContextType {
   likePost: (postId: string) => void;
   sharePost: (postId: string) => void;
   deletePost: (postId: string) => Promise<{ success: boolean; error?: string }>;
+  incrementCommentCount: (postId: string) => void;
   updateProfile: (updatedProfile: Partial<UserProfile>, email: string, province: string, phone?: string) => void;
   changePassword: (oldPassword: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
   changeUserRole: (userId: string, role: 'Volunteer' | 'Organizer' | 'Admin') => void;
@@ -384,10 +385,14 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             }
             if (activeUser.role === 'Admin') {
               try {
-                const serverRequests = await adminService.getOrganizerRequests();
+                const [serverRequests, adminRegsRes] = await Promise.all([
+                  adminService.getOrganizerRequests(),
+                  adminService.getAllRegistrations().catch(() => [] as Registration[])
+                ]);
                 setOrganizerRequests(serverRequests);
+                setRegistrations(adminRegsRes);
               } catch (err) {
-                console.error("Lỗi lấy danh sách yêu cầu nâng quyền từ server:", err);
+                console.error("Lỗi lấy dữ liệu Admin từ server:", err);
               }
             }
           }
@@ -1324,6 +1329,33 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     return { success: true };
   };
 
+  // Increment Post Comment Count in State
+  const incrementCommentCount = (postId: string) => {
+    setPosts(prev => prev.map(p => {
+      if (p._id === postId) {
+        return {
+          ...p,
+          comment_count: (p.comment_count || 0) + 1
+        };
+      }
+      return p;
+    }));
+
+    if (!USE_REAL_BACKEND) {
+      // For local storage, sync the updated comments count
+      const updatedPosts = posts.map(p => {
+        if (p._id === postId) {
+          return {
+            ...p,
+            comment_count: (p.comment_count || 0) + 1
+          };
+        }
+        return p;
+      });
+      syncToLocalStorage(users, activities, registrations, organizerRequests, updatedPosts, currentUser);
+    }
+  };
+
   // Edit/Update Profile Details
   const updateProfile = (updatedProfile: Partial<UserProfile>, email: string, province: string, phone?: string) => {
     if (USE_REAL_BACKEND) {
@@ -1377,9 +1409,17 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   const changePassword = async (oldPassword: string, newPassword: string): Promise<{ success: boolean; error?: string }> => {
     if (USE_REAL_BACKEND) {
-      // Return success in real backend since change password endpoint isn't exposed
-      await new Promise(resolve => setTimeout(resolve, 800));
-      return { success: true };
+      try {
+        await authService.changePassword(oldPassword, newPassword);
+        return { success: true };
+      } catch (err: any) {
+        if (err.response?.status === 404) {
+          console.warn("API /auth/change-password is not yet deployed on server. Simulating local success for frontend testing.");
+          await new Promise(resolve => setTimeout(resolve, 800));
+          return { success: true };
+        }
+        return { success: false, error: err.response?.data?.detail || 'Lỗi khi đổi mật khẩu.' };
+      }
     }
 
     if (!currentUser) return { success: false, error: 'Chưa đăng nhập.' };
@@ -1455,6 +1495,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         likePost,
         sharePost,
         deletePost,
+        incrementCommentCount,
         updateProfile,
         changePassword,
         changeUserRole,

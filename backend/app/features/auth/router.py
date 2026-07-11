@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends
 from pydantic import BaseModel
 from beanie import PydanticObjectId
 import jwt
@@ -7,7 +7,8 @@ import string
 from datetime import datetime, timedelta, timezone
 
 from app.features.users.models import User
-from app.features.users.schemas import UserCreate, UserLogin, VerifyOTP, ForgotPasswordRequest, ResetPasswordRequest, ResendOTPRequest
+from app.features.users.schemas import UserCreate, UserLogin, VerifyOTP, ForgotPasswordRequest, ResetPasswordRequest, ResendOTPRequest, ChangePasswordRequest
+from app.features.auth.dependencies import get_current_user
 from app.shared.enums import UserStatus
 
 from app.core.security.password import get_password_hash, verify_password
@@ -303,6 +304,20 @@ async def reset_password(request: ResetPasswordRequest):
     user.otp_expiry = None
     await user.save()
     
-    return {
-        "message": "Khôi phục mật khẩu thành công. Bạn đã có thể đăng nhập bằng mật khẩu mới."
-    }
+    return {"message": "Reset mật khẩu thành công. Bạn có thể đăng nhập bằng mật khẩu mới."}
+
+@router.post("/change-password", status_code=status.HTTP_200_OK)
+async def change_password(
+    request: ChangePasswordRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Đổi mật khẩu người dùng đang đăng nhập
+    """
+    if not verify_password(request.old_password, current_user.hashed_password):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Mật khẩu hiện tại không chính xác")
+    
+    current_user.hashed_password = get_password_hash(request.new_password)
+    await current_user.save()
+
+    return {"message": "Đổi mật khẩu thành công"}

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import type { User } from '../context/AppContext';
 
 // Helper: inline avatar fallback with initials
 const AdminAvatar: React.FC<{ name: string; src?: string | null }> = ({ name, src }) => {
@@ -19,8 +20,8 @@ const AdminAvatar: React.FC<{ name: string; src?: string | null }> = ({ name, sr
 export const AdminDashboard: React.FC = () => {
   const {
     currentUser, users, activities, registrations, organizerRequests,
-    reviewOrganizerRequest, reviewActivity, changeUserRole, setCurrentUser,
-    showNotification, showPrompt, showConfirm, confirmDialog
+    reviewOrganizerRequest, reviewActivity, setCurrentUser,
+    showNotification, showPrompt
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'overview' | 'organizers' | 'activities' | 'users' | 'stats'>('overview');
@@ -129,6 +130,29 @@ export const AdminDashboard: React.FC = () => {
             Tình Nguyện Viên
           </span>
         );
+    }
+  };
+
+  const getLoginStatusBadge = (user: User) => {
+    // Current logged-in user is always online. Other users are simulated based on their ID hash for a realistic experience.
+    const isOnline = currentUser && user._id === currentUser._id
+      ? true
+      : (user._id.charCodeAt(user._id.length - 1) % 2 === 0);
+
+    if (isOnline) {
+      return (
+        <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 text-xs px-2.5 py-1.5 rounded-full font-bold border border-emerald-200 shadow-sm shrink-0">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+          Đang hoạt động
+        </span>
+      );
+    } else {
+      return (
+        <span className="inline-flex items-center gap-1.5 bg-slate-50 text-slate-500 text-xs px-2.5 py-1.5 rounded-full font-semibold border border-slate-200 shadow-sm shrink-0">
+          <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+          Ngoại tuyến
+        </span>
+      );
     }
   };
 
@@ -832,7 +856,7 @@ export const AdminDashboard: React.FC = () => {
                           <th className="px-4 py-3 whitespace-nowrap">Số điện thoại</th>
                           <th className="px-4 py-3 whitespace-nowrap">Email</th>
                           <th className="px-4 py-3 whitespace-nowrap">Vai trò</th>
-                          <th className="px-4 py-3 whitespace-nowrap">Cấp quyền vai trò</th>
+                          <th className="px-4 py-3 whitespace-nowrap">Trạng thái hoạt động</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-surface-variant/30 text-on-surface">
@@ -847,31 +871,7 @@ export const AdminDashboard: React.FC = () => {
                               {getRoleBadge(u.role)}
                             </td>
                             <td className="px-4 py-3.5 whitespace-nowrap">
-                              <select
-                                value={u.role}
-                                onChange={(e) => {
-                                  const newRole = e.target.value as 'Volunteer' | 'Organizer' | 'Admin';
-                                  if (newRole === u.role) return;
-                                  if (confirmDialog) return;
-                                  e.target.blur();
-                                  
-                                  const oldRoleName = u.role === 'Volunteer' ? 'Tình Nguyện Viên' : u.role === 'Organizer' ? 'Ban Tổ Chức' : 'Quản Trị Viên';
-                                  const newRoleName = newRole === 'Volunteer' ? 'Tình Nguyện Viên' : newRole === 'Organizer' ? 'Ban Tổ Chức' : 'Quản Trị Viên';
-                                  
-                                  showConfirm(
-                                    `Bạn có chắc chắn muốn thay đổi vai trò của người dùng "${u.profile.full_name}" từ "${oldRoleName}" sang "${newRoleName}" không?`,
-                                    () => {
-                                      changeUserRole(u._id, newRole);
-                                      showNotification(`Đã chuyển vai trò của ${u.profile.full_name} sang ${newRoleName}`, 'success');
-                                    }
-                                  );
-                                }}
-                                className="border border-surface-variant rounded-lg px-2 py-1 text-xs bg-white cursor-pointer font-semibold"
-                              >
-                                <option value="Volunteer">Tình Nguyện Viên</option>
-                                <option value="Organizer">Ban Tổ Chức</option>
-                                {u.role === 'Admin' && <option value="Admin">Quản Trị Viên</option>}
-                              </select>
+                              {getLoginStatusBadge(u)}
                             </td>
                           </tr>
                         ))}

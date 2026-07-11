@@ -121,3 +121,12 @@ class ResetPasswordRequest(BaseModel):
 
 class ResendOTPRequest(BaseModel):
     email: EmailStr
+
+class ChangePasswordRequest(BaseModel):
+    old_password: str
+    new_password: str
+
+    @field_validator('new_password')
+    @classmethod
+    def validate_new_password(cls, v: str) -> str:
+        return validate_password_strength(v)

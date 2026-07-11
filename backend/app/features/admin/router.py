@@ -117,3 +117,21 @@ async def get_users(
         return {"success": True, "data": {"users": serialized}}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Serialization error: {type(e).__name__}: {str(e)}")
+
+@router.get("/registrations")
+async def get_registrations(
+    limit: int = Query(50, ge=1, le=500, description="Max records to return (capped at 500 for OOM safety)"),
+    skip: int = Query(0, ge=0, description="Number of records to skip")
+):
+    """
+    Get all registrations for admin with mandatory pagination.
+    OOM FIX: Capped at 500 per request.
+    """
+    import json
+    from app.features.registrations.models import Registration
+    try:
+        registrations = await Registration.find_all().sort("-created_at").skip(skip).limit(limit).to_list()
+        serialized = [json.loads(r.model_dump_json()) for r in registrations]
+        return {"success": True, "data": {"registrations": serialized}}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Serialization error: {type(e).__name__}: {str(e)}")
