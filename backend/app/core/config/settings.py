@@ -5,8 +5,8 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "super_secret_key_change_in_production"
     JWT_SECRET: Optional[str] = None
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440 # 1 ngày (tăng lên để tránh user bị văng ra liên tục)
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 30
     MONGODB_URL: str = "mongodb://localhost:27017/volunteer_connect"
 
     def __init__(self, **values):
