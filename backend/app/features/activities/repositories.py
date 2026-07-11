@@ -32,13 +32,9 @@ class ActivityRepository:
         if province:
             query["location.province"] = province
 
-        print(f"DEBUG: Starting count() for query={query}")
         total = await Activity.find(query).count()
-        print(f"DEBUG: Finished count(), total={total}")
         # Sort theo start_date giảm dần (mới nhất hiển thị trước)
-        print(f"DEBUG: Starting to_list(), skip={skip}, limit={limit}")
         activities = await Activity.find(query).sort("-start_date").skip(skip).limit(limit).to_list()
-        print(f"DEBUG: Finished to_list(), len={len(activities)}")
         
         return activities, total
 

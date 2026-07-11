@@ -27,7 +27,6 @@ async def get_open_activities(
     page: int = Query(1, ge=1, description="Trang số"),
     limit: int = Query(10, ge=1, le=100, description="Số lượng hoạt động mỗi trang")
 ):
-    print(f"DEBUG: ROUTER get_open_activities called! search={search}, page={page}, limit={limit}")
     skip = (page - 1) * limit
     activities, total = await ActivityRepository.list_open_activities(
         search=search,
