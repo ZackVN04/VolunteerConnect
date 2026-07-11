@@ -18,7 +18,7 @@ class ActivityCreate(BaseModel):
     end_date: datetime
     limit_volunteers: int = Field(..., gt=0)
     requirements: Optional[str] = Field(None, max_length=1000)
-    image_url: Optional[str] = None
+    image_url: Optional[str] = Field(None, max_length=500, description="URL of the uploaded image (must not be base64)")
 
     @model_validator(mode='after')
     def check_dates(self) -> 'ActivityCreate':
@@ -35,7 +35,7 @@ class ActivityUpdate(BaseModel):
     end_date: Optional[datetime] = None
     limit_volunteers: Optional[int] = Field(None, gt=0)
     requirements: Optional[str] = Field(None, max_length=1000)
-    image_url: Optional[str] = None
+    image_url: Optional[str] = Field(None, max_length=500, description="URL of the uploaded image (must not be base64)")
 
     @model_validator(mode='after')
     def check_dates(self) -> 'ActivityUpdate':

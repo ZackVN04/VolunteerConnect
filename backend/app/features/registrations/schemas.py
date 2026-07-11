@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime
 from app.features.registrations.constants import RegistrationStatus, ReviewAction
 from typing import List, Optional
@@ -25,8 +25,7 @@ class RegistrationResponse(BaseModel):
     activity: Optional[ActivitySnippet] = None
     volunteer: Optional[VolunteerSnippet] = None
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class RegistrationListResponseData(BaseModel):
     registrations: List[RegistrationResponse]
@@ -71,8 +70,7 @@ class RegistrationDetailResponse(BaseModel):
     reviewed_at: Optional[datetime] = None
     activity: Optional[ActivityDetailInRegistration] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class BulkApproveRequest(BaseModel):
