@@ -192,6 +192,14 @@ export const MyRegistrationsView: React.FC = () => {
                         </span>
                       </div>
                     </div>
+                    {reg.status === 'Rejected' && reg.reject_reason && (
+                      <div className="mt-3.5 text-xs text-red-700 bg-red-50/60 border border-red-200/50 rounded-xl p-3 flex items-start gap-2 max-w-[500px]">
+                        <span className="material-symbols-outlined text-[16px] shrink-0 text-red-600 mt-0.5 font-bold">info</span>
+                        <span>
+                          <strong>Lý do từ chối:</strong> {reg.reject_reason}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Right Side: Badges & Action Buttons */}
