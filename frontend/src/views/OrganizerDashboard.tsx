@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import type { Activity } from '../context/AppContext';
+import { mediaService } from '../services/apiService';
 
 const LOCATION_DATA: Record<string, string[]> = {
   "Hồ Chí Minh": [
@@ -79,20 +80,28 @@ export const OrganizerDashboard: React.FC = () => {
   const [endDate, setEndDate] = useState('');
   const [limitVolunteers, setLimitVolunteers] = useState<number | string>(10);
   const [requirements, setRequirements] = useState('');
-  const [imageUrl, setImageUrl] = useState('');
+   const [imageUrl, setImageUrl] = useState('');
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      showNotification('Dung lượng hình ảnh phải nhỏ hơn 5MB!', 'error');
+    if (file.size > 2 * 1024 * 1024) {
+      showNotification('Dung lượng hình ảnh phải nhỏ hơn 2MB để upload!', 'error');
       return;
     }
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setImageUrl(reader.result as string);
-    };
-    reader.readAsDataURL(file);
+    
+    setIsUploadingImage(true);
+    try {
+      const res = await mediaService.upload(file);
+      setImageUrl(res.url);
+      showNotification('Tải ảnh lên thành công!', 'success');
+    } catch (err: any) {
+      console.error(err);
+      showNotification(err.response?.data?.detail || 'Không thể tải ảnh lên. Vui lòng thử lại.', 'error');
+    } finally {
+      setIsUploadingImage(false);
+    }
   };
 
   // Auto-fill if hash says create=true
@@ -529,11 +538,18 @@ export const OrganizerDashboard: React.FC = () => {
                           Chưa chọn ảnh
                         </div>
                       )}
-                      <label className="inline-flex items-center gap-1.5 px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold cursor-pointer transition-all shadow-sm">
-                        <span className="material-symbols-outlined text-sm text-slate-500">upload</span>
-                        Tải ảnh lên
-                        <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
-                      </label>
+                      {isUploadingImage ? (
+                        <div className="inline-flex items-center gap-1.5 px-4 py-2 border border-slate-200 text-slate-400 rounded-xl text-xs font-bold bg-slate-50">
+                          <span className="animate-spin text-sm">⌛</span>
+                          Đang tải lên...
+                        </div>
+                      ) : (
+                        <label className="inline-flex items-center gap-1.5 px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold cursor-pointer transition-all shadow-sm">
+                          <span className="material-symbols-outlined text-sm text-slate-500">upload</span>
+                          Tải ảnh lên
+                          <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                        </label>
+                      )}
                     </div>
                   </div>
 
