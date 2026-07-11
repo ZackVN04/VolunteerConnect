@@ -339,7 +339,7 @@ async def test_reset_password_success(async_client, active_user):
     }
     response = await async_client.post("/api/v1/auth/reset-password", json=payload)
     assert response.status_code == 200
-    assert "Reset mật khẩu thành công" in response.json()["message"]
+    assert "Khôi phục mật khẩu thành công" in response.json()["message"]
     
     # 3. Check that the password hash has changed, and OTP fields are cleared
     updated_user = await User.get(active_user.id)
