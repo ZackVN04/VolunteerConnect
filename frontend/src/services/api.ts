@@ -122,6 +122,7 @@ const setupResponseInterceptor = (axiosInstance: any) => {
             failedQueue.push({ resolve, reject });
           })
             .then((token) => {
+              originalRequest._retry = true;
               originalRequest.headers.Authorization = `Bearer ${token}`;
               return axiosInstance(originalRequest);
             })
