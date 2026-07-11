@@ -15,12 +15,24 @@ export const MyRegistrationsView: React.FC = () => {
   const completedCount = userRegs.filter(r => r.status === 'Completed').length;
 
 
-  const formatDate = (dateStr: string) => {
+
+
+  const formatRegistrationSchedule = (startStr: string, endStr: string) => {
     try {
-      const d = new Date(dateStr);
-      return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      const start = new Date(startStr);
+      const end = new Date(endStr);
+      const startTime = start.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false });
+      const endTime = end.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false });
+      const startDate = start.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      const endDate = end.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+      if (startDate === endDate) {
+        return `${startTime} - ${endTime} | ${startDate}`;
+      } else {
+        return `${startTime} ${startDate} - ${endTime} ${endDate}`;
+      }
     } catch (e) {
-      return dateStr;
+      return `${startStr} - ${endStr}`;
     }
   };
 
@@ -151,7 +163,7 @@ export const MyRegistrationsView: React.FC = () => {
                   {/* Left Side: Info */}
                   <div className="space-y-1">
                     <span className="text-xs text-gray-500 font-semibold block mb-1">
-                      {formatDate(reg.denormalized_activity.start_date)} - {formatDate(reg.denormalized_activity.end_date)}
+                      {formatRegistrationSchedule(reg.denormalized_activity.start_date, reg.denormalized_activity.end_date)}
                     </span>
                     <h3 className="text-base font-bold text-gray-900 hover:text-[#006d37] transition-colors leading-snug block mb-2">
                       <a href={`#/activity/${reg.activity_id}`}>
