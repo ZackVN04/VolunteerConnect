@@ -53,11 +53,63 @@ export const AdminDashboard: React.FC = () => {
   const [historyStatusFilter, setHistoryStatusFilter] = useState<'All' | 'Approved' | 'Rejected'>('All');
   const [historyDateFilter, setHistoryDateFilter] = useState('');
 
+  // Filters for Organizers Tab
+  const [orgSearch, setOrgSearch] = useState('');
+  const [orgDateFilter, setOrgDateFilter] = useState('');
+
+  // Filters for Activities Tab
+  const [actSearch, setActSearch] = useState('');
+  const [actCategoryFilter, setActCategoryFilter] = useState('All');
+
+  // Filters for Users Tab
+  const [userSearch, setUserSearch] = useState('');
+  const [userRoleFilter, setUserRoleFilter] = useState('All');
+
+  // Filters for Stats Tab
+  const [statsSearch, setStatsSearch] = useState('');
+  const [statsStatusFilter, setStatsStatusFilter] = useState('All');
+
   if (!currentUser) return null;
 
   // Filter pending review lists
-  const pendingRequests = organizerRequests.filter(r => r.status === 'Pending');
-  const pendingActivities = activities.filter(a => a.status === 'Pending Review');
+  const pendingRequests = organizerRequests
+    .filter(r => r.status === 'Pending')
+    .filter(req => {
+      const requesterUser = users.find(u => u._id === req.volunteer_id);
+      const name = (req.denormalized_volunteer?.name || '').toLowerCase();
+      const email = (requesterUser?.email || req.denormalized_volunteer?.email || '').toLowerCase();
+      const phone = (requesterUser?.phone || req.contact_phone || '').toLowerCase();
+      const search = orgSearch.toLowerCase();
+      
+      if (search && !name.includes(search) && !email.includes(search) && !phone.includes(search)) {
+        return false;
+      }
+      
+      if (orgDateFilter && req.created_at) {
+        const itemDateStr = new Date(req.created_at).toISOString().split('T')[0];
+        if (itemDateStr !== orgDateFilter) return false;
+      }
+      
+      return true;
+    });
+
+  const pendingActivities = activities
+    .filter(a => a.status === 'Pending Review')
+    .filter(act => {
+      const title = (act.title || '').toLowerCase();
+      const orgName = (act.denormalized_organizer?.name || '').toLowerCase();
+      const search = actSearch.toLowerCase();
+      
+      if (search && !title.includes(search) && !orgName.includes(search)) {
+        return false;
+      }
+      
+      if (actCategoryFilter !== 'All') {
+        if (!act.categories?.includes(actCategoryFilter)) return false;
+      }
+      
+      return true;
+    });
 
   const handleApproveOrganizer = async (reqId: string) => {
     const res = await reviewOrganizerRequest(reqId, true);
@@ -746,6 +798,47 @@ export const AdminDashboard: React.FC = () => {
                 Phê duyệt ban tổ chức
               </h2>
 
+              {/* Filter controls */}
+              <div className="bg-white border border-surface-variant/40 rounded-2xl p-4 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
+                <div className="relative w-full md:w-80">
+                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
+                  <input
+                    type="text"
+                    placeholder="Tìm theo tên, email, SĐT..."
+                    value={orgSearch}
+                    onChange={(e) => setOrgSearch(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-[#006d37] focus:border-[#006d37]"
+                  />
+                </div>
+
+                <div className="flex flex-wrap w-full md:w-auto gap-4 items-center justify-end">
+                  {/* Date Filter */}
+                  <div className="flex items-center gap-1.5 text-xs">
+                    <span className="text-slate-500 font-semibold">Ngày gửi:</span>
+                    <input
+                      type="date"
+                      value={orgDateFilter}
+                      onChange={(e) => setOrgDateFilter(e.target.value)}
+                      className="border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-700 focus:outline-none"
+                    />
+                  </div>
+
+                  {/* Clear Filters */}
+                  {(orgSearch || orgDateFilter) && (
+                    <button
+                      onClick={() => {
+                        setOrgSearch('');
+                        setOrgDateFilter('');
+                      }}
+                      className="text-red-600 hover:text-red-700 font-bold text-xs flex items-center gap-0.5 cursor-pointer"
+                    >
+                      <span className="material-symbols-outlined text-sm">clear</span>
+                      Xóa lọc
+                    </button>
+                  )}
+                </div>
+              </div>
+
               <div className="bg-white border border-surface-variant/40 rounded-2xl shadow-sm overflow-hidden">
                 {pendingRequests.length === 0 ? (
                   <div className="p-16 text-center space-y-3">
@@ -807,6 +900,53 @@ export const AdminDashboard: React.FC = () => {
               <h2 className="text-xl font-bold text-on-surface border-b border-surface-variant/40 pb-3">
                 Phê duyệt hoạt động
               </h2>
+
+              {/* Filter controls */}
+              <div className="bg-white border border-surface-variant/40 rounded-2xl p-4 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
+                <div className="relative w-full md:w-80">
+                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
+                  <input
+                    type="text"
+                    placeholder="Tìm theo tên hoạt động, BTC..."
+                    value={actSearch}
+                    onChange={(e) => setActSearch(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-[#006d37] focus:border-[#006d37]"
+                  />
+                </div>
+
+                <div className="flex flex-wrap w-full md:w-auto gap-4 items-center justify-end">
+                  {/* Category Filter */}
+                  <div className="flex items-center gap-1.5 text-xs">
+                    <span className="text-slate-500 font-semibold">Lĩnh vực:</span>
+                    <select
+                      value={actCategoryFilter}
+                      onChange={(e) => setActCategoryFilter(e.target.value)}
+                      className="border border-slate-200 rounded-lg px-2.5 py-1.5 bg-white font-medium text-slate-700 focus:outline-none text-xs"
+                    >
+                      <option value="All">Tất cả</option>
+                      <option value="Môi trường">Môi trường</option>
+                      <option value="Giáo dục">Giáo dục</option>
+                      <option value="Y tế">Y tế</option>
+                      <option value="Từ thiện">Từ thiện</option>
+                      <option value="Gây quỹ">Gây quỹ</option>
+                    </select>
+                  </div>
+
+                  {/* Clear Filters */}
+                  {(actSearch || actCategoryFilter !== 'All') && (
+                    <button
+                      onClick={() => {
+                        setActSearch('');
+                        setActCategoryFilter('All');
+                      }}
+                      className="text-red-600 hover:text-red-700 font-bold text-xs flex items-center gap-0.5 cursor-pointer"
+                    >
+                      <span className="material-symbols-outlined text-sm">clear</span>
+                      Xóa lọc
+                    </button>
+                  )}
+                </div>
+              </div>
 
               <div className="bg-white border border-surface-variant/40 rounded-2xl shadow-sm overflow-hidden">
                 {pendingActivities.length === 0 ? (
@@ -875,104 +1015,242 @@ export const AdminDashboard: React.FC = () => {
           )}
 
           {/* TAB 4: SYSTEM USER LIST */}
-          {activeTab === 'users' && (
-            <div className="space-y-6">
-              <h2 className="text-xl font-bold text-on-surface border-b border-surface-variant/40 pb-3">
-                Danh sách người dùng
-              </h2>
+          {activeTab === 'users' && (() => {
+            const filteredUsers = users.filter(u => {
+              const name = (u.profile.full_name || '').toLowerCase();
+              const phone = (u.phone || '').toLowerCase();
+              const email = (u.email || '').toLowerCase();
+              const search = userSearch.toLowerCase();
+              
+              if (search && !name.includes(search) && !phone.includes(search) && !email.includes(search)) {
+                return false;
+              }
+              
+              if (userRoleFilter !== 'All') {
+                if (u.role !== userRoleFilter) return false;
+              }
+              
+              return true;
+            });
 
-              <div className="bg-white border border-surface-variant/40 rounded-2xl shadow-sm overflow-hidden">
-                {users.length === 0 ? (
-                  <div className="p-16 text-center space-y-3">
-                    <span className="material-symbols-outlined text-outline text-5xl">group</span>
-                    <p className="text-sm text-on-surface-variant italic">Không có người dùng nào trong hệ thống</p>
+            return (
+              <div className="space-y-6">
+                <h2 className="text-xl font-bold text-on-surface border-b border-surface-variant/40 pb-3">
+                  Danh sách người dùng
+                </h2>
+
+                {/* Filter controls */}
+                <div className="bg-white border border-surface-variant/40 rounded-2xl p-4 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
+                  <div className="relative w-full md:w-80">
+                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
+                    <input
+                      type="text"
+                      placeholder="Tìm theo tên, SĐT, email..."
+                      value={userSearch}
+                      onChange={(e) => setUserSearch(e.target.value)}
+                      className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-[#006d37] focus:border-[#006d37]"
+                    />
                   </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full border-collapse text-left text-sm">
-                      <thead>
-                        <tr className="bg-[#f8f9fa] border-b border-surface-variant/40 text-on-surface-variant font-bold text-xs uppercase tracking-wider">
-                          <th className="px-4 py-3 whitespace-nowrap">Tên người dùng</th>
-                          <th className="px-4 py-3 whitespace-nowrap">Số điện thoại</th>
-                          <th className="px-4 py-3 whitespace-nowrap">Email</th>
-                          <th className="px-4 py-3 whitespace-nowrap">Vai trò</th>
-                          <th className="px-4 py-3 whitespace-nowrap">Trạng thái hoạt động</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-surface-variant/30 text-on-surface">
-                        {users.map(u => (
-                          <tr key={u._id} className="hover:bg-slate-50 transition-colors">
-                            <td className="px-4 py-3.5 font-bold whitespace-nowrap">{u.profile.full_name}</td>
-                            <td className="px-4 py-3.5 text-on-surface-variant whitespace-nowrap">{u.phone}</td>
-                            <td className="px-4 py-3.5 text-on-surface-variant max-w-[200px] truncate" title={u.email || 'Chưa cập nhật'}>
-                              {u.email || 'Chưa cập nhật'}
-                            </td>
-                            <td className="px-4 py-3.5 whitespace-nowrap">
-                              {getRoleBadge(u.role)}
-                            </td>
-                            <td className="px-4 py-3.5 whitespace-nowrap">
-                              {getLoginStatusBadge(u)}
-                            </td>
+
+                  <div className="flex flex-wrap w-full md:w-auto gap-4 items-center justify-end">
+                    {/* Role Filter */}
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <span className="text-slate-500 font-semibold">Vai trò:</span>
+                      <select
+                        value={userRoleFilter}
+                        onChange={(e) => setUserRoleFilter(e.target.value)}
+                        className="border border-slate-200 rounded-lg px-2.5 py-1.5 bg-white font-medium text-slate-700 focus:outline-none text-xs"
+                      >
+                        <option value="All">Tất cả</option>
+                        <option value="Volunteer">Tình nguyện viên</option>
+                        <option value="Organizer">Ban tổ chức</option>
+                        <option value="Admin">Quản trị viên</option>
+                      </select>
+                    </div>
+
+                    {/* Clear Filters */}
+                    {(userSearch || userRoleFilter !== 'All') && (
+                      <button
+                        onClick={() => {
+                          setUserSearch('');
+                          setUserRoleFilter('All');
+                        }}
+                        className="text-red-600 hover:text-red-700 font-bold text-xs flex items-center gap-0.5 cursor-pointer"
+                      >
+                        <span className="material-symbols-outlined text-sm">clear</span>
+                        Xóa lọc
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="bg-white border border-surface-variant/40 rounded-2xl shadow-sm overflow-hidden">
+                  {filteredUsers.length === 0 ? (
+                    <div className="p-16 text-center space-y-3">
+                      <span className="material-symbols-outlined text-outline text-5xl">group</span>
+                      <p className="text-sm text-on-surface-variant italic">Không tìm thấy người dùng phù hợp.</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full border-collapse text-left text-sm">
+                        <thead>
+                          <tr className="bg-[#f8f9fa] border-b border-surface-variant/40 text-on-surface-variant font-bold text-xs uppercase tracking-wider">
+                            <th className="px-4 py-3 whitespace-nowrap">Tên người dùng</th>
+                            <th className="px-4 py-3 whitespace-nowrap">Số điện thoại</th>
+                            <th className="px-4 py-3 whitespace-nowrap">Email</th>
+                            <th className="px-4 py-3 whitespace-nowrap">Vai trò</th>
+                            <th className="px-4 py-3 whitespace-nowrap">Trạng thái hoạt động</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+                        </thead>
+                        <tbody className="divide-y divide-surface-variant/30 text-on-surface">
+                          {filteredUsers.map(u => (
+                            <tr key={u._id} className="hover:bg-slate-50 transition-colors">
+                              <td className="px-4 py-3.5 font-bold whitespace-nowrap">{u.profile.full_name}</td>
+                              <td className="px-4 py-3.5 text-on-surface-variant whitespace-nowrap">{u.phone}</td>
+                              <td className="px-4 py-3.5 text-on-surface-variant max-w-[200px] truncate" title={u.email || 'Chưa cập nhật'}>
+                                {u.email || 'Chưa cập nhật'}
+                              </td>
+                              <td className="px-4 py-3.5 whitespace-nowrap">
+                                {getRoleBadge(u.role)}
+                              </td>
+                              <td className="px-4 py-3.5 whitespace-nowrap">
+                                {getLoginStatusBadge(u)}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* TAB 5: REGISTRATION & ATTENDANCE STATS TABLE */}
-          {activeTab === 'stats' && (
-            <div className="space-y-6">
-              <h2 className="text-xl font-bold text-on-surface border-b border-surface-variant/40 pb-3">
-                Thống kê tham gia
-              </h2>
+          {activeTab === 'stats' && (() => {
+            const filteredRegs = registrations.filter(reg => {
+              const name = (reg.denormalized_volunteer?.name || '').toLowerCase();
+              const actTitle = (reg.denormalized_activity?.title || '').toLowerCase();
+              const search = statsSearch.toLowerCase();
+              
+              if (search && !name.includes(search) && !actTitle.includes(search)) {
+                return false;
+              }
+              
+              if (statsStatusFilter !== 'All') {
+                if (statsStatusFilter === 'Approved' && reg.status !== 'Approved') return false;
+                if (statsStatusFilter === 'Pending' && reg.status !== 'Pending') return false;
+                if (statsStatusFilter === 'Completed' && reg.status !== 'Completed') return false;
+                if (statsStatusFilter === 'Absent' && reg.status !== 'Absent') return false;
+                if (statsStatusFilter === 'Rejected' && reg.status !== 'Rejected') return false;
+                if (statsStatusFilter === 'Cancelled' && reg.status !== 'Cancelled') return false;
+              }
+              
+              return true;
+            });
 
-              <div className="bg-white border border-surface-variant/40 rounded-2xl shadow-sm overflow-hidden">
-                {registrations.length === 0 ? (
-                  <div className="p-16 text-center space-y-3">
-                    <span className="material-symbols-outlined text-outline text-5xl">analytics</span>
-                    <p className="text-sm text-on-surface-variant italic">Không có dữ liệu đăng ký/điểm danh tham gia nào.</p>
+            return (
+              <div className="space-y-6">
+                <h2 className="text-xl font-bold text-on-surface border-b border-surface-variant/40 pb-3">
+                  Thống kê tham gia
+                </h2>
+
+                {/* Filter controls */}
+                <div className="bg-white border border-surface-variant/40 rounded-2xl p-4 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
+                  <div className="relative w-full md:w-80">
+                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
+                    <input
+                      type="text"
+                      placeholder="Tìm theo tên tình nguyện viên, hoạt động..."
+                      value={statsSearch}
+                      onChange={(e) => setStatsSearch(e.target.value)}
+                      className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-[#006d37] focus:border-[#006d37]"
+                    />
                   </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full border-collapse text-left text-sm">
-                      <thead>
-                        <tr className="bg-[#f8f9fa] border-b border-surface-variant/40 text-on-surface-variant font-bold text-xs uppercase tracking-wider">
-                          <th className="px-6 py-4">Tình nguyện viên</th>
-                          <th className="px-6 py-4">Tên hoạt động</th>
-                          <th className="px-6 py-4">Ban tổ chức</th>
-                          <th className="px-6 py-4">Ngày đăng ký</th>
-                          <th className="px-6 py-4">Điểm danh</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-surface-variant/30 text-on-surface">
-                        {registrations.map(reg => (
-                          <tr key={reg._id} className="hover:bg-slate-50 transition-colors">
-                            <td className="px-6 py-5 font-bold">{reg.denormalized_volunteer.name}</td>
-                            <td className="px-6 py-5 text-on-surface font-semibold">
-                              {reg.denormalized_activity.title}
-                            </td>
-                            <td className="px-6 py-5 text-on-surface-variant">
-                              Ban tổ chức hoạt động
-                            </td>
-                            <td className="px-6 py-5 whitespace-nowrap text-on-surface-variant">
-                              {new Date(reg.created_at).toLocaleDateString('vi-VN')}
-                            </td>
-                            <td className="px-6 py-5">
-                              {getStatusBadge(reg.status)}
-                            </td>
+
+                  <div className="flex flex-wrap w-full md:w-auto gap-4 items-center justify-end">
+                    {/* Status Filter */}
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <span className="text-slate-500 font-semibold">Trạng thái:</span>
+                      <select
+                        value={statsStatusFilter}
+                        onChange={(e) => setStatsStatusFilter(e.target.value)}
+                        className="border border-slate-200 rounded-lg px-2.5 py-1.5 bg-white font-medium text-slate-700 focus:outline-none text-xs"
+                      >
+                        <option value="All">Tất cả</option>
+                        <option value="Pending">Chờ duyệt</option>
+                        <option value="Approved">Đã duyệt</option>
+                        <option value="Completed">Hoàn thành</option>
+                        <option value="Absent">Vắng mặt</option>
+                        <option value="Rejected">Bị từ chối</option>
+                        <option value="Cancelled">Đã hủy</option>
+                      </select>
+                    </div>
+
+                    {/* Clear Filters */}
+                    {(statsSearch || statsStatusFilter !== 'All') && (
+                      <button
+                        onClick={() => {
+                          setStatsSearch('');
+                          setStatsStatusFilter('All');
+                        }}
+                        className="text-red-600 hover:text-red-700 font-bold text-xs flex items-center gap-0.5 cursor-pointer"
+                      >
+                        <span className="material-symbols-outlined text-sm">clear</span>
+                        Xóa lọc
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="bg-white border border-surface-variant/40 rounded-2xl shadow-sm overflow-hidden">
+                  {filteredRegs.length === 0 ? (
+                    <div className="p-16 text-center space-y-3">
+                      <span className="material-symbols-outlined text-outline text-5xl">analytics</span>
+                      <p className="text-sm text-on-surface-variant italic">Không tìm thấy kết quả thống kê tham gia phù hợp.</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full border-collapse text-left text-sm">
+                        <thead>
+                          <tr className="bg-[#f8f9fa] border-b border-surface-variant/40 text-on-surface-variant font-bold text-xs uppercase tracking-wider">
+                            <th className="px-6 py-4">Tình nguyện viên</th>
+                            <th className="px-6 py-4">Tên hoạt động</th>
+                            <th className="px-6 py-4">Ban tổ chức</th>
+                            <th className="px-6 py-4">Ngày đăng ký</th>
+                            <th className="px-6 py-4">Điểm danh</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+                        </thead>
+                        <tbody className="divide-y divide-surface-variant/30 text-on-surface">
+                          {filteredRegs.map(reg => {
+                            const actDetails = activities.find(a => a._id === reg.activity_id);
+                            return (
+                              <tr key={reg._id} className="hover:bg-slate-50 transition-colors">
+                                <td className="px-6 py-5 font-bold">{reg.denormalized_volunteer.name}</td>
+                                <td className="px-6 py-5 text-on-surface font-semibold">
+                                  {reg.denormalized_activity.title}
+                                </td>
+                                <td className="px-6 py-5 text-on-surface-variant">
+                                  {actDetails?.denormalized_organizer?.name || 'Ban tổ chức'}
+                                </td>
+                                <td className="px-6 py-5 whitespace-nowrap text-on-surface-variant">
+                                  {new Date(reg.created_at).toLocaleDateString('vi-VN')}
+                                </td>
+                                <td className="px-6 py-5">
+                                  {getStatusBadge(reg.status)}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* TAB 6: APPROVAL HISTORY */}
           {activeTab === 'history' && (() => {

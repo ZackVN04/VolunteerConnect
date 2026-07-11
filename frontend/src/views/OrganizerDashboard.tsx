@@ -56,9 +56,12 @@ export const OrganizerDashboard: React.FC = () => {
 
   // Search filter for activities tab
   const [activitySearch, setActivitySearch] = useState('');
+  const [activityStatusFilter, setActivityStatusFilter] = useState<string>('All');
+  const [activityCategoryFilter, setActivityCategoryFilter] = useState<string>('All');
 
   // Search filter for registrations tab
   const [regSearch, setRegSearch] = useState('');
+  const [regActivityFilter, setRegActivityFilter] = useState<string>('All');
 
   // Show create/edit form
   const [showForm, setShowForm] = useState(false);
@@ -125,19 +128,39 @@ export const OrganizerDashboard: React.FC = () => {
   const totalVolunteers = organizerRegs.filter(r => r.status === 'Approved' || r.status === 'Completed').length;
 
   // Filtered campaigns for activities tab
-  const filteredCampaigns = myCampaigns.filter(a =>
-    a.title.toLowerCase().includes(activitySearch.toLowerCase())
-  );
+  const filteredCampaigns = myCampaigns
+    .filter(a => a.title.toLowerCase().includes(activitySearch.toLowerCase()))
+    .filter(a => {
+      if (activityStatusFilter !== 'All') {
+        if (activityStatusFilter === 'Open') {
+          return a.status === 'Open' || a.status === 'Full' || a.status === 'Ongoing';
+        }
+        return a.status === activityStatusFilter;
+      }
+      return true;
+    })
+    .filter(a => {
+      if (activityCategoryFilter !== 'All') {
+        return a.categories.includes(activityCategoryFilter);
+      }
+      return true;
+    });
 
   // All regs across organizer's campaigns, filtered by sub-tab
-  const allOrgRegs = organizerRegs.filter(r => {
-    if (regSubTab === 'pending') return r.status === 'Pending';
-    if (regSubTab === 'approved') return r.status === 'Approved' || r.status === 'Completed';
-    if (regSubTab === 'rejected') return r.status === 'Rejected' || r.status === 'Cancelled';
-    return true;
-  }).filter(r =>
-    r.denormalized_volunteer.name.toLowerCase().includes(regSearch.toLowerCase())
-  );
+  const allOrgRegs = organizerRegs
+    .filter(r => {
+      if (regSubTab === 'pending') return r.status === 'Pending';
+      if (regSubTab === 'approved') return r.status === 'Approved' || r.status === 'Completed';
+      if (regSubTab === 'rejected') return r.status === 'Rejected' || r.status === 'Cancelled';
+      return true;
+    })
+    .filter(r => r.denormalized_volunteer.name.toLowerCase().includes(regSearch.toLowerCase()))
+    .filter(r => {
+      if (regActivityFilter !== 'All') {
+        return r.activity_id === regActivityFilter;
+      }
+      return true;
+    });
 
   const pendingCount = organizerRegs.filter(r => r.status === 'Pending').length;
   const approvedCount = organizerRegs.filter(r => r.status === 'Approved' || r.status === 'Completed').length;
@@ -540,10 +563,43 @@ export const OrganizerDashboard: React.FC = () => {
                       placeholder="Tìm tên hoạt động..."
                       className="border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-semibold focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/10 w-48 shadow-sm transition-all"
                     />
-                    <button className="flex items-center gap-1.5 border border-[#006d37] rounded-xl px-4 py-2 text-xs text-[#006d37] hover:bg-emerald-50 transition-all font-bold cursor-pointer shadow-sm">
-                      <span className="material-symbols-outlined text-[15px] font-bold">filter_list</span>
-                      Bộ lọc
-                    </button>
+                    <select
+                      value={activityStatusFilter}
+                      onChange={e => setActivityStatusFilter(e.target.value)}
+                      className="border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-[#006d37] bg-white cursor-pointer shadow-sm text-slate-700"
+                    >
+                      <option value="All">Tất cả trạng thái</option>
+                      <option value="Draft">Bản nháp</option>
+                      <option value="Pending Review">Chờ duyệt</option>
+                      <option value="Open">Đang tuyển/diễn ra</option>
+                      <option value="Completed">Đã kết thúc</option>
+                      <option value="Rejected">Bị từ chối</option>
+                    </select>
+                    <select
+                      value={activityCategoryFilter}
+                      onChange={e => setActivityCategoryFilter(e.target.value)}
+                      className="border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-[#006d37] bg-white cursor-pointer shadow-sm text-slate-700"
+                    >
+                      <option value="All">Tất cả lĩnh vực</option>
+                      <option value="Môi trường">Môi trường</option>
+                      <option value="Giáo dục">Giáo dục</option>
+                      <option value="Y tế">Y tế</option>
+                      <option value="Từ thiện">Từ thiện</option>
+                      <option value="Gây quỹ">Gây quỹ</option>
+                    </select>
+                    {(activitySearch || activityStatusFilter !== 'All' || activityCategoryFilter !== 'All') && (
+                      <button
+                        onClick={() => {
+                          setActivitySearch('');
+                          setActivityStatusFilter('All');
+                          setActivityCategoryFilter('All');
+                        }}
+                        className="text-red-600 hover:text-red-700 font-bold text-xs flex items-center gap-0.5 cursor-pointer"
+                      >
+                        <span className="material-symbols-outlined text-sm">clear</span>
+                        Xóa lọc
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -676,10 +732,28 @@ export const OrganizerDashboard: React.FC = () => {
                   placeholder="Tìm tên tình nguyện viên..."
                   className="border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-semibold focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/10 w-48 shadow-sm transition-all"
                 />
-                <button className="flex items-center gap-1.5 border border-[#006d37] rounded-xl px-4 py-2 text-xs text-[#006d37] hover:bg-emerald-50 transition-all font-bold cursor-pointer shadow-sm">
-                  <span className="material-symbols-outlined text-[15px] font-bold">filter_list</span>
-                  Bộ lọc
-                </button>
+                <select
+                  value={regActivityFilter}
+                  onChange={e => setRegActivityFilter(e.target.value)}
+                  className="border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-[#006d37] bg-white cursor-pointer shadow-sm text-slate-700 max-w-[200px]"
+                >
+                  <option value="All">Tất cả hoạt động</option>
+                  {myCampaigns.map(act => (
+                    <option key={act._id} value={act._id}>{act.title}</option>
+                  ))}
+                </select>
+                {(regSearch || regActivityFilter !== 'All') && (
+                  <button
+                    onClick={() => {
+                      setRegSearch('');
+                      setRegActivityFilter('All');
+                    }}
+                    className="text-red-600 hover:text-red-700 font-bold text-xs flex items-center gap-0.5 cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-sm">clear</span>
+                    Xóa lọc
+                  </button>
+                )}
               </div>
             </div>
 
