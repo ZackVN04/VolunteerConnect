@@ -266,7 +266,7 @@ export interface PostComment {
 }
 
 export const FeedView: React.FC = () => {
-  const { currentUser, users, activities, posts, createPost, likePost, sharePost, deletePost, showNotification } = useApp();
+  const { currentUser, users, activities, posts, createPost, likePost, sharePost, deletePost, incrementCommentCount, showNotification } = useApp();
   const [currentPage, setCurrentPage] = useState(1);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -359,11 +359,8 @@ export const FeedView: React.FC = () => {
         ...newCommentTexts,
         [postId]: ''
       });
-      // Optionally update local post count to reflect immediate change
-      const postIndex = posts.findIndex(p => p._id === postId);
-      if (postIndex !== -1) {
-        posts[postIndex].comment_count = (posts[postIndex].comment_count || 0) + 1;
-      }
+      // Increment comment count in context state to trigger re-render and immediately update the counter on screen
+      incrementCommentCount(postId);
     } catch (error) {
       console.error('Lỗi khi thêm bình luận', error);
       showNotification('Lỗi khi gửi bình luận.', 'error');
@@ -392,6 +389,36 @@ export const FeedView: React.FC = () => {
 
   const totalFeedPages = Math.ceil(filteredPosts.length / postsPerPage);
   const paginatedPosts = filteredPosts.slice((feedPage - 1) * postsPerPage, feedPage * postsPerPage);
+
+  const postIdsString = paginatedPosts.map(p => p._id).join(',');
+
+  // Pre-load comment counts for visible posts to work around the backend comment_count bug
+  useEffect(() => {
+    paginatedPosts.forEach(post => {
+      if (commentsMap[post._id] === undefined) {
+        const fetchComments = async () => {
+          try {
+            const fetched = await commentService.getComments(post._id);
+            const mappedComments = fetched.map((c: any) => ({
+              _id: c.id || c._id,
+              post_id: post._id,
+              author_name: c.author_name || 'Thành viên',
+              author_avatar: c.author_avatar,
+              content: c.content,
+              created_at: c.created_at
+            }));
+            setCommentsMap(prev => ({
+              ...prev,
+              [post._id]: mappedComments
+            }));
+          } catch (e) {
+            console.error("Lỗi lấy bình luận:", e);
+          }
+        };
+        fetchComments();
+      }
+    });
+  }, [postIdsString]);
 
   // Relative time helper
   const formatRelativeTime = (dateStr: string): string => {
@@ -860,7 +887,7 @@ export const FeedView: React.FC = () => {
                           className="flex items-center gap-1.5 py-1.5 px-3 rounded-xl hover:bg-slate-50 hover:text-slate-700 transition-all cursor-pointer"
                         >
                           <span className="material-symbols-outlined text-lg">chat_bubble</span>
-                          <span>Bình luận ({post.comment_count || 0})</span>
+                          <span>Bình luận ({commentsMap[post._id] !== undefined ? commentsMap[post._id].length : (post.comment_count || 0)})</span>
                         </button>
 
                         <button

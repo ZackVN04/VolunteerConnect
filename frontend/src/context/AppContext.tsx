@@ -158,6 +158,7 @@ interface AppContextType {
   likePost: (postId: string) => void;
   sharePost: (postId: string) => void;
   deletePost: (postId: string) => Promise<{ success: boolean; error?: string }>;
+  incrementCommentCount: (postId: string) => void;
   updateProfile: (updatedProfile: Partial<UserProfile>, email: string, province: string, phone?: string) => void;
   changePassword: (oldPassword: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
   changeUserRole: (userId: string, role: 'Volunteer' | 'Organizer' | 'Admin') => void;
@@ -1328,6 +1329,33 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     return { success: true };
   };
 
+  // Increment Post Comment Count in State
+  const incrementCommentCount = (postId: string) => {
+    setPosts(prev => prev.map(p => {
+      if (p._id === postId) {
+        return {
+          ...p,
+          comment_count: (p.comment_count || 0) + 1
+        };
+      }
+      return p;
+    }));
+
+    if (!USE_REAL_BACKEND) {
+      // For local storage, sync the updated comments count
+      const updatedPosts = posts.map(p => {
+        if (p._id === postId) {
+          return {
+            ...p,
+            comment_count: (p.comment_count || 0) + 1
+          };
+        }
+        return p;
+      });
+      syncToLocalStorage(users, activities, registrations, organizerRequests, updatedPosts, currentUser);
+    }
+  };
+
   // Edit/Update Profile Details
   const updateProfile = (updatedProfile: Partial<UserProfile>, email: string, province: string, phone?: string) => {
     if (USE_REAL_BACKEND) {
@@ -1462,6 +1490,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         likePost,
         sharePost,
         deletePost,
+        incrementCommentCount,
         updateProfile,
         changePassword,
         changeUserRole,
