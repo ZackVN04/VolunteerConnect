@@ -24,7 +24,8 @@ export const AdminDashboard: React.FC = () => {
     showNotification, showPrompt
   } = useApp();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'organizers' | 'activities' | 'users' | 'stats'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'organizers' | 'activities' | 'users' | 'stats' | 'history'>('overview');
+  const [historySubTab, setHistorySubTab] = useState<'organizers' | 'activities'>('organizers');
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
 
   if (!currentUser) return null;
@@ -350,6 +351,20 @@ export const AdminDashboard: React.FC = () => {
               <span className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-lg">analytics</span>
                 Thống kê tham gia
+              </span>
+            </button>
+
+            {/* Tab 6: Lịch sử phê duyệt */}
+            <button
+              onClick={() => setActiveTab('history')}
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${activeTab === 'history'
+                ? 'bg-[#006d37] text-white'
+                : 'text-on-surface-variant hover:bg-slate-100 hover:text-on-surface'
+                }`}
+            >
+              <span className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-lg">history</span>
+                Lịch sử phê duyệt
               </span>
             </button>
           </nav>
@@ -931,6 +946,163 @@ export const AdminDashboard: React.FC = () => {
                   </div>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* TAB 6: APPROVAL HISTORY */}
+          {activeTab === 'history' && (
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-b border-surface-variant/40 pb-3">
+                <div>
+                  <h2 className="text-xl font-bold text-on-surface">
+                    Lịch sử phê duyệt
+                  </h2>
+                  <p className="text-xs text-on-surface-variant mt-1">
+                    Xem lịch sử kết quả xử lý các yêu cầu nâng cấp Ban tổ chức và phê duyệt hoạt động
+                  </p>
+                </div>
+                
+                {/* Sub-tab Switcher */}
+                <div className="flex bg-slate-100 p-1 rounded-xl shrink-0 self-start sm:self-auto">
+                  <button
+                    onClick={() => setHistorySubTab('organizers')}
+                    className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      historySubTab === 'organizers'
+                        ? 'bg-[#006d37] text-white shadow-sm'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    Duyệt Ban tổ chức
+                  </button>
+                  <button
+                    onClick={() => setHistorySubTab('activities')}
+                    className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      historySubTab === 'activities'
+                        ? 'bg-[#006d37] text-white shadow-sm'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    Duyệt Hoạt động
+                  </button>
+                </div>
+              </div>
+
+              {historySubTab === 'organizers' ? (
+                <div className="bg-white border border-surface-variant/40 rounded-2xl shadow-sm overflow-hidden">
+                  {organizerRequests.filter(r => r.status === 'Approved' || r.status === 'Rejected').length === 0 ? (
+                    <div className="p-16 text-center space-y-3">
+                      <span className="material-symbols-outlined text-outline text-5xl">history</span>
+                      <p className="text-sm text-on-surface-variant italic">Chưa có lịch sử phê duyệt Ban tổ chức nào.</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full border-collapse text-left text-sm">
+                        <thead>
+                          <tr className="bg-[#f8f9fa] border-b border-surface-variant/40 text-on-surface-variant font-bold text-xs uppercase tracking-wider">
+                            <th className="px-4 py-3 whitespace-nowrap">Người yêu cầu</th>
+                            <th className="px-4 py-3">Lý do xin nâng quyền</th>
+                            <th className="px-4 py-3 whitespace-nowrap">Thời gian duyệt</th>
+                            <th className="px-4 py-3 whitespace-nowrap">Trạng thái</th>
+                            <th className="px-4 py-3">Phản hồi của Admin</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-surface-variant/30 text-on-surface">
+                          {organizerRequests
+                            .filter(r => r.status === 'Approved' || r.status === 'Rejected')
+                            .map(req => (
+                              <tr key={req._id} className="hover:bg-slate-50 transition-colors">
+                                <td className="px-4 py-3.5 whitespace-nowrap font-semibold">
+                                  <div>{req.denormalized_volunteer?.name || 'Thành viên'}</div>
+                                  <div className="text-[10px] text-on-surface-variant font-normal">
+                                    {req.denormalized_volunteer?.email || req.contact_phone}
+                                  </div>
+                                </td>
+                                <td className="px-4 py-3.5 text-xs text-on-surface-variant max-w-[250px] break-words">
+                                  {req.reason}
+                                </td>
+                                <td className="px-4 py-3.5 whitespace-nowrap text-xs text-on-surface-variant">
+                                  {req.reviewed_at ? new Date(req.reviewed_at).toLocaleString('vi-VN') : 'Chưa cập nhật'}
+                                </td>
+                                <td className="px-4 py-3.5 whitespace-nowrap">
+                                  {req.status === 'Approved' ? (
+                                    <span className="bg-[#e8f5e9] text-[#006d37] font-bold text-[10px] px-2.5 py-1 rounded-full border border-[#006d37]/20 shadow-sm shrink-0">
+                                      Đã duyệt
+                                    </span>
+                                  ) : (
+                                    <span className="bg-red-50 text-red-700 font-bold text-[10px] px-2.5 py-1 rounded-full border border-red-200 shadow-sm shrink-0">
+                                      Từ chối
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="px-4 py-3.5 text-xs text-on-surface-variant max-w-[200px] break-words">
+                                  {req.admin_feedback || <span className="italic text-slate-400">Không có</span>}
+                                </td>
+                              </tr>
+                            ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="bg-white border border-surface-variant/40 rounded-2xl shadow-sm overflow-hidden">
+                  {activities.filter(a => a.status === 'Open' || a.status === 'Rejected').length === 0 ? (
+                    <div className="p-16 text-center space-y-3">
+                      <span className="material-symbols-outlined text-outline text-5xl">history</span>
+                      <p className="text-sm text-on-surface-variant italic">Chưa có lịch sử phê duyệt hoạt động nào.</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full border-collapse text-left text-sm">
+                        <thead>
+                          <tr className="bg-[#f8f9fa] border-b border-surface-variant/40 text-on-surface-variant font-bold text-xs uppercase tracking-wider">
+                            <th className="px-4 py-3 whitespace-nowrap">Tên hoạt động</th>
+                            <th className="px-4 py-3 whitespace-nowrap">Ban tổ chức</th>
+                            <th className="px-4 py-3 whitespace-nowrap">Lĩnh vực</th>
+                            <th className="px-4 py-3 whitespace-nowrap">Thời gian diễn ra</th>
+                            <th className="px-4 py-3 whitespace-nowrap">Trạng thái</th>
+                            <th className="px-4 py-3 whitespace-nowrap">Ngày duyệt</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-surface-variant/30 text-on-surface">
+                          {activities
+                            .filter(a => a.status === 'Open' || a.status === 'Rejected')
+                            .map(act => (
+                              <tr key={act._id} className="hover:bg-slate-50 transition-colors">
+                                <td className="px-4 py-3.5 max-w-[200px] truncate font-bold text-primary hover:underline">
+                                  <a href={`#/activity/${act._id}`}>{act.title}</a>
+                                </td>
+                                <td className="px-4 py-3.5 whitespace-nowrap text-on-surface font-semibold">
+                                  {act.denormalized_organizer?.name || 'Ban tổ chức'}
+                                </td>
+                                <td className="px-4 py-3.5 whitespace-nowrap text-xs text-on-surface-variant">
+                                  {act.categories?.join(', ') || 'Chưa cập nhật'}
+                                </td>
+                                <td className="px-4 py-3.5 whitespace-nowrap text-xs text-on-surface-variant">
+                                  {new Date(act.start_date).toLocaleDateString('vi-VN')} - {new Date(act.end_date).toLocaleDateString('vi-VN')}
+                                </td>
+                                <td className="px-4 py-3.5 whitespace-nowrap">
+                                  {act.status === 'Open' ? (
+                                    <span className="bg-[#e8f5e9] text-[#006d37] font-bold text-[10px] px-2.5 py-1 rounded-full border border-[#006d37]/20 shadow-sm shrink-0">
+                                      Đã duyệt
+                                    </span>
+                                  ) : (
+                                    <span className="bg-red-50 text-red-700 font-bold text-[10px] px-2.5 py-1 rounded-full border border-red-200 shadow-sm shrink-0">
+                                      Từ chối
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="px-4 py-3.5 whitespace-nowrap text-xs text-on-surface-variant">
+                                  {new Date(act.updated_at).toLocaleDateString('vi-VN')}
+                                </td>
+                              </tr>
+                            ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
