@@ -1155,7 +1155,7 @@ export const AdminDashboard: React.FC = () => {
                                 <td className="px-4 py-3.5 whitespace-nowrap font-semibold">
                                   <div>{req.denormalized_volunteer?.name || 'Thành viên'}</div>
                                   <div className="text-[10px] text-on-surface-variant font-normal">
-                                    Tài khoản: {requesterUser?.phone || req.contact_phone}
+                                    Gmail: {requesterUser?.email || req.denormalized_volunteer?.email || 'Chưa cập nhật'}
                                   </div>
                                 </td>
                                 <td className="px-4 py-3.5 text-xs text-on-surface-variant max-w-[250px] break-words">
