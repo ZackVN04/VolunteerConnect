@@ -40,6 +40,30 @@ const ActivityStatusBadge: React.FC<{ status: string }> = ({ status }) => {
   return <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide border ${s.cls}`}>{s.label}</span>;
 };
 
+const formatDateTimeToISO = (dateStr: string, defaultTime: string): string => {
+  if (!dateStr) return '';
+  if (dateStr.endsWith('Z') || dateStr.includes('+')) return dateStr;
+  
+  let normalized = dateStr.replace(' ', 'T');
+  if (!normalized.includes('T')) {
+    normalized = `${normalized}T${defaultTime}`;
+  }
+  
+  const parts = normalized.split('T');
+  const datePart = parts[0];
+  let timePart = parts[1];
+  
+  const timeSubparts = timePart.split(':');
+  if (timeSubparts.length === 2) {
+    timePart = `${timePart}:00`;
+  }
+  
+  const secondsParts = timePart.split('.');
+  timePart = secondsParts[0];
+  
+  return `${datePart}T${timePart}.000Z`;
+};
+
 export const OrganizerDashboard: React.FC = () => {
   const {
     currentUser, activities, registrations,
@@ -63,6 +87,12 @@ export const OrganizerDashboard: React.FC = () => {
   // Search filter for registrations tab
   const [regSearch, setRegSearch] = useState('');
   const [regActivityFilter, setRegActivityFilter] = useState<string>('All');
+
+  const [showActivityFilters, setShowActivityFilters] = useState(false);
+  const [showRegFilters, setShowRegFilters] = useState(false);
+  const [checkedRegIds, setCheckedRegIds] = useState<string[]>([]);
+  const [attendanceSearch, setAttendanceSearch] = useState('');
+  const [attendanceStatusFilter, setAttendanceStatusFilter] = useState('All');
 
   // Show create/edit form
   const [showForm, setShowForm] = useState(false);
@@ -127,6 +157,16 @@ export const OrganizerDashboard: React.FC = () => {
     }
   }, [myCampaigns, selectedActivityId]);
 
+  useEffect(() => {
+    setCheckedRegIds([]);
+    setAttendanceSearch('');
+    setAttendanceStatusFilter('All');
+  }, [selectedActivityId]);
+
+  useEffect(() => {
+    setCheckedRegIds([]);
+  }, [activeTab]);
+
   if (!currentUser) return null;
 
   // Stats
@@ -179,6 +219,25 @@ export const OrganizerDashboard: React.FC = () => {
   const selectedRegs = registrations.filter(r => r.activity_id === selectedActivityId);
   // Completed/past campaigns for attendance
   const completedCampaigns = myCampaigns.filter(a => a.status === 'Completed' || a.status === 'Ongoing');
+
+  const filteredAttendanceRegs = selectedRegs
+    .filter(r => r.status === 'Approved' || r.status === 'Completed' || r.status === 'Absent')
+    .filter(r => {
+      const q = attendanceSearch.toLowerCase().trim();
+      if (!q) return true;
+      const nameMatch = r.denormalized_volunteer.name.toLowerCase().includes(q);
+      const phoneMatch = (r.denormalized_volunteer.phone || '').toLowerCase().includes(q);
+      return nameMatch || phoneMatch;
+    })
+    .filter(r => {
+      if (attendanceStatusFilter === 'All') return true;
+      if (attendanceStatusFilter === 'Approved') return r.status === 'Approved';
+      if (attendanceStatusFilter === 'Completed') return r.status === 'Completed';
+      if (attendanceStatusFilter === 'Absent') return r.status === 'Absent';
+      return true;
+    });
+
+  const eligibleRegs = filteredAttendanceRegs.filter(r => r.status === 'Approved');
 
   const resetForm = () => {
     setTitle('');
@@ -247,8 +306,8 @@ export const OrganizerDashboard: React.FC = () => {
         description,
         categories: [category],
         location: { province, district, address_detail: addressDetail },
-        start_date: startDate.includes('T') ? `${startDate}:00.000Z` : `${startDate}T08:00:00.000Z`,
-        end_date: endDate.includes('T') ? `${endDate}:00.000Z` : `${endDate}T17:00:00.000Z`,
+        start_date: formatDateTimeToISO(startDate, '08:00'),
+        end_date: formatDateTimeToISO(endDate, '17:00'),
         limit_volunteers: limitNum,
         requirements: requirements.trim() || null,
         image_url: imageUrl.trim() || 'https://images.unsplash.com/photo-1544027993-37dbfe43562a?q=80&w=600',
@@ -301,6 +360,34 @@ export const OrganizerDashboard: React.FC = () => {
   const handleCheckIn = (regId: string, status: 'Completed' | 'Absent') => {
     updateParticipation(regId, status);
     showNotification(`Đã điểm danh: ${status === 'Completed' ? 'Có mặt' : 'Vắng mặt'}`, 'success');
+  };
+
+  const handleBulkCheckIn = async (status: 'Completed' | 'Absent') => {
+    if (checkedRegIds.length === 0) return;
+    showConfirm(
+      `Bạn có chắc chắn muốn điểm danh "${status === 'Completed' ? 'Có mặt' : 'Vắng mặt'}" cho ${checkedRegIds.length} tình nguyện viên đã chọn?`,
+      async () => {
+        let successCount = 0;
+        let failCount = 0;
+        let lastError = '';
+        for (const regId of checkedRegIds) {
+          const res = await updateParticipation(regId, status);
+          if (res && res.success === false) {
+            failCount++;
+            lastError = res.error || 'Lỗi không xác định';
+          } else {
+            successCount++;
+          }
+        }
+        setCheckedRegIds([]);
+        if (failCount === 0) {
+          showNotification(`Đã điểm danh thành công ${successCount} tình nguyện viên.`, 'success');
+        } else {
+          showNotification(`Thành công: ${successCount}, Thất bại: ${failCount}.${lastError ? ` Lỗi: ${lastError}` : ''}`, 'error');
+        }
+      },
+      'Điểm danh hàng loạt'
+    );
   };
 
   // Tab button style helper (Matches mockup style)
@@ -440,7 +527,7 @@ export const OrganizerDashboard: React.FC = () => {
                   {editMode ? 'Chỉnh sửa hoạt động' : 'Tạo hoạt động mới'}
                 </h2>
 
-                <form onSubmit={handleSubmitActivity} className="space-y-5">
+                <form onSubmit={handleSubmitActivity} className="space-y-5" noValidate>
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">Tên hoạt động *</label>
                     <input
@@ -579,30 +666,57 @@ export const OrganizerDashboard: React.FC = () => {
                       placeholder="Tìm tên hoạt động..."
                       className="border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-semibold focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/10 w-48 shadow-sm transition-all"
                     />
-                    <select
-                      value={activityStatusFilter}
-                      onChange={e => setActivityStatusFilter(e.target.value)}
-                      className="border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-[#006d37] bg-white cursor-pointer shadow-sm text-slate-700"
+                    <button
+                      type="button"
+                      onClick={() => setShowActivityFilters(!showActivityFilters)}
+                      className={`flex items-center gap-1.5 border rounded-xl px-4 py-2 text-xs font-bold cursor-pointer shadow-sm transition-all ${
+                        showActivityFilters
+                          ? 'border-[#006d37] bg-[#006d37] text-white'
+                          : 'border-[#006d37] text-[#006d37] hover:bg-emerald-50'
+                      }`}
                     >
-                      <option value="All">Tất cả trạng thái</option>
-                      <option value="Draft">Bản nháp</option>
-                      <option value="Pending Review">Chờ duyệt</option>
-                      <option value="Open">Đang tuyển/diễn ra</option>
-                      <option value="Completed">Đã kết thúc</option>
-                      <option value="Rejected">Bị từ chối</option>
-                    </select>
-                    <select
-                      value={activityCategoryFilter}
-                      onChange={e => setActivityCategoryFilter(e.target.value)}
-                      className="border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-[#006d37] bg-white cursor-pointer shadow-sm text-slate-700"
-                    >
-                      <option value="All">Tất cả lĩnh vực</option>
-                      <option value="Môi trường">Môi trường</option>
-                      <option value="Giáo dục">Giáo dục</option>
-                      <option value="Y tế">Y tế</option>
-                      <option value="Từ thiện">Từ thiện</option>
-                      <option value="Gây quỹ">Gây quỹ</option>
-                    </select>
+                      <span className="material-symbols-outlined text-[15px] font-bold">filter_list</span>
+                      Bộ lọc
+                      {(activityStatusFilter !== 'All' || activityCategoryFilter !== 'All') && (
+                        <span className={`w-1.5 h-1.5 rounded-full ${showActivityFilters ? 'bg-white' : 'bg-[#006d37]'}`} />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Collapsible Filters Panel */}
+                {showActivityFilters && (
+                  <div className="flex flex-wrap items-center gap-4 px-5 py-4 bg-slate-50/50 border-b border-slate-100 animate-slideDown">
+                    <div className="flex flex-col gap-1 text-left">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Trạng thái</label>
+                      <select
+                        value={activityStatusFilter}
+                        onChange={e => setActivityStatusFilter(e.target.value)}
+                        className="border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-[#006d37] bg-white cursor-pointer shadow-sm text-slate-700 min-w-[150px]"
+                      >
+                        <option value="All">Tất cả trạng thái</option>
+                        <option value="Draft">Bản nháp</option>
+                        <option value="Pending Review">Chờ duyệt</option>
+                        <option value="Open">Đang tuyển/diễn ra</option>
+                        <option value="Completed">Đã kết thúc</option>
+                        <option value="Rejected">Bị từ chối</option>
+                      </select>
+                    </div>
+                    <div className="flex flex-col gap-1 text-left">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Lĩnh vực</label>
+                      <select
+                        value={activityCategoryFilter}
+                        onChange={e => setActivityCategoryFilter(e.target.value)}
+                        className="border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-[#006d37] bg-white cursor-pointer shadow-sm text-slate-700 min-w-[150px]"
+                      >
+                        <option value="All">Tất cả lĩnh vực</option>
+                        <option value="Môi trường">Môi trường</option>
+                        <option value="Giáo dục">Giáo dục</option>
+                        <option value="Y tế">Y tế</option>
+                        <option value="Từ thiện">Từ thiện</option>
+                        <option value="Gây quỹ">Gây quỹ</option>
+                      </select>
+                    </div>
                     {(activitySearch || activityStatusFilter !== 'All' || activityCategoryFilter !== 'All') && (
                       <button
                         onClick={() => {
@@ -610,14 +724,14 @@ export const OrganizerDashboard: React.FC = () => {
                           setActivityStatusFilter('All');
                           setActivityCategoryFilter('All');
                         }}
-                        className="text-red-600 hover:text-red-700 font-bold text-xs flex items-center gap-0.5 cursor-pointer"
+                        className="self-end mb-1 text-red-650 hover:text-red-700 font-bold text-xs flex items-center gap-0.5 cursor-pointer h-8"
                       >
                         <span className="material-symbols-outlined text-sm">clear</span>
                         Xóa lọc
                       </button>
                     )}
                   </div>
-                </div>
+                )}
 
                 {filteredCampaigns.length === 0 ? (
                   <div className="p-16 text-center">
@@ -748,30 +862,54 @@ export const OrganizerDashboard: React.FC = () => {
                   placeholder="Tìm tên tình nguyện viên..."
                   className="border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-semibold focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/10 w-48 shadow-sm transition-all"
                 />
-                <select
-                  value={regActivityFilter}
-                  onChange={e => setRegActivityFilter(e.target.value)}
-                  className="border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-[#006d37] bg-white cursor-pointer shadow-sm text-slate-700 max-w-[200px]"
+                <button
+                  type="button"
+                  onClick={() => setShowRegFilters(!showRegFilters)}
+                  className={`flex items-center gap-1.5 border rounded-xl px-4 py-2 text-xs font-bold cursor-pointer shadow-sm transition-all ${
+                    showRegFilters
+                      ? 'border-[#006d37] bg-[#006d37] text-white'
+                      : 'border-[#006d37] text-[#006d37] hover:bg-emerald-50'
+                  }`}
                 >
-                  <option value="All">Tất cả hoạt động</option>
-                  {myCampaigns.map(act => (
-                    <option key={act._id} value={act._id}>{act.title}</option>
-                  ))}
-                </select>
+                  <span className="material-symbols-outlined text-[15px] font-bold">filter_list</span>
+                  Bộ lọc
+                  {regActivityFilter !== 'All' && (
+                    <span className={`w-1.5 h-1.5 rounded-full ${showRegFilters ? 'bg-white' : 'bg-[#006d37]'}`} />
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Collapsible Filters Panel for Registrations */}
+            {showRegFilters && (
+              <div className="flex flex-wrap items-center gap-4 px-5 py-4 bg-slate-50/50 border-b border-slate-100 animate-slideDown">
+                <div className="flex flex-col gap-1 text-left">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Hoạt động đăng ký</label>
+                  <select
+                    value={regActivityFilter}
+                    onChange={e => setRegActivityFilter(e.target.value)}
+                    className="border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-[#006d37] bg-white cursor-pointer shadow-sm text-slate-700 min-w-[240px] max-w-[360px]"
+                  >
+                    <option value="All">Tất cả hoạt động</option>
+                    {myCampaigns.map(act => (
+                      <option key={act._id} value={act._id}>{act.title}</option>
+                    ))}
+                  </select>
+                </div>
                 {(regSearch || regActivityFilter !== 'All') && (
                   <button
                     onClick={() => {
                       setRegSearch('');
                       setRegActivityFilter('All');
                     }}
-                    className="text-red-600 hover:text-red-700 font-bold text-xs flex items-center gap-0.5 cursor-pointer"
+                    className="self-end mb-1 text-red-650 hover:text-red-700 font-bold text-xs flex items-center gap-0.5 cursor-pointer h-8"
                   >
                     <span className="material-symbols-outlined text-sm">clear</span>
                     Xóa lọc
                   </button>
                 )}
               </div>
-            </div>
+            )}
 
             {/* Table with Uppercase headers */}
             <div className="overflow-x-auto">
@@ -837,21 +975,90 @@ export const OrganizerDashboard: React.FC = () => {
         {/* ===================== TAB: ĐIỂM DANH ===================== */}
         {activeTab === 'attendance' && (
           <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
-              <h3 className="font-bold text-gray-900 text-sm font-headline-md">Điểm danh tình nguyện viên</h3>
-              <div className="flex items-center gap-3">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Chọn chiến dịch:</label>
-                <select
-                  value={selectedActivityId}
-                  onChange={e => setSelectedActivityId(e.target.value)}
-                  className="px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/10 text-xs font-semibold bg-white min-w-[240px] cursor-pointer shadow-sm transition-all"
-                >
-                  <option value="">-- Chọn hoạt động để điểm danh --</option>
-                  {completedCampaigns.map(act => (
-                    <option key={act._id} value={act._id}>{act.title}</option>
-                  ))}
-                </select>
+            <div className="flex flex-col gap-4 pb-4 border-b border-slate-100">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <h3 className="font-bold text-gray-900 text-sm font-headline-md">Điểm danh tình nguyện viên</h3>
+                <div className="flex items-center gap-3">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Chọn chiến dịch:</label>
+                  <select
+                    value={selectedActivityId}
+                    onChange={e => setSelectedActivityId(e.target.value)}
+                    className="px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/10 text-xs font-semibold bg-white min-w-[240px] cursor-pointer shadow-sm transition-all"
+                  >
+                    <option value="">-- Chọn hoạt động để điểm danh --</option>
+                    {completedCampaigns.map(act => (
+                      <option key={act._id} value={act._id}>{act.title}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
+
+              {/* Filters & Bulk actions block */}
+              {selectedActivityId && (
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2 animate-fadeIn">
+                  {/* Left: Bulk Action Buttons */}
+                  <div className="flex items-center gap-2">
+                    {checkedRegIds.length > 0 ? (
+                      <>
+                        <span className="text-xs font-bold text-[#006d37] bg-[#e8f5e9] px-3 py-1.5 rounded-xl border border-emerald-100 shadow-sm animate-fadeIn">
+                          Đã chọn {checkedRegIds.length}
+                        </span>
+                        <button
+                          onClick={() => handleBulkCheckIn('Completed')}
+                          className="flex items-center gap-1.5 bg-[#006d37] hover:bg-[#005027] text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer"
+                        >
+                          <span className="material-symbols-outlined text-[15px] font-bold">check_circle</span>
+                          Có mặt hàng loạt
+                        </button>
+                        <button
+                          onClick={() => handleBulkCheckIn('Absent')}
+                          className="flex items-center gap-1.5 border border-red-300 text-red-650 hover:bg-red-50 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer"
+                        >
+                          <span className="material-symbols-outlined text-[15px] font-bold">cancel</span>
+                          Vắng mặt hàng loạt
+                        </button>
+                      </>
+                    ) : (
+                      <span className="text-xs font-semibold text-slate-400 italic">
+                        Chọn tình nguyện viên để điểm danh hàng loạt
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Right: Filters */}
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="text"
+                      value={attendanceSearch}
+                      onChange={e => setAttendanceSearch(e.target.value)}
+                      placeholder="Tìm tên hoặc SĐT..."
+                      className="border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-semibold focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/10 w-44 shadow-sm transition-all"
+                    />
+                    <select
+                      value={attendanceStatusFilter}
+                      onChange={e => setAttendanceStatusFilter(e.target.value)}
+                      className="border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-[#006d37] bg-white cursor-pointer shadow-sm text-slate-700 w-36"
+                    >
+                      <option value="All">Tất cả trạng thái</option>
+                      <option value="Approved">Chờ điểm danh</option>
+                      <option value="Completed">Có mặt</option>
+                      <option value="Absent">Vắng mặt</option>
+                    </select>
+                    {(attendanceSearch || attendanceStatusFilter !== 'All') && (
+                      <button
+                        onClick={() => {
+                          setAttendanceSearch('');
+                          setAttendanceStatusFilter('All');
+                        }}
+                        className="text-red-650 hover:text-red-700 font-bold text-xs flex items-center gap-0.5 cursor-pointer"
+                      >
+                        <span className="material-symbols-outlined text-sm">clear</span>
+                        Xóa lọc
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Attendance area */}
@@ -867,11 +1074,32 @@ export const OrganizerDashboard: React.FC = () => {
                 <div className="border border-slate-150 rounded-2xl p-10 text-center text-xs text-slate-400 font-semibold bg-slate-50">
                   Chưa có tình nguyện viên đã được duyệt cho chiến dịch này.
                 </div>
+              ) : filteredAttendanceRegs.length === 0 ? (
+                <div className="border border-slate-150 rounded-2xl p-10 text-center text-xs text-slate-400 font-semibold bg-slate-50">
+                  Không tìm thấy tình nguyện viên phù hợp với bộ lọc.
+                </div>
               ) : (
                 <div className="overflow-x-auto border border-slate-100 rounded-2xl">
                   <table className="w-full text-sm text-left border-collapse">
                     <thead>
                       <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                        <th className="pl-6 py-4 w-12 text-center">
+                          <input
+                            type="checkbox"
+                            className="rounded text-[#006d37] focus:ring-[#006d37]/20 cursor-pointer w-4 h-4 animate-scaleIn"
+                            checked={
+                              eligibleRegs.length > 0 &&
+                              eligibleRegs.every(r => checkedRegIds.includes(r._id))
+                            }
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setCheckedRegIds(eligibleRegs.map(r => r._id));
+                              } else {
+                                setCheckedRegIds([]);
+                              }
+                            }}
+                          />
+                        </th>
                         <th className="px-6 py-4">Họ và tên</th>
                         <th className="px-6 py-4">Số điện thoại</th>
                         <th className="px-6 py-4">Trạng thái đăng ký</th>
@@ -879,16 +1107,39 @@ export const OrganizerDashboard: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 text-slate-750">
-                      {selectedRegs.filter(r => r.status === 'Approved' || r.status === 'Completed' || r.status === 'Absent').map(reg => {
+                      {filteredAttendanceRegs.map(reg => {
                         const canCheckIn = reg.status === 'Approved';
                         const isCompleted = reg.status === 'Completed';
                         const isAbsent = reg.status === 'Absent';
                         return (
                           <tr key={reg._id} className="hover:bg-slate-50/50 transition-colors animate-fadeIn">
+                            <td className="pl-6 py-4 w-12 text-center">
+                              {canCheckIn ? (
+                                <input
+                                  type="checkbox"
+                                  className="rounded text-[#006d37] focus:ring-[#006d37]/20 cursor-pointer w-4 h-4"
+                                  checked={checkedRegIds.includes(reg._id)}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setCheckedRegIds(prev => [...prev, reg._id]);
+                                    } else {
+                                      setCheckedRegIds(prev => prev.filter(id => id !== reg._id));
+                                    }
+                                  }}
+                                />
+                              ) : (
+                                <input
+                                  type="checkbox"
+                                  disabled
+                                  className="rounded text-slate-300 bg-slate-100 cursor-not-allowed w-4 h-4 opacity-50"
+                                  checked={isCompleted}
+                                />
+                              )}
+                            </td>
                             <td className="px-6 py-4 font-bold text-slate-800">{reg.denormalized_volunteer.name}</td>
                             <td className="px-6 py-4 text-slate-500 font-semibold">{reg.denormalized_volunteer.phone || '—'}</td>
                             <td className="px-6 py-4">
-                              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border ${reg.status === 'Approved' ? 'bg-emerald-50 text-[#006d37] border-emerald-100/50' :
+                              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border ${reg.status === 'Approved' ? 'bg-[#e8f5e9] text-[#006d37] border-emerald-100/50' :
                                   reg.status === 'Completed' ? 'bg-blue-50 text-blue-800 border-blue-100/50' :
                                     'bg-red-50 text-red-750 border-red-100/50'
                                 }`}>

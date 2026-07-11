@@ -115,6 +115,7 @@ export interface OrganizerRequest {
 export interface Post {
   _id: string;
   author_id: string;
+  title?: string;
   content: string;
   images: string[];
   visibility: 'Public' | 'Organization' | 'Private';
@@ -155,6 +156,7 @@ interface AppContextType {
   editActivity: (activityId: string, activityData: Partial<Activity>) => Promise<{ success: boolean; error?: string }>;
   reviewActivity: (activityId: string, approve: boolean, feedback?: string) => Promise<{ success: boolean; error?: string }>;
   createPost: (title: string, content: string, images: string[], hashtags: string[]) => Promise<{ success: boolean; error?: string }>;
+  editPost: (postId: string, title: string, content: string, images: string[], hashtags: string[]) => Promise<{ success: boolean; error?: string }>;
   likePost: (postId: string) => void;
   sharePost: (postId: string) => void;
   deletePost: (postId: string) => Promise<{ success: boolean; error?: string }>;
@@ -1203,6 +1205,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     const newPost: Post = {
       _id: `post_${Date.now()}`,
       author_id: currentUser._id,
+      title,
       content: title ? `${title}\n${content}` : content,
       images,
       visibility: 'Public',
@@ -1223,6 +1226,56 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     };
 
     const newPosts = [newPost, ...posts];
+    setPosts(newPosts);
+    syncToLocalStorage(users, activities, registrations, organizerRequests, newPosts, currentUser);
+    return { success: true };
+  };
+
+  // Edit Community Post
+  const editPost = async (postId: string, title: string, content: string, images: string[], hashtags: string[]): Promise<{ success: boolean; error?: string }> => {
+    if (USE_REAL_BACKEND) {
+      try {
+        await postService.update(postId, title, content, images, hashtags);
+        const pts = await postService.getAll();
+        setPosts(injectLikedStatus(pts, currentUser?._id));
+        return { success: true };
+      } catch (e: any) {
+        console.error(e);
+        let errorMsg = 'Không thể cập nhật bài viết lên máy chủ.';
+        if (e.response?.status === 405 || e.response?.status === 404) {
+          errorMsg = 'Tính năng chỉnh sửa bài viết hiện chưa được máy chủ (Backend API) hỗ trợ.';
+        } else {
+          const detail = e.response?.data?.detail;
+          if (typeof detail === 'string') {
+            errorMsg = detail;
+          } else if (Array.isArray(detail)) {
+            errorMsg = detail.map((d: any) => d.msg).join('\n');
+          } else if (e.response?.data?.message) {
+            errorMsg = e.response.data.message;
+          }
+        }
+        showNotification(errorMsg, 'error');
+        return { success: false, error: errorMsg };
+      }
+    }
+
+    if (!currentUser) return { success: false, error: 'Chưa đăng nhập' };
+
+    const index = posts.findIndex(p => p._id === postId);
+    if (index === -1) return { success: false, error: 'Không tìm thấy bài viết' };
+
+    const original = posts[index];
+    const updated: Post = {
+      ...original,
+      title,
+      content: title ? `${title}\n${content}` : content,
+      images,
+      hashtags,
+      updated_at: new Date().toISOString()
+    };
+
+    const newPosts = [...posts];
+    newPosts[index] = updated;
     setPosts(newPosts);
     syncToLocalStorage(users, activities, registrations, organizerRequests, newPosts, currentUser);
     return { success: true };
@@ -1533,6 +1586,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         editActivity,
         reviewActivity,
         createPost,
+        editPost,
         likePost,
         sharePost,
         deletePost,

@@ -225,6 +225,7 @@ const mapOrganizerRequest = (req: any): OrganizerRequest => ({
 
 const mapPost = (post: any): Post => ({
   _id: post._id || post.id,
+  title: post.title,
   author_id: post.author_id,
   content: post.content,
   images: post.images || [],
@@ -351,6 +352,10 @@ export const postService = {
   },
   create: async (title: string, content: string, images: string[], hashtags: string[]): Promise<Post> => {
     const res = await rootApi.post('/posts/', { title, content, images, hashtags });
+    return mapPost(res.data);
+  },
+  update: async (postId: string, title: string, content: string, images: string[], hashtags: string[]): Promise<Post> => {
+    const res = await rootApi.put(`/posts/${postId}`, { title, content, images, hashtags });
     return mapPost(res.data);
   },
   like: async (postId: string): Promise<Post> => {
