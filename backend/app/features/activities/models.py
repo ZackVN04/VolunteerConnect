@@ -36,5 +36,6 @@ class Activity(Document):
         indexes = [
             IndexModel([("status", ASCENDING), ("start_date", DESCENDING)], name="idx_status_start_date"),
             IndexModel([("status", ASCENDING), ("start_date", ASCENDING), ("end_date", ASCENDING)], name="idx_cron_job_scheduler"),
-            IndexModel([("title", TEXT), ("description", TEXT)], weights={"title": 10, "description": 2}, name="idx_text_search")
+            IndexModel([("title", TEXT), ("description", TEXT)], weights={"title": 10, "description": 2}, name="idx_text_search"),
+            IndexModel([("created_at", DESCENDING)], name="idx_created_at_desc")
         ]

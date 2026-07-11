@@ -78,18 +78,32 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBackTo
   };
 
   const handleOtpChange = (index: number, value: string) => {
-    const v = value.replace(/\D/g, '').slice(-1);
-    const newDigits = [...otpDigits];
-    newDigits[index] = v;
-    setOtpDigits(newDigits);
-    if (v && index < 5) {
-      otpRefs.current[index + 1]?.focus();
+    const digits = value.replace(/\D/g, '');
+    let newDigits = [...otpDigits];
+
+    if (!digits) {
+      newDigits[index] = '';
+    } else if (digits.length > 1) {
+      const chars = digits.split('').slice(0, 6);
+      const startIdx = chars.length === 6 ? 0 : index;
+      for (let i = 0; i < chars.length && startIdx + i < 6; i++) {
+        newDigits[startIdx + i] = chars[i];
+      }
+      const nextFocus = chars.length === 6 ? 5 : Math.min(startIdx + chars.length, 5);
+      setTimeout(() => otpRefs.current[nextFocus]?.focus(), 10);
+    } else {
+      newDigits[index] = digits;
+      if (index < 5) {
+        setTimeout(() => otpRefs.current[index + 1]?.focus(), 10);
+      }
     }
+
+    setOtpDigits(newDigits);
 
     const code = newDigits.join('');
     if (code.length === 6) {
       setErrorMsg('');
-      verifyOtpCode(code); // [FIXED] API verify instead of setStep(3)
+      verifyOtpCode(code); // API verify instead of setStep(3)
     }
   };
 
@@ -314,7 +328,7 @@ export const ForgotPasswordView: React.FC<ForgotPasswordViewProps> = ({ onBackTo
                     ref={el => { otpRefs.current[i] = el; }}
                     type="text"
                     inputMode="numeric"
-                    maxLength={1}
+                    maxLength={6}
                     value={digit}
                     onChange={e => handleOtpChange(i, e.target.value)}
                     onKeyDown={e => handleOtpKeyDown(i, e)}

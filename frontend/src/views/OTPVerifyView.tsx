@@ -38,13 +38,28 @@ export const OTPVerifyView: React.FC<OTPVerifyViewProps> = ({
   const getOtpCode = () => otpDigits.join('');
 
   const handleOtpChange = (index: number, value: string) => {
-    const v = value.replace(/\D/g, '').slice(-1);
-    const newDigits = [...otpDigits];
-    newDigits[index] = v;
-    setOtpDigits(newDigits);
-    if (v && index < 5) {
-      otpRefs.current[index + 1]?.focus();
+    const digits = value.replace(/\D/g, '');
+    let newDigits = [...otpDigits];
+
+    if (!digits) {
+      newDigits[index] = '';
+    } else if (digits.length > 1) {
+      // Handle pasting or fast typing multiple digits (e.g. "46")
+      const chars = digits.split('').slice(0, 6);
+      const startIdx = chars.length === 6 ? 0 : index;
+      for (let i = 0; i < chars.length && startIdx + i < 6; i++) {
+        newDigits[startIdx + i] = chars[i];
+      }
+      const nextFocus = chars.length === 6 ? 5 : Math.min(startIdx + chars.length, 5);
+      setTimeout(() => otpRefs.current[nextFocus]?.focus(), 10);
+    } else {
+      newDigits[index] = digits;
+      if (index < 5) {
+        setTimeout(() => otpRefs.current[index + 1]?.focus(), 10);
+      }
     }
+    
+    setOtpDigits(newDigits);
   };
 
   const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -157,19 +172,19 @@ export const OTPVerifyView: React.FC<OTPVerifyViewProps> = ({
             <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">Mã xác minh</label>
             <div className="flex gap-2 justify-between">
               {otpDigits.map((digit, i) => (
-                <input
-                  key={i}
-                  ref={el => { otpRefs.current[i] = el; }}
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={1}
-                  value={digit}
-                  onChange={e => handleOtpChange(i, e.target.value)}
-                  onKeyDown={e => handleOtpKeyDown(i, e)}
-                  onPaste={i === 0 ? handleOtpPaste : undefined}
-                  className="w-12 h-12 text-center text-lg font-bold border border-gray-300 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/20 bg-white transition-all animate-fadeIn"
-                  disabled={loading}
-                />
+                  <input
+                    key={i}
+                    ref={el => { otpRefs.current[i] = el; }}
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={6}
+                    value={digit}
+                    onChange={e => handleOtpChange(i, e.target.value)}
+                    onKeyDown={e => handleOtpKeyDown(i, e)}
+                    onPaste={i === 0 ? handleOtpPaste : undefined}
+                    className="w-12 h-12 text-center text-lg font-bold border border-gray-300 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/20 bg-white transition-all animate-fadeIn"
+                    disabled={loading}
+                  />
               ))}
             </div>
           </div>

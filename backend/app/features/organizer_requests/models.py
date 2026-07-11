@@ -3,6 +3,7 @@ from pydantic import Field, field_validator
 from app.shared.enums import RequestStatus
 from datetime import datetime, timezone
 from typing import List, Optional
+from pymongo import IndexModel, DESCENDING
 
 class OrganizerRequest(Document):
     volunteer_id: PydanticObjectId
@@ -26,3 +27,6 @@ class OrganizerRequest(Document):
 
     class Settings:
         name = "organizer_requests"
+        indexes = [
+            IndexModel([("created_at", DESCENDING)], name="idx_created_at_desc")
+        ]

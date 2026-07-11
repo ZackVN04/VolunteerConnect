@@ -3,7 +3,7 @@ from pydantic import EmailStr, Field
 from datetime import datetime, timezone
 from app.shared.enums import UserRole, UserStatus
 from typing import Optional, Annotated
-from pymongo import IndexModel
+from pymongo import IndexModel, DESCENDING
 
 class User(Document):
     # Đánh index unique cho email và số điện thoại để không bị trùng lặp trong hệ thống
@@ -36,5 +36,6 @@ class User(Document):
                 [("phone_number", 1)],
                 unique=True,
                 sparse=True
-            )
+            ),
+            IndexModel([("created_at", DESCENDING)], name="idx_created_at_desc")
         ]
