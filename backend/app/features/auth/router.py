@@ -304,7 +304,7 @@ async def reset_password(request: ResetPasswordRequest):
     user.otp_expiry = None
     await user.save()
     
-    return {"message": "Reset mật khẩu thành công. Bạn có thể đăng nhập bằng mật khẩu mới."}
+    return {"message": "Khôi phục mật khẩu thành công. Bạn có thể đăng nhập bằng mật khẩu mới."}
 
 @router.post("/change-password", status_code=status.HTTP_200_OK)
 async def change_password(
