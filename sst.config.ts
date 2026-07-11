@@ -30,12 +30,24 @@ export default $config({
         },
       },
       template: {
+        metadata: {
+          annotations: {
+            "autoscaling.knative.dev/minScale": "1",
+            "autoscaling.knative.dev/maxScale": "10",
+          }
+        },
         spec: {
           serviceAccountName: "cloudrun-runtime-sa@volunteer-connect-prod-999.iam.gserviceaccount.com", // Chạy dưới thân phận Robot này
           containers: [{
             // Loại bỏ tag :latest, tự động nạp đường link kèm mã SHA được cấp bởi GitHub Actions
             image: process.env.IMAGE_URL || "asia-southeast1-docker.pkg.dev/volunteer-connect-prod-999/volunteer-connect-repo/volunteer-connect-api:latest",
             ports: [{ containerPort: 8080 }],
+            resources: {
+              limits: {
+                memory: "1024Mi",
+                cpu: "2000m",
+              }
+            },
             envs: [
               // LƯU Ý: HÃY ĐỔI ĐƯỜNG LINK NÀY THÀNH LINK MONGODB THẬT CỦA BẠN TRƯỚC KHI DEPLOY
               { name: "MONGODB_URL", value: "mongodb+srv://Admin:Admin123@volunteerconnect.m1vn2y8.mongodb.net/volunteer_connect?appName=VolunteerConnect" },
@@ -78,12 +90,24 @@ export default $config({
       name: `volunteer-connect-frontend-${$app.stage}`,
       location: "asia-southeast1",
       template: {
+        metadata: {
+          annotations: {
+            "autoscaling.knative.dev/minScale": "1",
+            "autoscaling.knative.dev/maxScale": "10",
+          }
+        },
         spec: {
           serviceAccountName: "volunteer-frontend-sa@volunteer-connect-prod-999.iam.gserviceaccount.com", // Chạy dưới thân phận thẻ Căn cước Frontend
           containers: [{
             // Nạp link ảnh Docker của Frontend (kèm mã SHA từ GitHub Actions)
             image: process.env.FRONTEND_IMAGE_URL || "asia-southeast1-docker.pkg.dev/volunteer-connect-prod-999/volunteer-connect-repo/volunteer-connect-frontend:latest",
             ports: [{ containerPort: 80 }],
+            resources: {
+              limits: {
+                memory: "1024Mi",
+                cpu: "2000m",
+              }
+            },
             envs: [
               // CỰC KỲ QUAN TRỌNG: Tự động trích xuất URL của Backend để bơm vào Frontend
               { name: "VITE_API_URL", value: service.statuses.apply(s => s?.[0]?.url || "") }
