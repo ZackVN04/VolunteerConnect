@@ -25,7 +25,7 @@ class Activity(Document):
     approved_volunteers_count: int = Field(default=0, ge=0)
     active_volunteers_count: int = Field(default=0, ge=0)
     requirements: Optional[str] = Field(default=None, max_length=1000)
-    image_url: Optional[str] = None
+    image_url: Optional[str] = Field(default=None, max_length=500)
     status: str = Field(default=ActivityStatus.DRAFT)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
