@@ -1036,7 +1036,7 @@ export const AdminDashboard: React.FC = () => {
                       Xem lịch sử kết quả xử lý các yêu cầu nâng cấp Ban tổ chức và phê duyệt hoạt động
                     </p>
                   </div>
-                  
+
                   {/* Sub-tab Switcher */}
                   <div className="flex bg-slate-100 p-1 rounded-xl shrink-0 self-start sm:self-auto">
                     <button
@@ -1046,11 +1046,10 @@ export const AdminDashboard: React.FC = () => {
                         setHistoryStatusFilter('All');
                         setHistoryDateFilter('');
                       }}
-                      className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                        historySubTab === 'organizers'
+                      className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${historySubTab === 'organizers'
                           ? 'bg-[#006d37] text-white shadow-sm'
                           : 'text-slate-600 hover:text-slate-900'
-                      }`}
+                        }`}
                     >
                       Duyệt Ban tổ chức
                     </button>
@@ -1061,11 +1060,10 @@ export const AdminDashboard: React.FC = () => {
                         setHistoryStatusFilter('All');
                         setHistoryDateFilter('');
                       }}
-                      className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                        historySubTab === 'activities'
+                      className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${historySubTab === 'activities'
                           ? 'bg-[#006d37] text-white shadow-sm'
                           : 'text-slate-600 hover:text-slate-900'
-                      }`}
+                        }`}
                     >
                       Duyệt Hoạt động
                     </button>
@@ -1135,37 +1133,98 @@ export const AdminDashboard: React.FC = () => {
                         <span className="material-symbols-outlined text-outline text-5xl">history</span>
                         <p className="text-sm text-on-surface-variant italic">Không tìm thấy lịch sử phê duyệt Ban tổ chức phù hợp.</p>
                       </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full border-collapse text-left text-sm">
-                        <thead>
-                          <tr className="bg-[#f8f9fa] border-b border-surface-variant/40 text-on-surface-variant font-bold text-xs uppercase tracking-wider">
-                            <th className="px-4 py-3 whitespace-nowrap">Người yêu cầu</th>
-                            <th className="px-4 py-3">Lý do xin nâng quyền</th>
-                            <th className="px-4 py-3 whitespace-nowrap">Thời gian duyệt</th>
-                            <th className="px-4 py-3 whitespace-nowrap">Trạng thái</th>
-                            <th className="px-4 py-3">Phản hồi của Admin</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-surface-variant/30 text-on-surface">
-                          {filteredRequests.map(req => {
-                            const requesterUser = users.find(u => u._id === req.volunteer_id);
-                            return (
-                              <tr key={req._id} className="hover:bg-slate-50 transition-colors">
-                                <td className="px-4 py-3.5 whitespace-nowrap font-semibold">
-                                  <div>{req.denormalized_volunteer?.name || 'Thành viên'}</div>
-                                  <div className="text-[10px] text-on-surface-variant font-normal">
-                                    Gmail: {requesterUser?.email || req.denormalized_volunteer?.email || 'Chưa cập nhật'}
-                                  </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full border-collapse text-left text-sm">
+                          <thead>
+                            <tr className="bg-[#f8f9fa] border-b border-surface-variant/40 text-on-surface-variant font-bold text-xs uppercase tracking-wider">
+                              <th className="px-4 py-3 whitespace-nowrap">Người yêu cầu</th>
+                              <th className="px-4 py-3">Lý do xin nâng quyền</th>
+                              <th className="px-4 py-3 whitespace-nowrap">Thời gian duyệt</th>
+                              <th className="px-4 py-3 whitespace-nowrap">Trạng thái</th>
+                              <th className="px-4 py-3">Phản hồi của Admin</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-surface-variant/30 text-on-surface">
+                            {filteredRequests.map(req => {
+                              const requesterUser = users.find(u => u._id === req.volunteer_id);
+                              return (
+                                <tr key={req._id} className="hover:bg-slate-50 transition-colors">
+                                  <td className="px-4 py-3.5 whitespace-nowrap font-semibold">
+                                    <div>{req.denormalized_volunteer?.name || 'Tài Khoản'}</div>
+                                    <div className="text-[10px] text-on-surface-variant font-normal">
+                                      {requesterUser?.email || req.denormalized_volunteer?.email || 'Chưa cập nhật'}
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-3.5 text-xs text-on-surface-variant max-w-[250px] break-words">
+                                    {req.reason}
+                                  </td>
+                                  <td className="px-4 py-3.5 whitespace-nowrap text-xs text-on-surface-variant">
+                                    {req.reviewed_at ? new Date(req.reviewed_at).toLocaleString('vi-VN') : 'Chưa cập nhật'}
+                                  </td>
+                                  <td className="px-4 py-3.5 whitespace-nowrap">
+                                    {req.status === 'Approved' ? (
+                                      <span className="bg-[#e8f5e9] text-[#006d37] font-bold text-[10px] px-2.5 py-1 rounded-full border border-[#006d37]/20 shadow-sm shrink-0">
+                                        Đã duyệt
+                                      </span>
+                                    ) : (
+                                      <span className="bg-red-50 text-red-700 font-bold text-[10px] px-2.5 py-1 rounded-full border border-red-200 shadow-sm shrink-0">
+                                        Từ chối
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td className="px-4 py-3.5 text-xs text-on-surface-variant max-w-[200px] break-words">
+                                    {req.admin_feedback ? (
+                                      <ExpandableText text={req.admin_feedback} limit={50} />
+                                    ) : (
+                                      <span className="italic text-slate-400">Không có</span>
+                                    )}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="bg-white border border-surface-variant/40 rounded-2xl shadow-sm overflow-hidden">
+                    {filteredActs.length === 0 ? (
+                      <div className="p-16 text-center space-y-3">
+                        <span className="material-symbols-outlined text-outline text-5xl">history</span>
+                        <p className="text-sm text-on-surface-variant italic">Không tìm thấy lịch sử phê duyệt hoạt động phù hợp.</p>
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full border-collapse text-left text-sm">
+                          <thead>
+                            <tr className="bg-[#f8f9fa] border-b border-surface-variant/40 text-on-surface-variant font-bold text-xs uppercase tracking-wider">
+                              <th className="px-4 py-3 whitespace-nowrap">Tên hoạt động</th>
+                              <th className="px-4 py-3 whitespace-nowrap">Ban tổ chức</th>
+                              <th className="px-4 py-3 whitespace-nowrap">Lĩnh vực</th>
+                              <th className="px-4 py-3 whitespace-nowrap">Thời gian diễn ra</th>
+                              <th className="px-4 py-3 whitespace-nowrap">Trạng thái</th>
+                              <th className="px-4 py-3 whitespace-nowrap">Ngày duyệt</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-surface-variant/30 text-on-surface">
+                            {filteredActs.map(act => (
+                              <tr key={act._id} className="hover:bg-slate-50 transition-colors">
+                                <td className="px-4 py-3.5 max-w-[200px] truncate font-bold text-primary hover:underline">
+                                  <a href={`#/activity/${act._id}`}>{act.title}</a>
                                 </td>
-                                <td className="px-4 py-3.5 text-xs text-on-surface-variant max-w-[250px] break-words">
-                                  {req.reason}
+                                <td className="px-4 py-3.5 whitespace-nowrap text-on-surface font-semibold">
+                                  {act.denormalized_organizer?.name || 'Ban tổ chức'}
                                 </td>
                                 <td className="px-4 py-3.5 whitespace-nowrap text-xs text-on-surface-variant">
-                                  {req.reviewed_at ? new Date(req.reviewed_at).toLocaleString('vi-VN') : 'Chưa cập nhật'}
+                                  {act.categories?.join(', ') || 'Chưa cập nhật'}
+                                </td>
+                                <td className="px-4 py-3.5 whitespace-nowrap text-xs text-on-surface-variant">
+                                  {new Date(act.start_date).toLocaleDateString('vi-VN')} - {new Date(act.end_date).toLocaleDateString('vi-VN')}
                                 </td>
                                 <td className="px-4 py-3.5 whitespace-nowrap">
-                                  {req.status === 'Approved' ? (
+                                  {act.status === 'Open' ? (
                                     <span className="bg-[#e8f5e9] text-[#006d37] font-bold text-[10px] px-2.5 py-1 rounded-full border border-[#006d37]/20 shadow-sm shrink-0">
                                       Đã duyệt
                                     </span>
@@ -1175,81 +1234,20 @@ export const AdminDashboard: React.FC = () => {
                                     </span>
                                   )}
                                 </td>
-                                <td className="px-4 py-3.5 text-xs text-on-surface-variant max-w-[200px] break-words">
-                                  {req.admin_feedback ? (
-                                    <ExpandableText text={req.admin_feedback} limit={50} />
-                                  ) : (
-                                    <span className="italic text-slate-400">Không có</span>
-                                  )}
+                                <td className="px-4 py-3.5 whitespace-nowrap text-xs text-on-surface-variant">
+                                  {new Date(act.updated_at).toLocaleDateString('vi-VN')}
                                 </td>
                               </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="bg-white border border-surface-variant/40 rounded-2xl shadow-sm overflow-hidden">
-                  {filteredActs.length === 0 ? (
-                    <div className="p-16 text-center space-y-3">
-                      <span className="material-symbols-outlined text-outline text-5xl">history</span>
-                      <p className="text-sm text-on-surface-variant italic">Không tìm thấy lịch sử phê duyệt hoạt động phù hợp.</p>
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full border-collapse text-left text-sm">
-                        <thead>
-                          <tr className="bg-[#f8f9fa] border-b border-surface-variant/40 text-on-surface-variant font-bold text-xs uppercase tracking-wider">
-                            <th className="px-4 py-3 whitespace-nowrap">Tên hoạt động</th>
-                            <th className="px-4 py-3 whitespace-nowrap">Ban tổ chức</th>
-                            <th className="px-4 py-3 whitespace-nowrap">Lĩnh vực</th>
-                            <th className="px-4 py-3 whitespace-nowrap">Thời gian diễn ra</th>
-                            <th className="px-4 py-3 whitespace-nowrap">Trạng thái</th>
-                            <th className="px-4 py-3 whitespace-nowrap">Ngày duyệt</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-surface-variant/30 text-on-surface">
-                          {filteredActs.map(act => (
-                            <tr key={act._id} className="hover:bg-slate-50 transition-colors">
-                              <td className="px-4 py-3.5 max-w-[200px] truncate font-bold text-primary hover:underline">
-                                <a href={`#/activity/${act._id}`}>{act.title}</a>
-                              </td>
-                              <td className="px-4 py-3.5 whitespace-nowrap text-on-surface font-semibold">
-                                {act.denormalized_organizer?.name || 'Ban tổ chức'}
-                              </td>
-                              <td className="px-4 py-3.5 whitespace-nowrap text-xs text-on-surface-variant">
-                                {act.categories?.join(', ') || 'Chưa cập nhật'}
-                              </td>
-                              <td className="px-4 py-3.5 whitespace-nowrap text-xs text-on-surface-variant">
-                                {new Date(act.start_date).toLocaleDateString('vi-VN')} - {new Date(act.end_date).toLocaleDateString('vi-VN')}
-                              </td>
-                              <td className="px-4 py-3.5 whitespace-nowrap">
-                                {act.status === 'Open' ? (
-                                  <span className="bg-[#e8f5e9] text-[#006d37] font-bold text-[10px] px-2.5 py-1 rounded-full border border-[#006d37]/20 shadow-sm shrink-0">
-                                    Đã duyệt
-                                  </span>
-                                ) : (
-                                  <span className="bg-red-50 text-red-700 font-bold text-[10px] px-2.5 py-1 rounded-full border border-red-200 shadow-sm shrink-0">
-                                    Từ chối
-                                  </span>
-                                )}
-                              </td>
-                              <td className="px-4 py-3.5 whitespace-nowrap text-xs text-on-surface-variant">
-                                {new Date(act.updated_at).toLocaleDateString('vi-VN')}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          );
-        })()}
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
         </section>
 

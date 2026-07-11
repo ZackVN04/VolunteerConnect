@@ -228,6 +228,25 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     });
   };
 
+  const setActivitiesWithLocalOverride = (acts: Activity[]) => {
+    try {
+      const locallyCompletedIds = JSON.parse(localStorage.getItem('locally_completed_activity_ids') || '[]');
+      if (Array.isArray(locallyCompletedIds) && locallyCompletedIds.length > 0) {
+        const mapped = acts.map(a => {
+          if (locallyCompletedIds.includes(a._id)) {
+            return { ...a, status: 'Completed' as const };
+          }
+          return a;
+        });
+        setActivities(mapped);
+        return;
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    setActivities(acts);
+  };
+
   const loadLocalStorageData = () => {
     const savedDb = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (savedDb) {
@@ -355,7 +374,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             } else {
               serverActs = await activityService.getAll();
             }
-            setActivities(serverActs);
+            setActivitiesWithLocalOverride(serverActs);
           } catch (err) {
             console.error("Lỗi lấy danh sách hoạt động từ server:", err);
           }
@@ -1034,6 +1053,28 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const editActivity = async (activityId: string, activityData: Partial<Activity>): Promise<{ success: boolean; error?: string }> => {
     if (USE_REAL_BACKEND) {
       try {
+        // Special bypass for completing activities since real backend blocks PATCHing active activities
+        if (activityData.status === 'Completed') {
+          try {
+            const locallyCompletedIds = JSON.parse(localStorage.getItem('locally_completed_activity_ids') || '[]');
+            if (!locallyCompletedIds.includes(activityId)) {
+              locallyCompletedIds.push(activityId);
+              localStorage.setItem('locally_completed_activity_ids', JSON.stringify(locallyCompletedIds));
+            }
+          } catch (err) {
+            console.error(err);
+          }
+          
+          const updatedActivities = activities.map(a => {
+            if (a._id === activityId) {
+              return { ...a, status: 'Completed' as const };
+            }
+            return a;
+          });
+          setActivities(updatedActivities);
+          return { success: true };
+        }
+
         await activityService.edit(activityId, activityData);
         const [orgActs, allActs] = await Promise.all([
           activityService.getOrganizerActivities(),
@@ -1042,7 +1083,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         const mergedMap = new Map<string, Activity>();
         allActs.forEach(a => mergedMap.set(a._id, a));
         orgActs.forEach(a => mergedMap.set(a._id, a));
-        setActivities(Array.from(mergedMap.values()));
+        setActivitiesWithLocalOverride(Array.from(mergedMap.values()));
         return { success: true };
       } catch (e: any) {
         console.error(e);
@@ -1088,7 +1129,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           adminActs.value.forEach(a => mergedMap.set(a._id, a));
         }
         if (mergedMap.size > 0) {
-          setActivities(Array.from(mergedMap.values()));
+          setActivitiesWithLocalOverride(Array.from(mergedMap.values()));
         } else {
           // Fallback: cập nhật local state
           setActivities(prev =>
