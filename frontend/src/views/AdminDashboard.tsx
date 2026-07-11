@@ -17,6 +17,26 @@ const AdminAvatar: React.FC<{ name: string; src?: string | null }> = ({ name, sr
   );
 };
 
+const ExpandableText: React.FC<{ text: string; limit?: number }> = ({ text, limit = 50 }) => {
+  const [expanded, setExpanded] = useState(false);
+
+  if (text.length <= limit) {
+    return <span>{text}</span>;
+  }
+
+  return (
+    <span>
+      {expanded ? text : `${text.slice(0, limit)}...`}
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="text-[#006d37] hover:underline font-bold ml-1.5 focus:outline-none inline-block text-[11px] cursor-pointer"
+      >
+        {expanded ? 'Thu gọn' : 'Xem thêm'}
+      </button>
+    </span>
+  );
+};
+
 export const AdminDashboard: React.FC = () => {
   const {
     currentUser, users, activities, registrations, organizerRequests,
@@ -1035,7 +1055,11 @@ export const AdminDashboard: React.FC = () => {
                                   )}
                                 </td>
                                 <td className="px-4 py-3.5 text-xs text-on-surface-variant max-w-[200px] break-words">
-                                  {req.admin_feedback || <span className="italic text-slate-400">Không có</span>}
+                                  {req.admin_feedback ? (
+                                    <ExpandableText text={req.admin_feedback} limit={50} />
+                                  ) : (
+                                    <span className="italic text-slate-400">Không có</span>
+                                  )}
                                 </td>
                               </tr>
                             ))}
