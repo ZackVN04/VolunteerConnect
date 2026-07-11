@@ -48,6 +48,11 @@ export const AdminDashboard: React.FC = () => {
   const [historySubTab, setHistorySubTab] = useState<'organizers' | 'activities'>('organizers');
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
 
+  // Filters for History Tab
+  const [historySearch, setHistorySearch] = useState('');
+  const [historyStatusFilter, setHistoryStatusFilter] = useState<'All' | 'Approved' | 'Rejected'>('All');
+  const [historyDateFilter, setHistoryDateFilter] = useState('');
+
   if (!currentUser) return null;
 
   // Filter pending review lists
@@ -970,50 +975,166 @@ export const AdminDashboard: React.FC = () => {
           )}
 
           {/* TAB 6: APPROVAL HISTORY */}
-          {activeTab === 'history' && (
-            <div className="space-y-6">
-              <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-b border-surface-variant/40 pb-3">
-                <div>
-                  <h2 className="text-xl font-bold text-on-surface">
-                    Lịch sử phê duyệt
-                  </h2>
-                  <p className="text-xs text-on-surface-variant mt-1">
-                    Xem lịch sử kết quả xử lý các yêu cầu nâng cấp Ban tổ chức và phê duyệt hoạt động
-                  </p>
-                </div>
-                
-                {/* Sub-tab Switcher */}
-                <div className="flex bg-slate-100 p-1 rounded-xl shrink-0 self-start sm:self-auto">
-                  <button
-                    onClick={() => setHistorySubTab('organizers')}
-                    className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                      historySubTab === 'organizers'
-                        ? 'bg-[#006d37] text-white shadow-sm'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    Duyệt Ban tổ chức
-                  </button>
-                  <button
-                    onClick={() => setHistorySubTab('activities')}
-                    className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                      historySubTab === 'activities'
-                        ? 'bg-[#006d37] text-white shadow-sm'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    Duyệt Hoạt động
-                  </button>
-                </div>
-              </div>
+          {activeTab === 'history' && (() => {
+            const filteredRequests = organizerRequests
+              .filter(r => r.status === 'Approved' || r.status === 'Rejected')
+              .filter(req => {
+                const requesterUser = users.find(u => u._id === req.volunteer_id);
+                const name = (req.denormalized_volunteer?.name || '').toLowerCase();
+                const accountName = (requesterUser?.phone || req.contact_phone || '').toLowerCase();
+                const reason = (req.reason || '').toLowerCase();
+                const search = historySearch.toLowerCase();
+                if (search && !name.includes(search) && !accountName.includes(search) && !reason.includes(search)) {
+                  return false;
+                }
 
-              {historySubTab === 'organizers' ? (
-                <div className="bg-white border border-surface-variant/40 rounded-2xl shadow-sm overflow-hidden">
-                  {organizerRequests.filter(r => r.status === 'Approved' || r.status === 'Rejected').length === 0 ? (
-                    <div className="p-16 text-center space-y-3">
-                      <span className="material-symbols-outlined text-outline text-5xl">history</span>
-                      <p className="text-sm text-on-surface-variant italic">Chưa có lịch sử phê duyệt Ban tổ chức nào.</p>
+                if (historyStatusFilter !== 'All') {
+                  if (historyStatusFilter === 'Approved' && req.status !== 'Approved') return false;
+                  if (historyStatusFilter === 'Rejected' && req.status !== 'Rejected') return false;
+                }
+
+                if (historyDateFilter && req.reviewed_at) {
+                  const itemDateStr = new Date(req.reviewed_at).toISOString().split('T')[0];
+                  if (itemDateStr !== historyDateFilter) return false;
+                }
+
+                return true;
+              });
+
+            const filteredActs = activities
+              .filter(a => a.status === 'Open' || a.status === 'Rejected')
+              .filter(act => {
+                const title = (act.title || '').toLowerCase();
+                const orgName = (act.denormalized_organizer?.name || '').toLowerCase();
+                const categories = (act.categories?.join(', ') || '').toLowerCase();
+                const search = historySearch.toLowerCase();
+                if (search && !title.includes(search) && !orgName.includes(search) && !categories.includes(search)) {
+                  return false;
+                }
+
+                if (historyStatusFilter !== 'All') {
+                  if (historyStatusFilter === 'Approved' && act.status !== 'Open') return false;
+                  if (historyStatusFilter === 'Rejected' && act.status !== 'Rejected') return false;
+                }
+
+                if (historyDateFilter && act.updated_at) {
+                  const itemDateStr = new Date(act.updated_at).toISOString().split('T')[0];
+                  if (itemDateStr !== historyDateFilter) return false;
+                }
+
+                return true;
+              });
+
+            return (
+              <div className="space-y-6">
+                <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-b border-surface-variant/40 pb-3">
+                  <div>
+                    <h2 className="text-xl font-bold text-on-surface">
+                      Lịch sử phê duyệt
+                    </h2>
+                    <p className="text-xs text-on-surface-variant mt-1">
+                      Xem lịch sử kết quả xử lý các yêu cầu nâng cấp Ban tổ chức và phê duyệt hoạt động
+                    </p>
+                  </div>
+                  
+                  {/* Sub-tab Switcher */}
+                  <div className="flex bg-slate-100 p-1 rounded-xl shrink-0 self-start sm:self-auto">
+                    <button
+                      onClick={() => {
+                        setHistorySubTab('organizers');
+                        setHistorySearch('');
+                        setHistoryStatusFilter('All');
+                        setHistoryDateFilter('');
+                      }}
+                      className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        historySubTab === 'organizers'
+                          ? 'bg-[#006d37] text-white shadow-sm'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      Duyệt Ban tổ chức
+                    </button>
+                    <button
+                      onClick={() => {
+                        setHistorySubTab('activities');
+                        setHistorySearch('');
+                        setHistoryStatusFilter('All');
+                        setHistoryDateFilter('');
+                      }}
+                      className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        historySubTab === 'activities'
+                          ? 'bg-[#006d37] text-white shadow-sm'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      Duyệt Hoạt động
+                    </button>
+                  </div>
+                </div>
+
+                {/* Filter controls */}
+                <div className="bg-white border border-surface-variant/40 rounded-2xl p-4 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
+                  <div className="relative w-full md:w-80">
+                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
+                    <input
+                      type="text"
+                      placeholder={historySubTab === 'organizers' ? "Tìm theo tên, tên tài khoản, lý do..." : "Tìm theo tên hoạt động, BTC..."}
+                      value={historySearch}
+                      onChange={(e) => setHistorySearch(e.target.value)}
+                      className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-[#006d37] focus:border-[#006d37]"
+                    />
+                  </div>
+
+                  <div className="flex flex-wrap w-full md:w-auto gap-4 items-center justify-end">
+                    {/* Status Filter */}
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <span className="text-slate-500 font-semibold">Trạng thái:</span>
+                      <select
+                        value={historyStatusFilter}
+                        onChange={(e) => setHistoryStatusFilter(e.target.value as any)}
+                        className="border border-slate-200 rounded-lg px-2.5 py-1.5 bg-white font-medium text-slate-700 focus:outline-none text-xs"
+                      >
+                        <option value="All">Tất cả</option>
+                        <option value="Approved">Đã duyệt</option>
+                        <option value="Rejected">Từ chối</option>
+                      </select>
                     </div>
+
+                    {/* Date Filter */}
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <span className="text-slate-500 font-semibold">Ngày duyệt:</span>
+                      <input
+                        type="date"
+                        value={historyDateFilter}
+                        onChange={(e) => setHistoryDateFilter(e.target.value)}
+                        className="border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-700 focus:outline-none"
+                      />
+                    </div>
+
+                    {/* Clear Filters */}
+                    {(historySearch || historyStatusFilter !== 'All' || historyDateFilter) && (
+                      <button
+                        onClick={() => {
+                          setHistorySearch('');
+                          setHistoryStatusFilter('All');
+                          setHistoryDateFilter('');
+                        }}
+                        className="text-red-600 hover:text-red-700 font-bold text-xs flex items-center gap-0.5 cursor-pointer"
+                      >
+                        <span className="material-symbols-outlined text-sm">clear</span>
+                        Xóa lọc
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {historySubTab === 'organizers' ? (
+                  <div className="bg-white border border-surface-variant/40 rounded-2xl shadow-sm overflow-hidden">
+                    {filteredRequests.length === 0 ? (
+                      <div className="p-16 text-center space-y-3">
+                        <span className="material-symbols-outlined text-outline text-5xl">history</span>
+                        <p className="text-sm text-on-surface-variant italic">Không tìm thấy lịch sử phê duyệt Ban tổ chức phù hợp.</p>
+                      </div>
                   ) : (
                     <div className="overflow-x-auto">
                       <table className="w-full border-collapse text-left text-sm">
@@ -1027,14 +1148,14 @@ export const AdminDashboard: React.FC = () => {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-surface-variant/30 text-on-surface">
-                          {organizerRequests
-                            .filter(r => r.status === 'Approved' || r.status === 'Rejected')
-                            .map(req => (
+                          {filteredRequests.map(req => {
+                            const requesterUser = users.find(u => u._id === req.volunteer_id);
+                            return (
                               <tr key={req._id} className="hover:bg-slate-50 transition-colors">
                                 <td className="px-4 py-3.5 whitespace-nowrap font-semibold">
                                   <div>{req.denormalized_volunteer?.name || 'Thành viên'}</div>
                                   <div className="text-[10px] text-on-surface-variant font-normal">
-                                    {req.denormalized_volunteer?.email || req.contact_phone}
+                                    Tài khoản: {requesterUser?.phone || req.contact_phone}
                                   </div>
                                 </td>
                                 <td className="px-4 py-3.5 text-xs text-on-surface-variant max-w-[250px] break-words">
@@ -1062,7 +1183,8 @@ export const AdminDashboard: React.FC = () => {
                                   )}
                                 </td>
                               </tr>
-                            ))}
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>
@@ -1070,10 +1192,10 @@ export const AdminDashboard: React.FC = () => {
                 </div>
               ) : (
                 <div className="bg-white border border-surface-variant/40 rounded-2xl shadow-sm overflow-hidden">
-                  {activities.filter(a => a.status === 'Open' || a.status === 'Rejected').length === 0 ? (
+                  {filteredActs.length === 0 ? (
                     <div className="p-16 text-center space-y-3">
                       <span className="material-symbols-outlined text-outline text-5xl">history</span>
-                      <p className="text-sm text-on-surface-variant italic">Chưa có lịch sử phê duyệt hoạt động nào.</p>
+                      <p className="text-sm text-on-surface-variant italic">Không tìm thấy lịch sử phê duyệt hoạt động phù hợp.</p>
                     </div>
                   ) : (
                     <div className="overflow-x-auto">
@@ -1089,38 +1211,36 @@ export const AdminDashboard: React.FC = () => {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-surface-variant/30 text-on-surface">
-                          {activities
-                            .filter(a => a.status === 'Open' || a.status === 'Rejected')
-                            .map(act => (
-                              <tr key={act._id} className="hover:bg-slate-50 transition-colors">
-                                <td className="px-4 py-3.5 max-w-[200px] truncate font-bold text-primary hover:underline">
-                                  <a href={`#/activity/${act._id}`}>{act.title}</a>
-                                </td>
-                                <td className="px-4 py-3.5 whitespace-nowrap text-on-surface font-semibold">
-                                  {act.denormalized_organizer?.name || 'Ban tổ chức'}
-                                </td>
-                                <td className="px-4 py-3.5 whitespace-nowrap text-xs text-on-surface-variant">
-                                  {act.categories?.join(', ') || 'Chưa cập nhật'}
-                                </td>
-                                <td className="px-4 py-3.5 whitespace-nowrap text-xs text-on-surface-variant">
-                                  {new Date(act.start_date).toLocaleDateString('vi-VN')} - {new Date(act.end_date).toLocaleDateString('vi-VN')}
-                                </td>
-                                <td className="px-4 py-3.5 whitespace-nowrap">
-                                  {act.status === 'Open' ? (
-                                    <span className="bg-[#e8f5e9] text-[#006d37] font-bold text-[10px] px-2.5 py-1 rounded-full border border-[#006d37]/20 shadow-sm shrink-0">
-                                      Đã duyệt
-                                    </span>
-                                  ) : (
-                                    <span className="bg-red-50 text-red-700 font-bold text-[10px] px-2.5 py-1 rounded-full border border-red-200 shadow-sm shrink-0">
-                                      Từ chối
-                                    </span>
-                                  )}
-                                </td>
-                                <td className="px-4 py-3.5 whitespace-nowrap text-xs text-on-surface-variant">
-                                  {new Date(act.updated_at).toLocaleDateString('vi-VN')}
-                                </td>
-                              </tr>
-                            ))}
+                          {filteredActs.map(act => (
+                            <tr key={act._id} className="hover:bg-slate-50 transition-colors">
+                              <td className="px-4 py-3.5 max-w-[200px] truncate font-bold text-primary hover:underline">
+                                <a href={`#/activity/${act._id}`}>{act.title}</a>
+                              </td>
+                              <td className="px-4 py-3.5 whitespace-nowrap text-on-surface font-semibold">
+                                {act.denormalized_organizer?.name || 'Ban tổ chức'}
+                              </td>
+                              <td className="px-4 py-3.5 whitespace-nowrap text-xs text-on-surface-variant">
+                                {act.categories?.join(', ') || 'Chưa cập nhật'}
+                              </td>
+                              <td className="px-4 py-3.5 whitespace-nowrap text-xs text-on-surface-variant">
+                                {new Date(act.start_date).toLocaleDateString('vi-VN')} - {new Date(act.end_date).toLocaleDateString('vi-VN')}
+                              </td>
+                              <td className="px-4 py-3.5 whitespace-nowrap">
+                                {act.status === 'Open' ? (
+                                  <span className="bg-[#e8f5e9] text-[#006d37] font-bold text-[10px] px-2.5 py-1 rounded-full border border-[#006d37]/20 shadow-sm shrink-0">
+                                    Đã duyệt
+                                  </span>
+                                ) : (
+                                  <span className="bg-red-50 text-red-700 font-bold text-[10px] px-2.5 py-1 rounded-full border border-red-200 shadow-sm shrink-0">
+                                    Từ chối
+                                  </span>
+                                )}
+                              </td>
+                              <td className="px-4 py-3.5 whitespace-nowrap text-xs text-on-surface-variant">
+                                {new Date(act.updated_at).toLocaleDateString('vi-VN')}
+                              </td>
+                            </tr>
+                          ))}
                         </tbody>
                       </table>
                     </div>
@@ -1128,7 +1248,8 @@ export const AdminDashboard: React.FC = () => {
                 </div>
               )}
             </div>
-          )}
+          );
+        })()}
 
         </section>
 
