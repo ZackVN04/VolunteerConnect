@@ -2,7 +2,7 @@ import React from 'react';
 import { useApp } from '../context/AppContext';
 
 export const MyRegistrationsView: React.FC = () => {
-  const { currentUser, registrations } = useApp();
+  const { currentUser, registrations, activities } = useApp();
 
   if (!currentUser) return null;
 
@@ -142,6 +142,7 @@ export const MyRegistrationsView: React.FC = () => {
             </div>
           ) : (
             userRegs.map(reg => {
+              const actDetails = activities.find(a => a._id === reg.activity_id);
               return (
                 <div 
                   key={reg._id} 
@@ -149,14 +150,36 @@ export const MyRegistrationsView: React.FC = () => {
                 >
                   {/* Left Side: Info */}
                   <div className="space-y-1">
-                    <span className="text-xs text-gray-500 font-semibold">
+                    <span className="text-xs text-gray-500 font-semibold block mb-1">
                       {formatDate(reg.denormalized_activity.start_date)} - {formatDate(reg.denormalized_activity.end_date)}
                     </span>
-                    <h3 className="text-base font-bold text-gray-900 hover:text-[#006d37] transition-colors leading-snug block">
+                    <h3 className="text-base font-bold text-gray-900 hover:text-[#006d37] transition-colors leading-snug block mb-2">
                       <a href={`#/activity/${reg.activity_id}`}>
                         {reg.denormalized_activity.title}
                       </a>
                     </h3>
+                    
+                    {/* Additional Details (QA Request) */}
+                    <div className="flex flex-col gap-1.5 text-xs text-slate-500 pt-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-[#006d37] text-[16px] font-bold">corporate_fare</span>
+                        <span>
+                          <strong>Ban tổ chức:</strong> {actDetails?.denormalized_organizer?.name || 'Chưa cập nhật'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-[#006d37] text-[16px] font-bold">category</span>
+                        <span>
+                          <strong>Lĩnh vực:</strong> {actDetails?.categories?.join(', ') || 'Chưa cập nhật'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-[#006d37] text-[16px] font-bold">location_on</span>
+                        <span className="line-clamp-1">
+                          <strong>Địa điểm:</strong> {actDetails?.location ? `${actDetails.location.address_detail}, ${actDetails.location.district}, ${actDetails.location.province}` : 'Chưa cập nhật'}
+                        </span>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Right Side: Badges & Action Buttons */}
