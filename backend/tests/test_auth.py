@@ -305,7 +305,8 @@ async def test_forgot_password_success(mock_send_email, async_client, active_use
     payload = {"email": active_user.email}
     response = await async_client.post("/api/v1/auth/forgot-password", json=payload)
     assert response.status_code == 200
-    assert "Mã OTP" in response.json()["message"]
+    # The message is generic for security reasons; ensure it's present
+    assert "sent" in response.json()["message"].lower()
     
     mock_send_email.assert_called_once()
     assert mock_send_email.call_args[0][0] == active_user.email
@@ -319,7 +320,8 @@ async def test_forgot_password_email_not_found(async_client):
     """Negative Case: Request OTP with email that doesn't exist (Expects 404)."""
     payload = {"email": "non_existent_email@example.com"}
     response = await async_client.post("/api/v1/auth/forgot-password", json=payload)
-    assert response.status_code == 404
+    assert response.status_code == 200
+    assert "sent" in response.json()["message"].lower()
 
 @pytest.mark.asyncio
 async def test_reset_password_success(async_client, active_user):
@@ -413,7 +415,7 @@ async def test_register_overwrite_pending_user(mock_send_email, async_client, pe
     payload = {
         "email": pending_user.email,
         "phone_number": "+84999999992",  # Different phone
-        "password": "brand_new_password_123",
+        "password": "Brand_new_password_123!",
         "full_name": "New Owner Name"
     }
     response = await async_client.post("/api/v1/auth/register", json=payload)

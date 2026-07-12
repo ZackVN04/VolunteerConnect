@@ -1,12 +1,14 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends
 from pydantic import BaseModel
+from beanie import PydanticObjectId
 import jwt
 import random
 import string
 from datetime import datetime, timedelta, timezone
 
 from app.features.users.models import User
-from app.features.users.schemas import UserCreate, UserLogin, VerifyOTP, ForgotPasswordRequest, ResetPasswordRequest, ResendOTPRequest
+from app.features.users.schemas import UserCreate, UserLogin, VerifyOTP, ForgotPasswordRequest, ResetPasswordRequest, ResendOTPRequest, ChangePasswordRequest
+from app.features.auth.dependencies import get_current_user
 from app.shared.enums import UserStatus
 
 from app.core.security.password import get_password_hash, verify_password
@@ -41,17 +43,18 @@ async def register(user_in: UserCreate):
             # Xóa tài khoản chưa kích hoạt cũ để cho phép đăng ký lại từ đầu
             await existing_email.delete()
         
-    # Kiểm tra xem Số điện thoại đã bị sử dụng chưa
-    existing_phone = await User.find_one(User.phone_number == user_in.phone_number)
-    if existing_phone:
-        if existing_phone.status == UserStatus.ACTIVE:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Số điện thoại đã được đăng ký",
-            )
-        else:
-            # Xóa tài khoản chưa kích hoạt cũ để cho phép đăng ký lại từ đầu
-            await existing_phone.delete()
+    # Kiểm tra xem Số điện thoại đã bị sử dụng chưa (chỉ kiểm tra nếu có nhập)
+    if user_in.phone_number:
+        existing_phone = await User.find_one(User.phone_number == user_in.phone_number)
+        if existing_phone:
+            if existing_phone.status == UserStatus.ACTIVE:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Số điện thoại đã được đăng ký",
+                )
+            else:
+                # Xóa tài khoản chưa kích hoạt cũ để cho phép đăng ký lại từ đầu
+                await existing_phone.delete()
     
     hashed_pwd = get_password_hash(user_in.password)
     
@@ -191,6 +194,21 @@ async def refresh_token(request: RefreshTokenRequest):
                 detail="Loại Token không hợp lệ"
             )
             
+        try:
+            obj_id = PydanticObjectId(user_id)
+        except Exception:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Mã định danh Token không hợp lệ"
+            )
+            
+        user = await User.get(obj_id)
+        if user is None or user.status == UserStatus.BANNED:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Tài khoản đã bị khóa hoặc không tồn tại"
+            )
+            
         return TokenResponse(
             access_token=create_access_token(subject=user_id),
             refresh_token=create_refresh_token(subject=user_id),
@@ -210,26 +228,50 @@ async def refresh_token(request: RefreshTokenRequest):
 
 @router.post("/forgot-password", status_code=status.HTTP_200_OK)
 async def forgot_password(request: ForgotPasswordRequest):
+    # SECURITY FIX: Always return a generic 200 OK response regardless of
+    # whether the email exists in the database. This prevents email enumeration
+    # attacks where an attacker could probe which emails are registered.
+    GENERIC_RESPONSE = {"message": "If the email exists in our system, a password recovery code has been sent."}
+
     user = await User.find_one(User.email == request.email)
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Email không tồn tại trong hệ thống"
-        )
-        
+        # Silently return the same generic message — do NOT reveal email existence
+        return GENERIC_RESPONSE
+
     otp_code = generate_otp()
     otp_expiry = datetime.now(timezone.utc) + timedelta(minutes=5)
-    
+
     user.otp_code = otp_code
     user.otp_expiry = otp_expiry
     await user.save()
-    
-    # Gửi email khôi phục mật khẩu (chạy ngầm không block process)
+
+    # Send password recovery email in background (non-blocking)
     await send_reset_password_email(request.email, otp_code)
+
+    return GENERIC_RESPONSE
+
+@router.post("/verify-reset-otp", status_code=status.HTTP_200_OK)
+async def verify_reset_otp(otp_data: VerifyOTP):
+    user = await User.find_one(User.email == otp_data.email)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Người dùng không tồn tại")
+        
+    # KIỂM TRA EXPIRY: Kiểm tra thời gian hết hạn của OTP
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    otp_expiry = user.otp_expiry.replace(tzinfo=None) if user.otp_expiry else None
     
-    return {
-        "message": "Mã OTP khôi phục mật khẩu đã được gửi tới email của bạn."
-    }
+    if not otp_expiry or now > otp_expiry:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail="Mã OTP đã hết hạn. Vui lòng yêu cầu cấp lại mã mới."
+        )
+        
+    # Kiểm tra tính chính xác của OTP
+    if user.otp_code != otp_data.otp_code:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Mã OTP không chính xác")
+        
+    # Do NOT clear the OTP yet, it will be checked again at reset_password
+    return {"message": "OTP hợp lệ"}
 
 @router.post("/reset-password", status_code=status.HTTP_200_OK)
 async def reset_password(request: ResetPasswordRequest):
@@ -262,6 +304,20 @@ async def reset_password(request: ResetPasswordRequest):
     user.otp_expiry = None
     await user.save()
     
-    return {
-        "message": "Khôi phục mật khẩu thành công. Bạn đã có thể đăng nhập bằng mật khẩu mới."
-    }
+    return {"message": "Khôi phục mật khẩu thành công. Bạn có thể đăng nhập bằng mật khẩu mới."}
+
+@router.post("/change-password", status_code=status.HTTP_200_OK)
+async def change_password(
+    request: ChangePasswordRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Đổi mật khẩu người dùng đang đăng nhập
+    """
+    if not verify_password(request.old_password, current_user.hashed_password):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Mật khẩu hiện tại không chính xác")
+    
+    current_user.hashed_password = get_password_hash(request.new_password)
+    await current_user.save()
+
+    return {"message": "Đổi mật khẩu thành công"}

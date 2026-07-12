@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { authService } from '../services/apiService';
-import { ASSETS } from '../constants/assets';
 
-const USE_REAL_BACKEND = import.meta.env.VITE_USE_REAL_BACKEND === 'true';
+const USE_REAL_BACKEND = true;
 
 interface LoginViewProps {
   onNavigateToRegister: () => void;
@@ -17,19 +16,25 @@ export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToRegister, onNa
   const [errorMsg, setErrorMsg] = useState('');
   const [showVerifyLink, setShowVerifyLink] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim()) return;
+    if (!email.trim() || loading) return;
     setErrorMsg('');
     setShowVerifyLink(false);
+    setLoading(true);
 
     if (USE_REAL_BACKEND) {
       try {
         const { token, user } = await authService.login(email.trim(), password);
         localStorage.setItem('token', token);
         setCurrentUser(user);
-        window.location.hash = '#/feed';
+        if (user.role === 'Admin') {
+          window.location.hash = '#/admin/dashboard';
+        } else {
+          window.location.hash = '#/feed';
+        }
       } catch (err: any) {
         let msg = 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.';
         const detail = err.response?.data?.detail;
@@ -50,178 +55,166 @@ export const LoginView: React.FC<LoginViewProps> = ({ onNavigateToRegister, onNa
         ) {
           setShowVerifyLink(true);
         }
+      } finally {
+        setLoading(false);
       }
       return;
     }
+
+    // Simulated login delay
+    await new Promise((resolve) => setTimeout(resolve, 800));
+    setLoading(false);
 
     // Search user
     const matchedUser = users.find(u => u.email === email.trim());
     if (matchedUser) {
       loginAs(matchedUser._id);
-      window.location.hash = '#/feed';
+      if (matchedUser.role === 'Admin') {
+        window.location.hash = '#/admin/dashboard';
+      } else {
+        window.location.hash = '#/feed';
+      }
     } else {
-      setErrorMsg('Tài khoản không tồn tại. Vui lòng thử lại hoặc chọn một tài khoản Demo có sẵn bên dưới.');
+      setErrorMsg('Tài khoản không tồn tại. Vui lòng thử lại.');
     }
   };
 
 
   return (
-    <div className="flex w-full h-screen overflow-hidden text-left font-body-md bg-background">
-      {/* Left Side: Illustration (Hidden on mobile/tablet) */}
-      <div className="hidden lg:flex w-1/2 bg-surface-container-low h-full items-center justify-center relative overflow-hidden">
-        <div
-          aria-hidden="true"
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-transform duration-500 scale-105"
-          style={{ backgroundImage: `url("${ASSETS.authBackground}")` }}
-        ></div>
-        <div className="absolute inset-0 bg-gradient-to-t from-black/35 to-transparent"></div>
-        <div className="absolute bottom-12 left-12 right-12 text-white z-10 space-y-2">
-          <h2 className="font-headline-md text-2xl font-bold">Kết Nối Hoạt Động Cộng Đồng</h2>
-          <p className="text-sm opacity-90 leading-relaxed max-w-md">Tham gia mạng lưới gắn kết tình nguyện viên và cùng nhau tạo dựng những tác động thiết thực cho xã hội.</p>
-        </div>
-      </div>
-
-      {/* Right Side: Login Form */}
-      <div className="w-full lg:w-1/2 h-full flex flex-col items-center justify-center bg-surface px-margin-mobile md:px-lg relative overflow-y-auto">
-
-        {/* Logo / Brand Header */}
-        <div className="absolute top-8 left-6 md:left-12 flex items-center gap-2">
-          <span className="material-symbols-outlined text-primary text-[32px] filled">volunteer_activism</span>
-          <span className="font-headline-md text-lg text-primary font-bold tracking-tight">Volunteer Connect</span>
+    <div className="min-h-screen bg-[#f5f5f5] flex items-center justify-center px-4 py-8 text-left font-body-md">
+      {/* Center Card */}
+      <div className="bg-white rounded-3xl border border-gray-200/80 shadow-sm w-full max-w-md px-8 py-10 space-y-6">
+        
+        {/* Logo and Brand Header */}
+        <div className="flex flex-col items-center justify-center space-y-4">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-[#006d37] flex items-center justify-center text-white font-bold text-sm select-none">
+              vc
+            </div>
+            <span className="text-[#006d37] font-bold text-lg tracking-tight font-headline-md">Volunteer Connect</span>
+          </div>
+          
+          <div className="text-center space-y-1">
+            <h1 className="text-2xl font-bold text-gray-900 font-headline-md">Chào mừng trở lại</h1>
+            <p className="text-sm text-gray-500 font-medium">Đăng nhập để tiếp tục hành trình</p>
+          </div>
         </div>
 
-        <div className="w-full max-w-md space-y-6 mt-16 md:mt-0 py-6">
-          {/* Header text */}
-          <div className="text-center space-y-2">
-            <h1 className="font-display-lg-mobile md:font-display-lg text-2xl md:text-3xl text-on-surface font-bold">Chào mừng trở lại</h1>
-            <p className="font-body-md text-sm text-on-surface-variant">Đăng nhập để tiếp tục hành trình tình nguyện của bạn</p>
+        {errorMsg && (
+          <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg text-xs font-semibold leading-relaxed">
+            {errorMsg}
+            {showVerifyLink && (
+              <button 
+                type="button" 
+                onClick={() => onNavigateToOTP && onNavigateToOTP(email.trim())}
+                className="block mt-2 text-[#006d37] hover:underline font-bold cursor-pointer"
+              >
+                Nhấp vào đây để nhập mã OTP xác thực.
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Login Form */}
+        <form className="space-y-5" onSubmit={handleSubmit}>
+          {/* Email Field */}
+          <div className="space-y-1">
+            <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider" htmlFor="email">
+              Email
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                <span className="material-symbols-outlined text-gray-400" style={{ fontSize: 18 }}>
+                  mail
+                </span>
+              </div>
+              <input
+                className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/20 placeholder-gray-400 transition-all font-semibold"
+                id="email"
+                name="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="nguyenvana@gmail.com"
+                required
+                type="email"
+                disabled={loading}
+              />
+            </div>
           </div>
 
-          {errorMsg && (
-            <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg text-xs font-semibold leading-relaxed">
-              {errorMsg}
-              {showVerifyLink && (
-                <button 
-                  type="button" 
-                  onClick={() => onNavigateToOTP && onNavigateToOTP(email.trim())}
-                  className="block mt-2 text-primary hover:text-tertiary font-bold underline cursor-pointer"
+          {/* Password Field */}
+          <div className="space-y-1">
+            <div className="flex justify-between items-center">
+              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider" htmlFor="password">
+                Mật khẩu
+              </label>
+              <a className="text-xs text-[#006d37] hover:underline font-bold" href="#/forgot-password">
+                Quên mật khẩu?
+              </a>
+            </div>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                <span className="material-symbols-outlined text-gray-400" style={{ fontSize: 18 }}>lock</span>
+              </div>
+              <input
+                className="w-full pl-9 pr-10 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/20 placeholder-gray-400 transition-all font-semibold"
+                id="password"
+                name="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+                type={showPassword ? "text" : "password"}
+                disabled={loading}
+              />
+              {password && (
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-3 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
                 >
-                  Nhấp vào đây để nhập mã OTP xác thực.
+                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
+                    {showPassword ? "visibility" : "visibility_off"}
+                  </span>
                 </button>
               )}
             </div>
-          )}
+          </div>
 
-          {/* Form */}
-          <form className="space-y-4" onSubmit={handleSubmit}>
-            {/* Email Field */}
-            <div className="space-y-1">
-              <label className="block font-label-sm text-xs text-on-surface font-semibold" htmlFor="email">
-                Email
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <span className="material-symbols-outlined text-outline text-sm">
-                    mail
-                  </span>
-                </div>
-                <input
-                  className="w-full pl-10 pr-4 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg focus:outline-none focus:border-primary text-sm placeholder-on-surface-variant/50 text-on-surface"
-                  id="email"
-                  name="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Email"
-                  required
-                  type="email"
-                />
-              </div>
-            </div>
-
-            {/* Password Field */}
-            <div className="space-y-1">
-              <div className="flex justify-between items-center">
-                <label className="block font-label-sm text-xs text-on-surface font-semibold" htmlFor="password">Mật khẩu</label>
-                <a className="font-label-sm text-xs text-primary hover:text-tertiary font-bold" href="#/forgot-password">Quên mật khẩu?</a>
-              </div>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <span className="material-symbols-outlined text-outline text-sm">lock</span>
-                </div>
-                <input
-                  className="w-full pl-10 pr-10 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg focus:outline-none focus:border-primary text-sm placeholder-on-surface-variant/50 text-on-surface"
-                  id="password"
-                  name="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  required
-                  type={showPassword ? "text" : "password"}
-                />
-                {password && (
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-outline-variant hover:text-primary transition-colors"
-                  >
-                    <span className="material-symbols-outlined text-base">
-                      {showPassword ? "visibility" : "visibility_off"}
-                    </span>
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Submit Button */}
+          {/* Submit Button */}
+          <div className="flex justify-center pt-2">
             <button
-              className="w-full py-3 px-6 bg-primary text-on-primary rounded-full font-label-sm text-sm hover:bg-tertiary active:scale-[0.98] transition-all flex items-center justify-center gap-1 shadow-sm font-bold mt-4"
+              className="bg-[#006d37] hover:bg-[#005027] text-white font-semibold rounded-full px-8 py-2.5 text-sm transition-all disabled:opacity-50 cursor-pointer shadow-sm flex items-center gap-1.5"
               type="submit"
+              disabled={loading}
             >
-              Đăng nhập
-              <span className="material-symbols-outlined text-[20px]">login</span>
+              {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
+              <span className="material-symbols-outlined text-sm font-bold">arrow_forward</span>
             </button>
-          </form>
+          </div>
+        </form>
 
-          {/* Divider and Demo Login Quick Switcher (Hidden in Real Backend mode) */}
-          {!USE_REAL_BACKEND && (
-            <>
-              <div className="relative flex items-center py-2">
-                <div className="flex-grow border-t border-outline-variant"></div>
-                <span className="flex-shrink-0 mx-4 font-body-md text-xs text-on-surface-variant font-semibold">hoặc đăng nhập nhanh bằng các tài khoản Demo</span>
-                <div className="flex-grow border-t border-outline-variant"></div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                {users.slice(0, 4).map(u => (
-                  <button
-                    key={u._id}
-                    onClick={() => {
-                      loginAs(u._id);
-                      window.location.hash = '#/feed';
-                    }}
-                    className="p-2 border border-outline-variant hover:bg-primary-container/10 hover:border-primary/50 rounded-lg text-left transition-colors flex flex-col justify-between text-xs bg-surface-container-low"
-                  >
-                    <span className="font-bold text-on-surface truncate w-full text-[11px]">{u.profile.full_name}</span>
-                    <span className="text-[9px] text-primary font-bold uppercase mt-0.5">{u.role}</span>
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-
-          {/* Sign up Link */}
-          <p className="text-center font-body-md text-xs text-on-surface-variant pt-2">
-            Chưa có tài khoản?
-            <button
-              onClick={onNavigateToRegister}
-              className="font-label-sm text-xs text-primary hover:text-tertiary font-bold hover:underline ml-1"
-            >
-              Đăng ký ngay
-            </button>
-          </p>
+        {/* Divider */}
+        <div className="relative flex py-1 items-center">
+          <div className="flex-grow border-t border-gray-200"></div>
+          <span className="flex-shrink mx-4 text-gray-400 text-xs font-semibold uppercase tracking-wider">hoặc</span>
+          <div className="flex-grow border-t border-gray-200"></div>
         </div>
+
+        {/* Sign up Link */}
+        <p className="text-center text-xs text-gray-500 font-semibold pt-1">
+          Chưa có tài khoản?
+          <button
+            onClick={onNavigateToRegister}
+            className="text-[#006d37] hover:underline font-bold ml-1 cursor-pointer"
+          >
+            Đăng ký ngay
+          </button>
+        </p>
+
       </div>
     </div>
   );
 };
+
 export default LoginView;

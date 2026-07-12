@@ -9,6 +9,7 @@ from app.features.registrations.models import Registration, DenormalizedVoluntee
 from app.features.registrations.repositories import RegistrationRepository
 from app.features.registrations.constants import RegistrationStatus, ReviewAction
 from app.features.registrations.schemas import BulkApproveRequest, BulkRejectRequest, RejectRequest, BulkReviewResponse
+from app.shared.enums import UserRole
 
 class RegistrationService:
     def __init__(self, repository: RegistrationRepository):
@@ -18,81 +19,109 @@ class RegistrationService:
         try:
             act_id = PydanticObjectId(activity_id)
         except Exception:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid activity ID")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Mã hoạt động không hợp lệ")
 
         # 1. Fetch activity
         activity = await Activity.get(act_id)
         if not activity:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Activity not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy hoạt động")
+        
+        # 1.1 Verify role
+        if volunteer.role != UserRole.VOLUNTEER:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Chỉ tình nguyện viên mới có thể đăng ký tham gia hoạt động")
         
         # 1.5 Prevent self-registration
         if activity.organizer_id == volunteer.id:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="You cannot register for your own activity")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Bạn không thể đăng ký tham gia hoạt động của chính mình")
         
         # 2. Check if open (Case-insensitive to prevent DB mismatches)
         if activity.status != ActivityStatus.OPEN.value:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Activity is not open for registration. Current status: {activity.status}")
         
-        # 3. Check capacity limit
-        if activity.approved_volunteers_count >= activity.limit_volunteers:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Activity is full")
+        # 3. Check capacity limit using active_volunteers_count
+        if getattr(activity, "active_volunteers_count", 0) >= activity.limit_volunteers:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Hoạt động đã đủ số lượng tình nguyện viên")
             
         # 4. Check if already registered
         existing = await self.repository.get_by_volunteer_and_activity(volunteer.id, act_id)
-        if existing:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Already registered for this activity")
+        if existing and existing.status in [
+            RegistrationStatus.PENDING.value, 
+            RegistrationStatus.APPROVED.value,
+            RegistrationStatus.REJECTED.value
+        ]:
+            if existing.status == RegistrationStatus.REJECTED.value:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Đơn đăng ký tham gia hoạt động này của bạn đã bị từ chối trước đó")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Bạn đã đăng ký tham gia hoạt động này rồi")
 
         # 5. Check overlapping activities
         overlaps = await self.repository.get_overlapping_registrations(
             volunteer.id, activity.start_date, activity.end_date
         )
         if overlaps:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Overlapping activity schedule")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Lịch trình hoạt động bị trùng lặp")
         
-        # 6. Create registration
-        denorm_vol = DenormalizedVolunteer(
-            name=volunteer.full_name or "Unknown",
-            phone=volunteer.phone_number,
-            email=volunteer.email
-        )
-        
-        denorm_act = DenormalizedActivity(
-            title=activity.title,
-            status=activity.status,
-            start_date=activity.start_date,
-            end_date=activity.end_date
-        )
-        
-        new_registration = Registration(
-            volunteer_id=volunteer.id,
-            activity_id=act_id,
-            denormalized_volunteer=denorm_vol,
-            denormalized_activity=denorm_act
-        )
-        
-        await new_registration.insert()
-        return new_registration
+        # 6. Reactivate or Create registration (in Transaction)
+        client = Registration.get_pymongo_collection().database.client
+        async with await client.start_session() as session:
+            async with session.start_transaction():
+                if existing:
+                    existing.status = RegistrationStatus.PENDING.value
+                    existing.updated_at = datetime.now(timezone.utc)
+                    existing.rejection_reason = None
+                    existing.reviewed_at = None
+                    await existing.save(session=session)
+                    registration_to_return = existing
+                else:
+                    denorm_vol = DenormalizedVolunteer(
+                        name=volunteer.full_name or "Unknown",
+                        phone=volunteer.phone_number,
+                        email=volunteer.email
+                    )
+                    
+                    denorm_act = DenormalizedActivity(
+                        title=activity.title,
+                        status=activity.status,
+                        start_date=activity.start_date,
+                        end_date=activity.end_date
+                    )
+                    
+                    new_registration = Registration(
+                        volunteer_id=volunteer.id,
+                        activity_id=act_id,
+                        denormalized_volunteer=denorm_vol,
+                        denormalized_activity=denorm_act
+                    )
+                    await new_registration.insert(session=session)
+                    registration_to_return = new_registration
+                
+                # 7. Update activity active count and status
+                activity.active_volunteers_count = getattr(activity, "active_volunteers_count", 0) + 1
+                if activity.approved_volunteers_count >= activity.limit_volunteers:
+                    activity.status = ActivityStatus.FULL.value
+                await activity.save(session=session)
+            
+        return registration_to_return
 
     async def cancel_registration(self, volunteer: User, registration_id: str) -> Registration:
         try:
             reg_id = PydanticObjectId(registration_id)
         except Exception:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid registration ID")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Mã đơn đăng ký không hợp lệ")
 
         # 1. Fetch Registration
         registration = await Registration.get(reg_id)
         if not registration:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Registration not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy đơn đăng ký")
 
         # 2. Check Ownership
         if registration.volunteer_id != volunteer.id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to cancel this registration")
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Bạn không có quyền hủy đơn đăng ký này")
 
         # 3. Check status
         if registration.status not in [RegistrationStatus.PENDING, RegistrationStatus.APPROVED]:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, 
-                detail="Only pending or approved registrations can be cancelled"
+                detail="Chỉ những đơn đang chờ duyệt hoặc đã duyệt mới có thể hủy"
             )
 
         # 4. Check 2-day constraint
@@ -104,43 +133,51 @@ class RegistrationService:
         if time_until_start.total_seconds() < 2 * 24 * 3600:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, 
-                detail="Registration must be cancelled at least 2 days before the activity starts"
+                detail="Phải hủy đơn đăng ký ít nhất 2 ngày trước khi hoạt động bắt đầu"
             )
 
         # 5. Fetch Activity
         activity = await Activity.get(registration.activity_id)
         if not activity:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Activity not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy hoạt động")
 
-        # 6. Update Activity if approved
-        if registration.status == RegistrationStatus.APPROVED:
-            activity.approved_volunteers_count -= 1
-            if activity.approved_volunteers_count < 0:
-                activity.approved_volunteers_count = 0
-            if activity.status == ActivityStatus.FULL.value:
-                activity.status = ActivityStatus.OPEN.value
-            await activity.save()
-
-        # 7. Update Registration
-        registration.status = RegistrationStatus.CANCELLED
-        registration.updated_at = datetime.now(timezone.utc)
-        await registration.save()
-
+        # 6. Update Activity counts & Registration (in Transaction)
+        client = Registration.get_pymongo_collection().database.client
+        async with await client.start_session() as session:
+            async with session.start_transaction():
+                activity.active_volunteers_count = getattr(activity, "active_volunteers_count", 0) - 1
+                if activity.active_volunteers_count < 0:
+                    activity.active_volunteers_count = 0
+                    
+                if registration.status == RegistrationStatus.APPROVED:
+                    activity.approved_volunteers_count -= 1
+                    if activity.approved_volunteers_count < 0:
+                        activity.approved_volunteers_count = 0
+                        
+                if activity.status == ActivityStatus.FULL.value and activity.approved_volunteers_count < activity.limit_volunteers:
+                    activity.status = ActivityStatus.OPEN.value
+                await activity.save(session=session)
+        
+                # 7. Update Registration
+                registration.status = RegistrationStatus.CANCELLED
+                registration.updated_at = datetime.now(timezone.utc)
+                await registration.save(session=session)
+ 
         return registration
 
     async def bulk_approve_registrations(self, organizer: User, activity_id: str, request: "BulkApproveRequest") -> "BulkReviewResponse":
         try:
             act_id = PydanticObjectId(activity_id)
         except Exception:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid activity ID")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Mã hoạt động không hợp lệ")
 
         # 1. Fetch Activity & Auth
         activity = await Activity.get(act_id)
         if not activity:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Activity not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy hoạt động")
         
         if activity.organizer_id != organizer.id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to review these registrations")
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Bạn không có quyền duyệt các đơn đăng ký này")
 
         # 2. Slicing logic for Approve
         safe_ids = request.registration_ids
@@ -162,7 +199,7 @@ class RegistrationService:
         try:
             object_ids = [PydanticObjectId(rid) for rid in safe_ids]
         except Exception:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid registration ID in list")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Mã đơn đăng ký trong danh sách không hợp lệ")
         
         pending_registrations = await Registration.find(
             In(Registration.id, object_ids),
@@ -179,21 +216,25 @@ class RegistrationService:
         
         now = datetime.now(timezone.utc)
 
-        # 4. Bulk Update Registrations
-        await Registration.find(In(Registration.id, processed_ids)).update(
-            {"$set": {
-                "status": RegistrationStatus.APPROVED.value,
-                "reviewed_at": now,
-                "updated_at": now
-            }}
-        )
-
-        # 5. Update Activity
-        if actual_processed > 0:
-            activity.approved_volunteers_count += actual_processed
-            if activity.approved_volunteers_count >= activity.limit_volunteers:
-                activity.status = ActivityStatus.FULL.value
-            await activity.save()
+        # 4. Bulk Update Registrations & Activity (in Transaction)
+        client = Registration.get_pymongo_collection().database.client
+        async with await client.start_session() as session:
+            async with session.start_transaction():
+                await Registration.find(In(Registration.id, processed_ids)).update(
+                    {"$set": {
+                        "status": RegistrationStatus.APPROVED.value,
+                        "reviewed_at": now,
+                        "updated_at": now
+                    }},
+                    session=session
+                )
+        
+                # 5. Update Activity
+                if actual_processed > 0:
+                    activity.approved_volunteers_count += actual_processed
+                    if activity.approved_volunteers_count >= activity.limit_volunteers:
+                        activity.status = ActivityStatus.FULL.value
+                    await activity.save(session=session)
             
         return BulkReviewResponse(
             processed=actual_processed,
@@ -204,15 +245,15 @@ class RegistrationService:
         try:
             act_id = PydanticObjectId(activity_id)
         except Exception:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid activity ID")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Mã hoạt động không hợp lệ")
 
         # 1. Fetch Activity & Auth
         activity = await Activity.get(act_id)
         if not activity:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Activity not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy hoạt động")
         
         if activity.organizer_id != organizer.id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to review these registrations")
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Bạn không có quyền duyệt các đơn đăng ký này")
 
         safe_ids = request.registration_ids
         if not safe_ids:
@@ -223,7 +264,7 @@ class RegistrationService:
         try:
             object_ids = [PydanticObjectId(rid) for rid in safe_ids]
         except Exception:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid registration ID in list")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Mã đơn đăng ký trong danh sách không hợp lệ")
         
         pending_registrations = await Registration.find(
             In(Registration.id, object_ids),
@@ -240,7 +281,7 @@ class RegistrationService:
         
         now = datetime.now(timezone.utc)
 
-        # 4. Bulk Update Registrations
+        # 4. Bulk Update Registrations & Activity (in Transaction)
         update_doc = {
             "status": RegistrationStatus.REJECTED.value,
             "reviewed_at": now,
@@ -248,11 +289,25 @@ class RegistrationService:
         }
         if request.rejection_reason:
             update_doc["rejection_reason"] = request.rejection_reason
-
-        await Registration.find(In(Registration.id, processed_ids)).update(
-            {"$set": update_doc}
-        )
-
+ 
+        client = Registration.get_pymongo_collection().database.client
+        async with await client.start_session() as session:
+            async with session.start_transaction():
+                await Registration.find(In(Registration.id, processed_ids)).update(
+                    {"$set": update_doc},
+                    session=session
+                )
+                
+                # 5. Update Activity counts
+                if actual_processed > 0:
+                    activity.active_volunteers_count = getattr(activity, "active_volunteers_count", 0) - actual_processed
+                    if activity.active_volunteers_count < 0:
+                        activity.active_volunteers_count = 0
+                        
+                    if activity.status == ActivityStatus.FULL.value and activity.approved_volunteers_count < activity.limit_volunteers:
+                        activity.status = ActivityStatus.OPEN.value
+                    await activity.save(session=session)
+ 
         return BulkReviewResponse(
             processed=actual_processed,
             skipped=len(safe_ids) - actual_processed
@@ -262,82 +317,95 @@ class RegistrationService:
         try:
             reg_id = PydanticObjectId(registration_id)
         except Exception:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid registration ID")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Mã đơn đăng ký không hợp lệ")
 
         registration = await Registration.get(reg_id)
         if not registration:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Registration not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy đơn đăng ký")
 
         activity = await Activity.get(registration.activity_id)
         if not activity:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Activity not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy hoạt động")
 
         if activity.organizer_id != organizer.id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to review this registration")
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Bạn không có quyền duyệt đơn đăng ký này")
 
         if registration.status != RegistrationStatus.PENDING:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only pending registrations can be approved")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Chỉ những đơn đang chờ duyệt mới có thể được duyệt")
 
-        if activity.approved_volunteers_count >= activity.limit_volunteers:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Activity is full")
-
+        # active_volunteers_count is unchanged because PENDING -> APPROVED
         now = datetime.now(timezone.utc)
-        registration.status = RegistrationStatus.APPROVED
-        registration.reviewed_at = now
-        registration.updated_at = now
-        await registration.save()
-
-        activity.approved_volunteers_count += 1
-        if activity.approved_volunteers_count >= activity.limit_volunteers:
-            activity.status = ActivityStatus.FULL.value
-        await activity.save()
-
+        client = Registration.get_pymongo_collection().database.client
+        async with await client.start_session() as session:
+            async with session.start_transaction():
+                registration.status = RegistrationStatus.APPROVED
+                registration.reviewed_at = now
+                registration.updated_at = now
+                await registration.save(session=session)
+                
+                activity.approved_volunteers_count += 1
+                if activity.approved_volunteers_count >= activity.limit_volunteers:
+                    activity.status = ActivityStatus.FULL.value
+                await activity.save(session=session)
+ 
         return registration
 
     async def reject_registration(self, organizer: User, registration_id: str, request: "RejectRequest") -> Registration:
         try:
             reg_id = PydanticObjectId(registration_id)
         except Exception:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid registration ID")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Mã đơn đăng ký không hợp lệ")
 
         registration = await Registration.get(reg_id)
         if not registration:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Registration not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy đơn đăng ký")
 
         activity = await Activity.get(registration.activity_id)
         if not activity:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Activity not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy hoạt động")
 
         if activity.organizer_id != organizer.id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to review this registration")
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Bạn không có quyền từ chối đơn đăng ký này")
 
         if registration.status != RegistrationStatus.PENDING:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only pending registrations can be rejected")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Chỉ những đơn đang chờ duyệt mới có thể bị từ chối")
 
         now = datetime.now(timezone.utc)
-        registration.status = RegistrationStatus.REJECTED
-        registration.reviewed_at = now
-        registration.updated_at = now
-        if request.rejection_reason:
-            registration.rejection_reason = request.rejection_reason
-            
-        await registration.save()
-
+        client = Registration.get_pymongo_collection().database.client
+        async with await client.start_session() as session:
+            async with session.start_transaction():
+                registration.status = RegistrationStatus.REJECTED
+                registration.reviewed_at = now
+                registration.updated_at = now
+                if request.rejection_reason:
+                    registration.rejection_reason = request.rejection_reason
+                    
+                await registration.save(session=session)
+                
+                # Update Activity counts
+                activity.active_volunteers_count = getattr(activity, "active_volunteers_count", 0) - 1
+                if activity.active_volunteers_count < 0:
+                    activity.active_volunteers_count = 0
+                    
+                if activity.status == ActivityStatus.FULL.value and activity.approved_volunteers_count < activity.limit_volunteers:
+                    activity.status = ActivityStatus.OPEN.value
+                await activity.save(session=session)
+ 
         return registration
 
     async def get_activity_registrations(self, organizer: User, activity_id: str, status: str | None, skip: int, limit: int) -> tuple[list[Registration], int]:
         try:
             act_id = PydanticObjectId(activity_id)
         except Exception:
-            raise HTTPException(status_code=400, detail="Invalid activity ID")
+            raise HTTPException(status_code=400, detail="Mã hoạt động không hợp lệ")
 
         # 1. Fetch Activity & Auth
         activity = await Activity.get(act_id)
         if not activity:
-            raise HTTPException(status_code=404, detail="Activity not found")
+            raise HTTPException(status_code=404, detail="Không tìm thấy hoạt động")
         
         if activity.organizer_id != organizer.id:
-            raise HTTPException(status_code=403, detail="Not authorized to view these registrations")
+            raise HTTPException(status_code=403, detail="Bạn không có quyền xem các đơn đăng ký này")
 
         # 2. Call repository
         return await self.repository.list_activity_registrations(act_id, status, skip, limit)
@@ -346,21 +414,21 @@ class RegistrationService:
         try:
             reg_id = PydanticObjectId(registration_id)
         except Exception:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid registration ID")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Mã đơn đăng ký không hợp lệ")
 
         # 1. Fetch Registration
         registration = await Registration.get(reg_id)
         if not registration:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Registration not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy đơn đăng ký")
 
         # 2. Check Ownership (chỉ TNV sở hữu mới được xem)
         if registration.volunteer_id != volunteer.id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to view this registration")
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Bạn không có quyền xem đơn đăng ký này")
 
         # 3. Fetch full Activity detail
         activity = await Activity.get(registration.activity_id)
         if not activity:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Activity not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy hoạt động")
 
         return registration, activity
 

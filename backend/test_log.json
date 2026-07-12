@@ -1,0 +1,93 @@
+[
+  {
+    "status": "SUCCESS",
+    "endpoint": "POST /auth/login (USER)",
+    "message": "Login successful",
+    "details": null
+  },
+  {
+    "status": "SUCCESS",
+    "endpoint": "POST /auth/login (ADMIN)",
+    "message": "Login successful",
+    "details": null
+  },
+  {
+    "status": "SUCCESS",
+    "endpoint": "POST /posts/",
+    "message": "Post created successfully",
+    "details": {
+      "title": "Test Post from Automated Script",
+      "content": "This is a test post to verify the API endpoints.",
+      "images": [
+        "http://example.com/img.jpg"
+      ],
+      "video_url": null,
+      "hashtags": [
+        "#test",
+        "#api"
+      ],
+      "id": "6a4f060d2da9490896124b94",
+      "author_id": "6a4f05fab6f64a7fa9c6e206",
+      "likes": 0,
+      "shares": 0,
+      "comment_count": 0,
+      "created_at": "2026-07-09T02:23:09.953882Z",
+      "updated_at": "2026-07-09T02:23:09.953884Z"
+    }
+  },
+  {
+    "status": "SUCCESS",
+    "endpoint": "GET /posts/",
+    "message": "Posts fetched successfully",
+    "details": null
+  },
+  {
+    "status": "SUCCESS",
+    "endpoint": "PATCH /posts/.../like",
+    "message": "Like successful (Status: 200)",
+    "details": null
+  },
+  {
+    "status": "SUCCESS",
+    "endpoint": "PATCH /posts/.../share",
+    "message": "Share successful",
+    "details": null
+  },
+  {
+    "status": "SUCCESS",
+    "endpoint": "POST /posts/.../comments/",
+    "message": "Comment created successfully",
+    "details": {
+      "id": "6a4f060f2da9490896124b95",
+      "post_id": "6a4f060d2da9490896124b94",
+      "author_id": "6a4f05fab6f64a7fa9c6e206",
+      "author_name": "Test volunteer",
+      "content": "This is a test comment",
+      "created_at": "2026-07-09T02:23:11.283319Z"
+    }
+  },
+  {
+    "status": "SUCCESS",
+    "endpoint": "GET /posts/.../comments/",
+    "message": "Comments fetched successfully",
+    "details": null
+  },
+  {
+    "status": "SUCCESS",
+    "endpoint": "GET /admin/statistics",
+    "message": "Statistics fetched successfully",
+    "details": null
+  },
+  {
+    "status": "SUCCESS",
+    "endpoint": "GET /admin/organizer-requests",
+    "message": "Requests fetched successfully",
+    "details": null
+  },
+  {
+    "status": "SUCCESS",
+    "endpoint": "GET /admin/activities",
+    "message": "Activities fetched successfully",
+    "details": null
+  }
+]

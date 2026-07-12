@@ -7,6 +7,7 @@ on:
       - chore/setup-docker-deployment
       - feat/frontend-deployment
       - fix/*
+      - feature/api-sync-and-security-fix
 
 jobs:
   test-python-code:
@@ -113,6 +114,9 @@ jobs:
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          # Tắt telemetry và kiểm tra update của SST/Pulumi để tránh bị treo trên GitHub Actions Runner
+          SST_TELEMETRY_DISABLED: 1
+          PULUMI_SKIP_UPDATE_CHECK: "true"
           # Gắn mã Băm (SHA) của lần Commit này vào đường link Docker
           IMAGE_URL: "asia-southeast1-docker.pkg.dev/volunteer-connect-prod-999/volunteer-connect-repo/volunteer-connect-api:${{ github.sha }}"
           FRONTEND_IMAGE_URL: "asia-southeast1-docker.pkg.dev/volunteer-connect-prod-999/volunteer-connect-repo/volunteer-connect-frontend:${{ github.sha }}"
@@ -122,7 +126,19 @@ jobs:
           SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
           SMTP_FROM_EMAIL: ${{ secrets.SMTP_FROM_EMAIL }}
-        # Chạy unlock trước để bẻ khóa nếu có lỗi, sau đó deploy bình thường
+        # Chạy unlock trước để bẻ khóa nếu có lỗi, sau đó deploy bình thường (bật verbose để hiển thị log chi tiết)
         run: |
           npx sst unlock --stage dev || true
-          npx sst deploy --stage dev
+          npx sst refresh --stage dev || true
+          npx sst deploy --stage dev --verbose
+
+      - name: Print Pulumi logs on console
+        if: always()
+        run: cat .sst/log/pulumi.log || true
+
+      - name: Upload SST logs as Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sst-logs
+          path: .sst/log/

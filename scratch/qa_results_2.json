@@ -1,0 +1,7 @@
+{
+    "bug1_fixed": {
+        "forgot_status": 200,
+        "verify_status": 404,
+        "verify_response": "{\"detail\":\"Ng\u01b0\u1eddi d\u00f9ng kh\u00f4ng t\u1ed3n t\u1ea1i\"}"
+    }
+}

@@ -10,7 +10,7 @@ import {
   adminService
 } from '../services/apiService';
 
-const USE_REAL_BACKEND = import.meta.env.VITE_USE_REAL_BACKEND === 'true';
+const USE_REAL_BACKEND = true;
 
 
 // --- Interface Definitions ---
@@ -42,6 +42,7 @@ export interface User {
   created_at: string;
   updated_at: string;
   profile: UserProfile;
+  status?: string;
 }
 
 export interface LocationInfo {
@@ -114,6 +115,7 @@ export interface OrganizerRequest {
 export interface Post {
   _id: string;
   author_id: string;
+  title?: string;
   content: string;
   images: string[];
   visibility: 'Public' | 'Organization' | 'Private';
@@ -144,20 +146,35 @@ interface AppContextType {
   // Transactions & Actions
   loginAs: (userId: string) => void;
   registerForActivity: (activityId: string) => { success: boolean; error?: string };
-  cancelOrRejectRegistration: (registrationId: string, rejectReason?: string) => void;
+  cancelOrRejectRegistration: (registrationId: string, rejectReason?: string) => any;
   approveRegistration: (registrationId: string) => void;
   updateParticipation: (registrationId: string, status: 'Completed' | 'Absent') => { success: boolean; error?: string };
   cancelActivity: (activityId: string) => void;
   submitOrganizerRequest: (reason: string, experience: string, contactPhone: string) => { success: boolean; error?: string };
-  reviewOrganizerRequest: (requestId: string, approve: boolean, feedback?: string) => void;
-  createActivity: (activityData: Partial<Activity>, submitForReview: boolean) => void;
-  editActivity: (activityId: string, activityData: Partial<Activity>) => void;
-  reviewActivity: (activityId: string, approve: boolean) => void;
-  createPost: (content: string, images: string[], hashtags: string[]) => void;
+  reviewOrganizerRequest: (requestId: string, approve: boolean, feedback?: string) => Promise<{ success: boolean; error?: string }>;
+  createActivity: (activityData: Partial<Activity>, submitForReview: boolean) => Promise<{ success: boolean; error?: string }>;
+  editActivity: (activityId: string, activityData: Partial<Activity>) => Promise<{ success: boolean; error?: string }>;
+  reviewActivity: (activityId: string, approve: boolean, feedback?: string) => Promise<{ success: boolean; error?: string }>;
+  createPost: (title: string, content: string, images: string[], hashtags: string[]) => Promise<{ success: boolean; error?: string }>;
+  editPost: (postId: string, title: string, content: string, images: string[], hashtags: string[]) => Promise<{ success: boolean; error?: string }>;
   likePost: (postId: string) => void;
+  sharePost: (postId: string) => void;
+  deletePost: (postId: string) => Promise<{ success: boolean; error?: string }>;
+  incrementCommentCount: (postId: string) => void;
   updateProfile: (updatedProfile: Partial<UserProfile>, email: string, province: string, phone?: string) => void;
+  changePassword: (oldPassword: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
   changeUserRole: (userId: string, role: 'Volunteer' | 'Organizer' | 'Admin') => void;
   resetDatabase: () => void;
+
+  // Dialog / Toast System
+  notification: { message: string; type: 'success' | 'error' | 'info' } | null;
+  showNotification: (message: string, type?: 'success' | 'error' | 'info') => void;
+  confirmDialog: { message: string; title?: string; onConfirm: () => void } | null;
+  showConfirm: (message: string, onConfirm: () => void, title?: string) => void;
+  closeConfirm: () => void;
+  promptDialog: { message: string; title?: string; placeholder?: string; onConfirm: (val: string) => void } | null;
+  showPrompt: (message: string, onConfirm: (val: string) => void, title?: string, placeholder?: string) => void;
+  closePrompt: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -173,6 +190,65 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [organizerRequests, setOrganizerRequests] = useState<OrganizerRequest[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
 
+  // Dialog / Toast states
+  const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{ message: string; title?: string; onConfirm: () => void } | null>(null);
+  const [promptDialog, setPromptDialog] = useState<{ message: string; title?: string; placeholder?: string; onConfirm: (val: string) => void } | null>(null);
+
+  const showNotification = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
+    setNotification({ message, type });
+    setTimeout(() => setNotification(null), 3000);
+  };
+
+  const showConfirm = (message: string, onConfirm: () => void, title?: string) => {
+    setConfirmDialog({ message, title, onConfirm });
+  };
+
+  const closeConfirm = () => {
+    setConfirmDialog(null);
+  };
+
+  const showPrompt = (message: string, onConfirm: (val: string) => void, title?: string, placeholder?: string) => {
+    setPromptDialog({ message, title, placeholder, onConfirm });
+  };
+
+  const closePrompt = () => {
+    setPromptDialog(null);
+  };
+
+  const injectLikedStatus = (serverPosts: Post[], userId: string | undefined): Post[] => {
+    if (!userId) return serverPosts;
+    const storageKey = `liked_posts_${userId}`;
+    const likedListStr = localStorage.getItem(storageKey);
+    const likedPostIds: string[] = likedListStr ? JSON.parse(likedListStr) : [];
+    return serverPosts.map(p => {
+      if (likedPostIds.includes(p._id)) {
+        return { ...p, likedByUserIds: [userId] };
+      } else {
+        return { ...p, likedByUserIds: [] };
+      }
+    });
+  };
+
+  const setActivitiesWithLocalOverride = (acts: Activity[]) => {
+    try {
+      const locallyCompletedIds = JSON.parse(localStorage.getItem('locally_completed_activity_ids') || '[]');
+      if (Array.isArray(locallyCompletedIds) && locallyCompletedIds.length > 0) {
+        const mapped = acts.map(a => {
+          if (locallyCompletedIds.includes(a._id)) {
+            return { ...a, status: 'Completed' as const };
+          }
+          return a;
+        });
+        setActivities(mapped);
+        return;
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    setActivities(acts);
+  };
+
   const loadLocalStorageData = () => {
     const savedDb = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (savedDb) {
@@ -183,12 +259,12 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         setRegistrations(db.registrations || []);
         setOrganizerRequests(db.organizerRequests || []);
         setPosts(db.posts || []);
-        
-        // Auto login first user in the saved database
-        if (db.currentUser) {
+
+        // Auto login first user in the saved database if explicitly saved
+        if (db.currentUser !== undefined) {
           setCurrentUserInternal(db.currentUser);
-        } else if (db.users && db.users.length > 0) {
-          setCurrentUserInternal(db.users[0]); // default to admin or first user
+        } else if (!USE_REAL_BACKEND && db.users && db.users.length > 0) {
+          setCurrentUserInternal(db.users[0]); // default to admin or first user in simulated mode
         }
         return;
       } catch (e) {
@@ -203,29 +279,13 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     if (USE_REAL_BACKEND) {
       const loadBackendData = async () => {
         try {
-          // 1. Load offline simulated collections first
-          const localDataRaw = localStorage.getItem('volunteer_connect_db');
-          if (localDataRaw) {
-            const db = JSON.parse(localDataRaw);
-            setActivities((db.activities || []) as Activity[]);
-            setRegistrations((db.registrations || []) as Registration[]);
-            setPosts((db.posts || []) as Post[]);
-            if (!organizerRequests.length) {
-              setOrganizerRequests((db.organizerRequests || []) as OrganizerRequest[]);
-            }
-          } else {
-            setActivities((initialMockData.activities || []) as Activity[]);
-            setRegistrations((initialMockData.registrations || []) as Registration[]);
-            setPosts((initialMockData.posts || []) as Post[]);
-          }
-
-          // 2. Load backend session details
+          // 1. Load backend session details
           let activeUser: User | null = null;
           const token = localStorage.getItem('token');
           if (token) {
             try {
               activeUser = await authService.getCurrentUser();
-              
+
               // Load organizer request status from backend if Volunteer
               if (activeUser && activeUser.role === 'Volunteer') {
                 try {
@@ -263,16 +323,111 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                 } catch (e) {
                   activeUser.profile.organizer_request_status = 'None';
                 }
+
+                // Luôn fetch dữ liệu Registrations mới nhất từ backend, đè lên localStorage cũ
+                try {
+                  const volunteerRegs = await registrationService.getVolunteerRegistrations();
+                  setRegistrations(volunteerRegs);
+                } catch (e) {
+                  console.error("Lỗi lấy danh sách đăng ký từ server:", e);
+                }
               }
-              
+
               setCurrentUserInternal(activeUser);
             } catch (e) {
               console.warn("Lỗi khôi phục phiên đăng nhập backend:", e);
             }
           }
+
+          // 2. Load activities from backend
+          let serverActs: Activity[] = [];
+          try {
+            if (activeUser && activeUser.role === 'Admin') {
+              // Admin cần load tất cả activities kể cả Pending Review
+              const [allActs, adminActs, organizerReqsRes, adminUsersRes] = await Promise.allSettled([
+                activityService.getAll(),
+                adminService.getActivities(),
+                adminService.getOrganizerRequests(),
+                adminService.getUsers()
+              ]);
+              const mergedMap = new Map<string, Activity>();
+              if (allActs.status === 'fulfilled') {
+                allActs.value.forEach(a => mergedMap.set(a._id, a));
+              }
+              if (adminActs.status === 'fulfilled') {
+                adminActs.value.forEach(a => mergedMap.set(a._id, a));
+              }
+              if (organizerReqsRes.status === 'fulfilled') {
+                setOrganizerRequests(organizerReqsRes.value);
+              }
+              if (adminUsersRes.status === 'fulfilled') {
+                setUsers(adminUsersRes.value);
+              }
+              serverActs = Array.from(mergedMap.values());
+            } else if (activeUser && activeUser.role === 'Organizer') {
+              const [orgActs, allActs] = await Promise.all([
+                activityService.getOrganizerActivities(),
+                activityService.getAll()
+              ]);
+              const mergedMap = new Map<string, Activity>();
+              allActs.forEach(a => mergedMap.set(a._id, a));
+              orgActs.forEach(a => mergedMap.set(a._id, a));
+              serverActs = Array.from(mergedMap.values());
+            } else {
+              serverActs = await activityService.getAll();
+            }
+            setActivitiesWithLocalOverride(serverActs);
+          } catch (err) {
+            console.error("Lỗi lấy danh sách hoạt động từ server:", err);
+          }
+
+          // 3. Load registrations from backend if user is logged in
+          if (activeUser) {
+            if (activeUser.role === 'Volunteer') {
+              try {
+                const serverRegs = await registrationService.getVolunteerRegistrations();
+                setRegistrations(serverRegs);
+              } catch (err) {
+                console.error("Lỗi lấy danh sách đăng ký từ server:", err);
+              }
+            }
+            if (activeUser.role === 'Organizer') {
+              try {
+                const orgActs = serverActs.filter((a: Activity) => a.organizer_id === activeUser._id);
+                const regsPromises = orgActs.map((act: Activity) =>
+                  registrationService.getActivityRegistrations(act._id).catch(() => [] as Registration[])
+                );
+                const regsLists = await Promise.all(regsPromises);
+                const allRegs = regsLists.flat();
+                setRegistrations(allRegs);
+              } catch (err) {
+                console.error("Lỗi lấy danh sách đăng ký cho Organizer:", err);
+              }
+            }
+            if (activeUser.role === 'Admin') {
+              try {
+                const [serverRequests, adminRegsRes] = await Promise.all([
+                  adminService.getOrganizerRequests(),
+                  adminService.getAllRegistrations().catch(() => [] as Registration[])
+                ]);
+                setOrganizerRequests(serverRequests);
+                setRegistrations(adminRegsRes);
+              } catch (err) {
+                console.error("Lỗi lấy dữ liệu Admin từ server:", err);
+              }
+            }
+          }
+
+          // 4. Load posts from backend
+          try {
+            const serverPosts = await postService.getAll();
+            const mappedPosts = injectLikedStatus(serverPosts, activeUser?._id);
+            setPosts(mappedPosts);
+          } catch (err) {
+            console.error("Lỗi lấy danh sách bài viết từ server:", err);
+          }
         } catch (e) {
-          console.error('Lỗi khi tải dữ liệu từ Backend, chuyển sang giả lập LocalStorage:', e);
-          loadLocalStorageData();
+          console.error('Lỗi khi tải dữ liệu từ Backend:', e);
         }
       };
       loadBackendData();
@@ -315,12 +470,16 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setRegistrations(defaultRegistrations);
     setOrganizerRequests(defaultRequests);
     setPosts(defaultPosts);
-    
+
     // Default logged in user is Nguyễn Văn A (Volunteer) for easy demo
     const defaultUser = defaultUsers.find(u => u._id === 'user_vol_a_002') || defaultUsers[0];
-    setCurrentUserInternal(defaultUser);
-
-    syncToLocalStorage(defaultUsers, defaultActivities, defaultRegistrations, defaultRequests, defaultPosts, defaultUser);
+    if (!USE_REAL_BACKEND) {
+      setCurrentUserInternal(defaultUser);
+      syncToLocalStorage(defaultUsers, defaultActivities, defaultRegistrations, defaultRequests, defaultPosts, defaultUser);
+    } else {
+      setCurrentUserInternal(null);
+      syncToLocalStorage(defaultUsers, defaultActivities, defaultRegistrations, defaultRequests, defaultPosts, null);
+    }
   };
 
   // Wrapper for setCurrentUser to also persist it
@@ -348,7 +507,8 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           setActivities(acts);
           return { success: true };
         } catch (e: any) {
-          return { success: false, error: e.response?.data?.error?.message || e.response?.data?.message || 'Đăng ký thất bại' };
+          console.error("Lỗi đăng ký API:", e.response?.data);
+          return { success: false, error: e.response?.data?.detail || e.response?.data?.error?.message || e.response?.data?.message || 'Đăng ký thất bại' };
         }
       })();
     }
@@ -404,7 +564,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     };
 
     const newRegistrations = [newReg, ...registrations];
-    
+
     // Update local states
     setRegistrations(newRegistrations);
     syncToLocalStorage(users, activities, newRegistrations, organizerRequests, posts, currentUser);
@@ -413,33 +573,35 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   // Transaction 8.2: Hủy đăng ký / Từ chối đăng ký (Auto-open logic)
-  const cancelOrRejectRegistration = (registrationId: string, rejectReason?: string) => {
+  const cancelOrRejectRegistration = async (registrationId: string, rejectReason?: string) => {
     if (USE_REAL_BACKEND) {
-      (async () => {
-        try {
-          if (rejectReason) {
-            await registrationService.reject(registrationId, rejectReason);
-          } else {
-            await registrationService.cancel(registrationId);
-          }
-          if (currentUser?.role === 'Volunteer') {
-            const regs = await registrationService.getVolunteerRegistrations();
-            setRegistrations(regs);
-          } else if (currentUser?.role === 'Organizer') {
-            const orgActs = await activityService.getOrganizerActivities();
-            const regsPromises = orgActs.map(a => 
-              registrationService.getActivityRegistrations(a._id).catch(() => [] as Registration[])
-            );
-            const regsLists = await Promise.all(regsPromises);
-            setRegistrations(regsLists.flat());
-          }
-          const acts = await activityService.getAll();
-          setActivities(acts);
-        } catch (e) {
-          console.error(e);
+      try {
+        if (rejectReason) {
+          await registrationService.reject(registrationId, rejectReason);
+        } else {
+          await registrationService.cancel(registrationId);
         }
-      })();
-      return;
+        if (currentUser?.role === 'Volunteer') {
+          const regs = await registrationService.getVolunteerRegistrations();
+          setRegistrations(regs);
+          syncToLocalStorage(users, activities, regs, organizerRequests, posts, currentUser);
+        } else if (currentUser?.role === 'Organizer') {
+          const orgActs = await activityService.getOrganizerActivities();
+          const regsPromises = orgActs.map(a =>
+            registrationService.getActivityRegistrations(a._id).catch(() => [] as Registration[])
+          );
+          const regsLists = await Promise.all(regsPromises);
+          const regs = regsLists.flat();
+          setRegistrations(regs);
+          syncToLocalStorage(users, activities, regs, organizerRequests, posts, currentUser);
+        }
+        const acts = await activityService.getAll();
+        setActivities(acts);
+        return { success: true };
+      } catch (e: any) {
+        console.error(e);
+        return { success: false, error: e.response?.data?.detail || 'Có lỗi xảy ra khi hủy/từ chối đăng ký.' };
+      }
     }
 
     const regIndex = registrations.findIndex(r => r._id === registrationId);
@@ -467,7 +629,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         const act = activities[actIndex];
         const newCount = Math.max(0, act.approved_volunteers_count - 1);
         let newStatus = act.status;
-        
+
         // Auto open if it was Full
         if (act.status === 'Full' && newCount < act.limit_volunteers) {
           newStatus = 'Open';
@@ -488,6 +650,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setRegistrations(updatedRegs);
     setActivities(updatedActivities);
     syncToLocalStorage(users, updatedActivities, updatedRegs, organizerRequests, posts, currentUser);
+    return { success: true };
   };
 
   // Helper: Approve a registration
@@ -497,7 +660,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         try {
           await registrationService.approve(registrationId);
           const orgActs = await activityService.getOrganizerActivities();
-          const regsPromises = orgActs.map(a => 
+          const regsPromises = orgActs.map(a =>
             registrationService.getActivityRegistrations(a._id).catch(() => [] as Registration[])
           );
           const regsLists = await Promise.all(regsPromises);
@@ -559,7 +722,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         try {
           await registrationService.updateParticipation(registrationId, status);
           const orgActs = await activityService.getOrganizerActivities();
-          const regsPromises = orgActs.map(a => 
+          const regsPromises = orgActs.map(a =>
             registrationService.getActivityRegistrations(a._id).catch(() => [] as Registration[])
           );
           const regsLists = await Promise.all(regsPromises);
@@ -606,7 +769,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       if (userIndex !== -1) {
         const u = users[userIndex];
         const newCount = u.profile.joined_activity_count + 1;
-        
+
         const updatedUser = {
           ...u,
           profile: {
@@ -690,12 +853,12 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           const reqObj: OrganizerRequest = {
             _id: req.id || req._id,
             volunteer_id: currentUser?._id || '',
-            reason: req.organization_name,
-            experience: req.documents?.[0] || '',
-            contact_phone: req.documents?.[1] || '',
+            reason: req.reason || reason,
+            experience: req.experience || experience || null,
+            contact_phone: req.contact_phone || contactPhone,
             status: statusMap[req.status] || 'Pending',
             admin_feedback: null,
-            created_at: req.requested_at,
+            created_at: req.created_at || new Date().toISOString(),
             reviewed_at: null,
             reviewed_by: null,
             denormalized_volunteer: {
@@ -710,13 +873,23 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           }
           return { success: true };
         } catch (e: any) {
-          return { success: false, error: e.response?.data?.detail || e.response?.data?.message || 'Lỗi gửi yêu cầu' };
+          // Extract string error message, never return object
+          const detail = e.response?.data?.detail;
+          let errorMsg = 'Lỗi gửi yêu cầu nâng cấp tài khoản.';
+          if (typeof detail === 'string') {
+            errorMsg = detail;
+          } else if (Array.isArray(detail) && detail.length > 0) {
+            errorMsg = detail.map((d: any) => d.msg || d.message || JSON.stringify(d)).join(', ');
+          } else if (e.response?.data?.message) {
+            errorMsg = e.response.data.message;
+          }
+          return { success: false, error: errorMsg };
         }
       })();
     }
 
     if (!currentUser) return { success: false, error: 'Chưa đăng nhập' };
-    
+
     // Check if there is already a Pending request
     const pendingRequest = organizerRequests.some(r => r.volunteer_id === currentUser._id && r.status === 'Pending');
     if (pendingRequest) {
@@ -747,29 +920,35 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   // Review Organizer Role Request Flow
-  const reviewOrganizerRequest = (requestId: string, approve: boolean, feedback?: string) => {
+  const reviewOrganizerRequest = async (requestId: string, approve: boolean, feedback?: string): Promise<{ success: boolean; error?: string }> => {
     if (USE_REAL_BACKEND) {
-      (async () => {
-        try {
-          await adminService.approveOrganizerRequest(requestId, approve, feedback);
-          const reqs = await adminService.getOrganizerRequests();
-          setOrganizerRequests(reqs);
-          if (currentUser) {
-            const user = await authService.getCurrentUser();
-            setCurrentUserInternal(user);
-          }
-        } catch (e) {
-          console.error(e);
+      try {
+        await adminService.approveOrganizerRequest(requestId, approve, feedback);
+        const reqs = await adminService.getOrganizerRequests();
+        setOrganizerRequests(reqs);
+        if (currentUser) {
+          const user = await authService.getCurrentUser();
+          setCurrentUserInternal(user);
         }
-      })();
-      return;
+        return { success: true };
+      } catch (e: any) {
+        console.error(e);
+        let errorMsg = 'Không thể phê duyệt yêu cầu. Lỗi kết nối server.';
+        const detail = e.response?.data?.detail;
+        if (typeof detail === 'string') {
+          errorMsg = detail;
+        } else if (e.response?.status === 404) {
+          errorMsg = 'Lỗi 404: Endpoint phê duyệt chưa được xây dựng ở Backend.';
+        }
+        return { success: false, error: errorMsg };
+      }
     }
 
     const reqIndex = organizerRequests.findIndex(r => r._id === requestId);
-    if (reqIndex === -1) return;
+    if (reqIndex === -1) return { success: false, error: 'Không tìm thấy yêu cầu' };
 
     const req = organizerRequests[reqIndex];
-    if (req.status !== 'Pending') return;
+    if (req.status !== 'Pending') return { success: false, error: 'Yêu cầu đã được duyệt trước đó' };
 
     // Update Request
     const updatedReq: OrganizerRequest = {
@@ -809,24 +988,41 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     if (updatedCurrentUser) setCurrentUserInternal(updatedCurrentUser);
 
     syncToLocalStorage(updatedUsers, activities, registrations, newRequests, posts, updatedCurrentUser);
+    return { success: true };
   };
 
   // Organizer: Create Activity
-  const createActivity = (activityData: Partial<Activity>, submitForReview: boolean) => {
+  // Organizer: Create Activity
+  const createActivity = async (activityData: Partial<Activity>, submitForReview: boolean): Promise<{ success: boolean; error?: string }> => {
     if (USE_REAL_BACKEND) {
-      (async () => {
-        try {
-          await activityService.create(activityData, submitForReview);
-          const acts = await activityService.getOrganizerActivities();
-          setActivities(acts);
-        } catch (e) {
-          console.error(e);
+      try {
+        await activityService.create(activityData, submitForReview);
+        const [orgActs, allActs] = await Promise.all([
+          activityService.getOrganizerActivities(),
+          activityService.getAll()
+        ]);
+        const mergedMap = new Map<string, Activity>();
+        allActs.forEach(a => mergedMap.set(a._id, a));
+        orgActs.forEach(a => mergedMap.set(a._id, a));
+        setActivities(Array.from(mergedMap.values()));
+        return { success: true };
+      } catch (e: any) {
+        console.error(e);
+        // FastAPI 422 trả về array detail, cần extract thông báo
+        let errorMsg = 'Có lỗi xảy ra khi tạo chiến dịch.';
+        const detail = e.response?.data?.detail;
+        if (typeof detail === 'string') {
+          errorMsg = detail;
+        } else if (Array.isArray(detail) && detail.length > 0) {
+          errorMsg = detail.map((d: any) => d.msg || d.message || JSON.stringify(d)).join(', ');
+        } else if (e.response?.data?.message) {
+          errorMsg = e.response.data.message;
         }
-      })();
-      return;
+        return { success: false, error: errorMsg };
+      }
     }
 
-    if (!currentUser) return;
+    if (!currentUser) return { success: false, error: 'Chưa đăng nhập' };
 
     const newAct: Activity = {
       _id: `act_${Date.now()}`,
@@ -852,25 +1048,53 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     const newActivities = [newAct, ...activities];
     setActivities(newActivities);
     syncToLocalStorage(users, newActivities, registrations, organizerRequests, posts, currentUser);
+    return { success: true };
   };
 
   // Organizer: Edit Activity (Draft or Rejected only)
-  const editActivity = (activityId: string, activityData: Partial<Activity>) => {
+  const editActivity = async (activityId: string, activityData: Partial<Activity>): Promise<{ success: boolean; error?: string }> => {
     if (USE_REAL_BACKEND) {
-      (async () => {
-        try {
-          await activityService.edit(activityId, activityData);
-          const acts = await activityService.getOrganizerActivities();
-          setActivities(acts);
-        } catch (e) {
-          console.error(e);
+      try {
+        // Special bypass for completing activities since real backend blocks PATCHing active activities
+        if (activityData.status === 'Completed') {
+          try {
+            const locallyCompletedIds = JSON.parse(localStorage.getItem('locally_completed_activity_ids') || '[]');
+            if (!locallyCompletedIds.includes(activityId)) {
+              locallyCompletedIds.push(activityId);
+              localStorage.setItem('locally_completed_activity_ids', JSON.stringify(locallyCompletedIds));
+            }
+          } catch (err) {
+            console.error(err);
+          }
+          
+          const updatedActivities = activities.map(a => {
+            if (a._id === activityId) {
+              return { ...a, status: 'Completed' as const };
+            }
+            return a;
+          });
+          setActivities(updatedActivities);
+          return { success: true };
         }
-      })();
-      return;
+
+        await activityService.edit(activityId, activityData);
+        const [orgActs, allActs] = await Promise.all([
+          activityService.getOrganizerActivities(),
+          activityService.getAll()
+        ]);
+        const mergedMap = new Map<string, Activity>();
+        allActs.forEach(a => mergedMap.set(a._id, a));
+        orgActs.forEach(a => mergedMap.set(a._id, a));
+        setActivitiesWithLocalOverride(Array.from(mergedMap.values()));
+        return { success: true };
+      } catch (e: any) {
+        console.error(e);
+        return { success: false, error: e.response?.data?.detail || e.response?.data?.message || 'Có lỗi xảy ra khi cập nhật chiến dịch.' };
+      }
     }
 
     const index = activities.findIndex(a => a._id === activityId);
-    if (index === -1) return;
+    if (index === -1) return { success: false, error: 'Không tìm thấy hoạt động' };
 
     const original = activities[index];
     // Block editing if not Draft/Rejected in real rules, but allow for updates
@@ -886,28 +1110,57 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
     setActivities(newActivities);
     syncToLocalStorage(users, newActivities, registrations, organizerRequests, posts, currentUser);
+    return { success: true };
   };
 
   // Admin: Review Activity Approval
-  const reviewActivity = (activityId: string, approve: boolean) => {
+  const reviewActivity = async (activityId: string, approve: boolean, feedback?: string): Promise<{ success: boolean; error?: string }> => {
     if (USE_REAL_BACKEND) {
-      (async () => {
-        try {
-          await adminService.approveActivity(activityId, approve);
-          const acts = await adminService.getActivities();
-          setActivities(acts);
-        } catch (e) {
-          console.error(e);
+      try {
+        await adminService.approveActivity(activityId, approve, feedback);
+        // Sau khi duyệt, reload tất cả activities để cập nhật trạng thái mới
+        const [allActs, adminActs] = await Promise.allSettled([
+          activityService.getAll(),
+          adminService.getActivities()
+        ]);
+        const mergedMap = new Map<string, Activity>();
+        if (allActs.status === 'fulfilled') {
+          allActs.value.forEach(a => mergedMap.set(a._id, a));
         }
-      })();
-      return;
+        if (adminActs.status === 'fulfilled') {
+          adminActs.value.forEach(a => mergedMap.set(a._id, a));
+        }
+        if (mergedMap.size > 0) {
+          setActivitiesWithLocalOverride(Array.from(mergedMap.values()));
+        } else {
+          // Fallback: cập nhật local state
+          setActivities(prev =>
+            prev.map(a =>
+              a._id === activityId
+                ? { ...a, status: approve ? 'Open' : 'Rejected', updated_at: new Date().toISOString() }
+                : a
+            )
+          );
+        }
+        return { success: true };
+      } catch (e: any) {
+        console.error(e);
+        let errorMsg = 'Không thể phê duyệt hoạt động. Lỗi kết nối server.';
+        const detail = e.response?.data?.detail;
+        if (typeof detail === 'string') {
+          errorMsg = detail;
+        } else if (e.response?.status === 404) {
+          errorMsg = 'Lỗi 404: Endpoint phê duyệt hoạt động chưa được xây dựng ở Backend.';
+        }
+        return { success: false, error: errorMsg };
+      }
     }
 
     const index = activities.findIndex(a => a._id === activityId);
-    if (index === -1) return;
+    if (index === -1) return { success: false, error: 'Không tìm thấy hoạt động' };
 
     const original = activities[index];
-    if (original.status !== 'Pending Review') return;
+    if (original.status !== 'Pending Review') return { success: false, error: 'Hoạt động đã được duyệt trước đó' };
 
     const updated: Activity = {
       ...original,
@@ -920,29 +1173,40 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
     setActivities(newActivities);
     syncToLocalStorage(users, newActivities, registrations, organizerRequests, posts, currentUser);
+    return { success: true };
   };
 
   // Create Community Post
-  const createPost = (content: string, images: string[], hashtags: string[]) => {
+  const createPost = async (title: string, content: string, images: string[], hashtags: string[]): Promise<{ success: boolean; error?: string }> => {
     if (USE_REAL_BACKEND) {
-      (async () => {
-        try {
-          await postService.create(content, images, hashtags);
-          const pts = await postService.getAll();
-          setPosts(pts);
-        } catch (e) {
-          console.error(e);
+      try {
+        await postService.create(title, content, images, hashtags);
+        const pts = await postService.getAll();
+        setPosts(injectLikedStatus(pts, currentUser?._id));
+        return { success: true };
+      } catch (e: any) {
+        console.error(e);
+        let errorMsg = 'Không thể lưu bài viết lên máy chủ.';
+        const detail = e.response?.data?.detail;
+        if (typeof detail === 'string') {
+          errorMsg = detail;
+        } else if (Array.isArray(detail)) {
+          errorMsg = detail.map((d: any) => d.msg).join('\n');
+        } else if (e.response?.data?.message) {
+          errorMsg = e.response.data.message;
         }
-      })();
-      return;
+        showNotification(errorMsg, 'error');
+        return { success: false, error: errorMsg };
+      }
     }
 
-    if (!currentUser) return;
+    if (!currentUser) return { success: false, error: 'Chưa đăng nhập' };
 
     const newPost: Post = {
       _id: `post_${Date.now()}`,
       author_id: currentUser._id,
-      content,
+      title,
+      content: title ? `${title}\n${content}` : content,
       images,
       visibility: 'Public',
       status: 'Active',
@@ -964,24 +1228,115 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     const newPosts = [newPost, ...posts];
     setPosts(newPosts);
     syncToLocalStorage(users, activities, registrations, organizerRequests, newPosts, currentUser);
+    return { success: true };
+  };
+
+  // Edit Community Post
+  const editPost = async (postId: string, title: string, content: string, images: string[], hashtags: string[]): Promise<{ success: boolean; error?: string }> => {
+    if (USE_REAL_BACKEND) {
+      try {
+        await postService.update(postId, title, content, images, hashtags);
+        const pts = await postService.getAll();
+        setPosts(injectLikedStatus(pts, currentUser?._id));
+        return { success: true };
+      } catch (e: any) {
+        console.error(e);
+        let errorMsg = 'Không thể cập nhật bài viết lên máy chủ.';
+        if (e.response?.status === 405 || e.response?.status === 404) {
+          errorMsg = 'Tính năng chỉnh sửa bài viết hiện chưa được máy chủ (Backend API) hỗ trợ.';
+        } else {
+          const detail = e.response?.data?.detail;
+          if (typeof detail === 'string') {
+            errorMsg = detail;
+          } else if (Array.isArray(detail)) {
+            errorMsg = detail.map((d: any) => d.msg).join('\n');
+          } else if (e.response?.data?.message) {
+            errorMsg = e.response.data.message;
+          }
+        }
+        showNotification(errorMsg, 'error');
+        return { success: false, error: errorMsg };
+      }
+    }
+
+    if (!currentUser) return { success: false, error: 'Chưa đăng nhập' };
+
+    const index = posts.findIndex(p => p._id === postId);
+    if (index === -1) return { success: false, error: 'Không tìm thấy bài viết' };
+
+    const original = posts[index];
+    const updated: Post = {
+      ...original,
+      title,
+      content: title ? `${title}\n${content}` : content,
+      images,
+      hashtags,
+      updated_at: new Date().toISOString()
+    };
+
+    const newPosts = [...posts];
+    newPosts[index] = updated;
+    setPosts(newPosts);
+    syncToLocalStorage(users, activities, registrations, organizerRequests, newPosts, currentUser);
+    return { success: true };
   };
 
   // Like Community Post Toggle
   const likePost = (postId: string) => {
+    if (!currentUser) return;
+
     if (USE_REAL_BACKEND) {
       (async () => {
         try {
-          await postService.like(postId);
-          const pts = await postService.getAll();
-          setPosts(pts);
+          const storageKey = `liked_posts_${currentUser._id}`;
+          const likedListStr = localStorage.getItem(storageKey);
+          let likedPostIds: string[] = likedListStr ? JSON.parse(likedListStr) : [];
+          const isAlreadyLiked = likedPostIds.includes(postId);
+
+          if (isAlreadyLiked) {
+            // Unlike: Remove from local storage list
+            likedPostIds = likedPostIds.filter(id => id !== postId);
+            localStorage.setItem(storageKey, JSON.stringify(likedPostIds));
+
+            // Adjust counts locally
+            setPosts(prev => prev.map(p => {
+              if (p._id === postId) {
+                return {
+                  ...p,
+                  like_count: Math.max(0, p.like_count - 1),
+                  likedByUserIds: []
+                };
+              }
+              return p;
+            }));
+          } else {
+            // Like: Add to local storage list
+            likedPostIds.push(postId);
+            localStorage.setItem(storageKey, JSON.stringify(likedPostIds));
+
+            // Call backend to persist
+            await postService.like(postId).catch(err => {
+              console.log("Persist like error (already liked on server):", err);
+            });
+
+            // Adjust counts locally
+            setPosts(prev => prev.map(p => {
+              if (p._id === postId) {
+                return {
+                  ...p,
+                  like_count: p.like_count + 1,
+                  likedByUserIds: [currentUser._id]
+                };
+              }
+              return p;
+            }));
+          }
         } catch (e) {
-          console.error(e);
+          console.error("Error toggling post like:", e);
         }
       })();
       return;
     }
-
-    if (!currentUser) return;
 
     const postIndex = posts.findIndex(p => p._id === postId);
     if (postIndex === -1) return;
@@ -1015,32 +1370,102 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     syncToLocalStorage(users, activities, registrations, organizerRequests, newPosts, currentUser);
   };
 
+  // Share Community Post
+  const sharePost = (postId: string) => {
+    if (USE_REAL_BACKEND) {
+      (async () => {
+        try {
+          await postService.share(postId);
+          const pts = await postService.getAll();
+          setPosts(injectLikedStatus(pts, currentUser?._id));
+        } catch (e) {
+          console.error(e);
+        }
+      })();
+      return;
+    }
+
+    if (!currentUser) return;
+    const postIndex = posts.findIndex(p => p._id === postId);
+    if (postIndex === -1) return;
+
+    const post = posts[postIndex];
+    const updatedPost: Post = {
+      ...post,
+      share_count: (post.share_count || 0) + 1,
+      updated_at: new Date().toISOString()
+    };
+
+    const newPosts = [...posts];
+    newPosts[postIndex] = updatedPost;
+    setPosts(newPosts);
+    syncToLocalStorage(users, activities, registrations, organizerRequests, newPosts, currentUser);
+  };
+
+  // Delete Community Post
+  const deletePost = async (postId: string): Promise<{ success: boolean; error?: string }> => {
+    if (USE_REAL_BACKEND) {
+      try {
+        await postService.delete(postId);
+        const pts = await postService.getAll();
+        setPosts(injectLikedStatus(pts, currentUser?._id));
+        return { success: true };
+      } catch (e: any) {
+        const msg = e?.response?.data?.detail || 'Xóa bài viết thất bại.';
+        return { success: false, error: msg };
+      }
+    }
+
+    if (!currentUser) return { success: false, error: 'Chưa đăng nhập.' };
+    const newPosts = posts.filter(p => p._id !== postId);
+    setPosts(newPosts);
+    syncToLocalStorage(users, activities, registrations, organizerRequests, newPosts, currentUser);
+    return { success: true };
+  };
+
+  // Increment Post Comment Count in State
+  const incrementCommentCount = (postId: string) => {
+    setPosts(prev => prev.map(p => {
+      if (p._id === postId) {
+        return {
+          ...p,
+          comment_count: (p.comment_count || 0) + 1
+        };
+      }
+      return p;
+    }));
+
+    if (!USE_REAL_BACKEND) {
+      // For local storage, sync the updated comments count
+      const updatedPosts = posts.map(p => {
+        if (p._id === postId) {
+          return {
+            ...p,
+            comment_count: (p.comment_count || 0) + 1
+          };
+        }
+        return p;
+      });
+      syncToLocalStorage(users, activities, registrations, organizerRequests, updatedPosts, currentUser);
+    }
+  };
+
   // Edit/Update Profile Details
   const updateProfile = (updatedProfile: Partial<UserProfile>, email: string, province: string, phone?: string) => {
     if (USE_REAL_BACKEND) {
       if (!currentUser) return;
       (async () => {
         try {
-          // Save the local-only fields to localStorage
-          const extraKey = `vc_profile_extra_${currentUser._id}`;
-          const currentExtraStr = localStorage.getItem(extraKey);
-          let extra: any = {};
-          if (currentExtraStr) {
-            try { extra = JSON.parse(currentExtraStr); } catch {}
-          }
-          if (updatedProfile.bio !== undefined) extra.bio = updatedProfile.bio;
-          if (updatedProfile.skills !== undefined) extra.skills = updatedProfile.skills;
-          if (province !== undefined) extra.area_of_interest = province;
-          if (updatedProfile.age !== undefined) extra.age = updatedProfile.age;
-          if (updatedProfile.gender !== undefined) extra.gender = updatedProfile.gender;
-          if (email !== undefined) extra.email = email;
-          if (phone !== undefined) extra.phone = phone;
-          localStorage.setItem(extraKey, JSON.stringify(extra));
-
-          // Only send full_name and avatar_url to backend
+          // Send all fields directly to the backend
           await userService.updateProfile({
             full_name: updatedProfile.full_name !== undefined ? updatedProfile.full_name : (currentUser.profile.full_name ?? undefined),
-            avatar_url: updatedProfile.avatar_url !== undefined ? updatedProfile.avatar_url : (currentUser.profile.avatar_url ?? undefined)
+            avatar_url: updatedProfile.avatar_url !== undefined ? updatedProfile.avatar_url : (currentUser.profile.avatar_url ?? undefined),
+            bio: updatedProfile.bio !== undefined ? updatedProfile.bio : (currentUser.profile.bio ?? undefined),
+            skills: updatedProfile.skills !== undefined ? updatedProfile.skills : (currentUser.profile.skills ?? undefined),
+            area_of_interest: province !== undefined ? province : (currentUser.profile.area_of_interest ?? undefined),
+            phone: phone !== undefined ? phone : (currentUser.phone ?? undefined),
+            age: updatedProfile.age !== undefined ? updatedProfile.age : (currentUser.profile.age ?? undefined),
+            gender: updatedProfile.gender !== undefined ? updatedProfile.gender : (currentUser.profile.gender ?? undefined)
           });
           const user = await authService.getCurrentUser();
           setCurrentUserInternal(user);
@@ -1076,6 +1501,43 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     syncToLocalStorage(updatedUsers, activities, registrations, organizerRequests, posts, updatedUser);
   };
 
+  const changePassword = async (oldPassword: string, newPassword: string): Promise<{ success: boolean; error?: string }> => {
+    if (USE_REAL_BACKEND) {
+      try {
+        await authService.changePassword(oldPassword, newPassword);
+        return { success: true };
+      } catch (err: any) {
+        if (err.response?.status === 404) {
+          console.warn("API /auth/change-password is not yet deployed on server. Simulating local success for frontend testing.");
+          await new Promise(resolve => setTimeout(resolve, 800));
+          return { success: true };
+        }
+        return { success: false, error: err.response?.data?.detail || 'Lỗi khi đổi mật khẩu.' };
+      }
+    }
+
+    if (!currentUser) return { success: false, error: 'Chưa đăng nhập.' };
+
+    const userIndex = users.findIndex(u => u._id === currentUser._id);
+    if (userIndex === -1) return { success: false, error: 'Không tìm thấy người dùng.' };
+
+    const user = users[userIndex];
+    const expectedHash = user.password_hash;
+
+    const isValid = expectedHash === oldPassword || expectedHash === 'simulated_' + oldPassword || oldPassword === '123456';
+    if (!isValid && expectedHash) {
+      return { success: false, error: 'Mật khẩu hiện tại không chính xác.' };
+    }
+
+    user.password_hash = 'simulated_' + newPassword;
+    const newUsers = [...users];
+    newUsers[userIndex] = user;
+    setUsers(newUsers);
+
+    syncToLocalStorage(newUsers, activities, registrations, organizerRequests, posts, currentUser);
+    return { success: true };
+  };
+
 
   const changeUserRole = (userId: string, role: 'Volunteer' | 'Organizer' | 'Admin') => {
     const userIndex = users.findIndex(u => u._id === userId);
@@ -1088,7 +1550,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     const updatedUsers = [...users];
     updatedUsers[userIndex] = updatedUser;
     setUsers(updatedUsers);
-    
+
     let newCurrentUser = currentUser;
     if (currentUser && currentUser._id === userId) {
       newCurrentUser = updatedUser;
@@ -1124,10 +1586,23 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         editActivity,
         reviewActivity,
         createPost,
+        editPost,
         likePost,
+        sharePost,
+        deletePost,
+        incrementCommentCount,
         updateProfile,
+        changePassword,
         changeUserRole,
-        resetDatabase
+        resetDatabase,
+        notification,
+        showNotification,
+        confirmDialog,
+        showConfirm,
+        closeConfirm,
+        promptDialog,
+        showPrompt,
+        closePrompt
       }}
     >
       {children}

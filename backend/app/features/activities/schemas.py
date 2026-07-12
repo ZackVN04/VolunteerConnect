@@ -11,14 +11,14 @@ class LocationSchema(BaseModel):
 
 class ActivityCreate(BaseModel):
     title: str = Field(..., min_length=5, max_length=150)
-    description: str = Field(..., min_length=20)
+    description: str = Field(..., min_length=20, max_length=500)
     categories: List[ActivityCategory]
     location: LocationSchema
     start_date: datetime
     end_date: datetime
     limit_volunteers: int = Field(..., gt=0)
     requirements: Optional[str] = Field(None, max_length=1000)
-    image_url: Optional[str] = None
+    image_url: Optional[str] = Field(None, max_length=500, description="URL of the uploaded image (must not be base64)")
 
     @model_validator(mode='after')
     def check_dates(self) -> 'ActivityCreate':
@@ -28,14 +28,14 @@ class ActivityCreate(BaseModel):
 
 class ActivityUpdate(BaseModel):
     title: Optional[str] = Field(None, min_length=5, max_length=150)
-    description: Optional[str] = Field(None, min_length=20)
+    description: Optional[str] = Field(None, min_length=20, max_length=500)
     categories: Optional[List[ActivityCategory]] = None
     location: Optional[LocationSchema] = None
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
     limit_volunteers: Optional[int] = Field(None, gt=0)
     requirements: Optional[str] = Field(None, max_length=1000)
-    image_url: Optional[str] = None
+    image_url: Optional[str] = Field(None, max_length=500, description="URL of the uploaded image (must not be base64)")
 
     @model_validator(mode='after')
     def check_dates(self) -> 'ActivityUpdate':
@@ -55,6 +55,10 @@ class ActivityResponseData(BaseModel):
     end_date: datetime
     limit_volunteers: int
     approved_volunteers_count: int
+    active_volunteers_count: int
+    current_slots: int
+    max_volunteers: int
+    is_full: bool
     requirements: Optional[str]
     image_url: Optional[str]
     status: str
@@ -82,6 +86,10 @@ class ActivityResponseData(BaseModel):
             end_date=activity.end_date,
             limit_volunteers=activity.limit_volunteers,
             approved_volunteers_count=activity.approved_volunteers_count,
+            active_volunteers_count=getattr(activity, "active_volunteers_count", 0),
+            current_slots=getattr(activity, "active_volunteers_count", 0),
+            max_volunteers=activity.limit_volunteers,
+            is_full=(activity.status == "FULL"),
             requirements=activity.requirements,
             image_url=activity.image_url,
             status=activity.status,

@@ -4,6 +4,7 @@ from typing import Optional
 from app.features.registrations.services import RegistrationService
 from app.features.registrations.dependencies import get_registration_service
 from app.features.auth.dependencies import get_current_user
+from app.features.activities.dependencies import require_organizer
 from app.features.users.models import User
 from app.features.registrations.schemas import (
     RegistrationListResponse,
@@ -50,7 +51,7 @@ async def register_activity(
 async def bulk_approve_registrations_endpoint(
     activity_id: str,
     request: BulkApproveRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_organizer),
     service: RegistrationService = Depends(get_registration_service)
 ):
     """Bulk approve registrations for an activity."""
@@ -61,7 +62,7 @@ async def bulk_approve_registrations_endpoint(
 async def bulk_reject_registrations_endpoint(
     activity_id: str,
     request: BulkRejectRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_organizer),
     service: RegistrationService = Depends(get_registration_service)
 ):
     """Bulk reject registrations for an activity."""
@@ -74,7 +75,7 @@ async def get_activity_registrations(
     status: Optional[str] = Query(None, description="Lọc theo trạng thái"),
     page: int = Query(1, ge=1),
     limit: int = Query(10, ge=1, le=100),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_organizer),
     service: RegistrationService = Depends(get_registration_service)
 ):
     """Get list of registrations for a specific activity (Organizer only)"""
@@ -100,7 +101,13 @@ async def get_activity_registrations(
                 name=reg.denormalized_volunteer.name,
                 phone=reg.denormalized_volunteer.phone,
                 email=reg.denormalized_volunteer.email
-            ) if reg.denormalized_volunteer else None
+            ) if reg.denormalized_volunteer else None,
+            activity=ActivitySnippet(
+                title=reg.denormalized_activity.title,
+                status=reg.denormalized_activity.status,
+                start_date=reg.denormalized_activity.start_date,
+                end_date=reg.denormalized_activity.end_date
+            ) if reg.denormalized_activity else None
         ))
     return RegistrationListResponse(
         message="Lấy danh sách ứng viên thành công",
@@ -140,7 +147,7 @@ async def cancel_registration(
 @action_router.patch("/{registration_id}/approve", response_model=RegistrationResponse, status_code=status.HTTP_200_OK)
 async def approve_registration_endpoint(
     registration_id: str,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_organizer),
     service: RegistrationService = Depends(get_registration_service)
 ):
     """Approve a single registration (Organizer only)"""
@@ -160,7 +167,7 @@ async def approve_registration_endpoint(
 async def reject_registration_endpoint(
     registration_id: str,
     request: RejectRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_organizer),
     service: RegistrationService = Depends(get_registration_service)
 ):
     """Reject a single registration (Organizer only)"""

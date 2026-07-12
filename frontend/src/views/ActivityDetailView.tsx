@@ -5,12 +5,29 @@ interface ActivityDetailViewProps {
   activityId: string;
 }
 
+// Helper: avatar fallback with initials
+const ContactAvatar: React.FC<{ name: string; src?: string | null }> = ({ name, src }) => {
+  if (src) {
+    return <img alt="Contact avatar" className="w-full h-full object-cover" src={src} />;
+  }
+  const initials = name.split(' ').map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
+  const colors = ['#006d37', '#0d6efd', '#6f42c1', '#fd7e14', '#20c997'];
+  const bg = colors[name.charCodeAt(0) % colors.length];
+  return (
+    <div style={{ background: bg, width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <span style={{ color: '#fff', fontWeight: 700, fontSize: 16, fontFamily: 'inherit' }}>{initials}</span>
+    </div>
+  );
+};
+
 export const ActivityDetailView: React.FC<ActivityDetailViewProps> = ({ activityId }) => {
-  const { currentUser, activities, registrations, registerForActivity, cancelOrRejectRegistration } = useApp();
+  const { currentUser, users, activities, registrations, registerForActivity, cancelOrRejectRegistration, showNotification, showConfirm } = useApp();
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
 
   const activity = activities.find(a => a._id === activityId);
+  const organizerUser = users.find(u => u._id === activity?.organizer_id);
+
 
   // Check if current user is registered for this activity
   const userRegistration = registrations.find(
@@ -43,17 +60,27 @@ export const ActivityDetailView: React.FC<ActivityDetailViewProps> = ({ activity
     const res = registerForActivity(activity._id);
     const result = res instanceof Promise ? await res : res;
     if (result.success) {
-      setShowSuccessToast(true);
-      setToastMessage('Yêu cầu tham gia của bạn đã được gửi. Vui lòng chờ Ban tổ chức duyệt.');
+      showNotification('Yêu cầu tham gia của bạn đã được gửi. Vui lòng chờ Ban tổ chức duyệt.', 'success');
     } else {
-      alert(result.error || 'Có lỗi xảy ra khi đăng ký');
+      showNotification(result.error || 'Có lỗi xảy ra khi đăng ký', 'error');
     }
   };
 
   const handleCancelRegistration = () => {
-    if (userRegistration && confirm('Bạn chắc chắn muốn hủy đăng ký tham gia hoạt động này?')) {
-      cancelOrRejectRegistration(userRegistration._id);
-      setShowSuccessToast(false);
+    if (userRegistration) {
+      showConfirm(
+        'Bạn chắc chắn muốn hủy đăng ký tham gia hoạt động này?',
+        async () => {
+          const res = cancelOrRejectRegistration(userRegistration._id);
+          const result = res instanceof Promise ? await res : res;
+          if (result && result.error) {
+            showNotification(result.error, 'error');
+          } else {
+            showNotification('Đã hủy đăng ký thành công!', 'success');
+          }
+        },
+        'Hủy đăng ký tham gia'
+      );
     }
   };
 
@@ -102,7 +129,7 @@ export const ActivityDetailView: React.FC<ActivityDetailViewProps> = ({ activity
               <h4 className="font-bold text-sm text-on-surface">Đăng ký thành công!</h4>
               <p className="text-xs text-on-surface-variant mt-1">{toastMessage}</p>
             </div>
-            <button 
+            <button
               onClick={() => setShowSuccessToast(false)}
               className="text-on-surface-variant hover:text-on-surface transition-colors p-1"
             >
@@ -114,10 +141,10 @@ export const ActivityDetailView: React.FC<ActivityDetailViewProps> = ({ activity
 
       {/* Container */}
       <div className="max-w-[1280px] mx-auto px-4 md:px-8 py-8 text-left">
-        
+
         {/* Back Link */}
-        <a 
-          href="#/activities" 
+        <a
+          href="#/activities"
           className="text-[#006d37] hover:underline font-semibold text-sm inline-flex items-center gap-1 mb-6"
         >
           &larr; Quay lại danh sách
@@ -125,16 +152,17 @@ export const ActivityDetailView: React.FC<ActivityDetailViewProps> = ({ activity
 
         {/* Layout Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          
+
           {/* Left Column (8 cols): Content */}
           <div className="lg:col-span-8 bg-white border border-surface-variant/40 rounded-3xl p-6 md:p-8 space-y-6">
-            
+
             {/* Wide Campaign Image */}
             <div className="w-full h-[300px] md:h-[400px] rounded-2xl overflow-hidden shadow-sm bg-surface-container-low">
-              <img 
-                src={activity.image_url || 'https://images.unsplash.com/photo-1544027993-37dbfe43562a?q=80&w=600'} 
-                alt={activity.title} 
+              <img
+                src={activity.image_url || 'https://images.unsplash.com/photo-1544027993-37dbfe43562a?q=80&w=600'}
+                alt={activity.title}
                 className="w-full h-full object-cover"
+                onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1544027993-37dbfe43562a?q=80&w=600'; }}
               />
             </div>
 
@@ -165,23 +193,26 @@ export const ActivityDetailView: React.FC<ActivityDetailViewProps> = ({ activity
               <h2 className="text-lg font-bold text-on-surface border-b border-surface-variant/40 pb-2">
                 Người liên hệ & Tổ chức
               </h2>
-              <div className="flex items-center gap-4 bg-white border border-surface-variant/40 rounded-2xl p-4 shadow-sm w-fit min-w-[320px]">
+              <a
+                href={`#/profile?userId=${activity.organizer_id}`}
+                className="flex items-center gap-4 bg-white border border-surface-variant/40 rounded-2xl p-4 shadow-sm w-fit min-w-[320px] hover:bg-slate-50 transition-colors"
+              >
                 <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-primary-container bg-surface-container-high shrink-0">
-                  <img 
-                    src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150&q=80" 
-                    alt="Contact avatar" 
-                    className="w-full h-full object-cover"
+                  <ContactAvatar
+                    name={activity.denormalized_organizer?.name || 'Ban tổ chức'}
+                    src={organizerUser?.profile?.avatar_url}
                   />
                 </div>
                 <div className="flex flex-col text-left">
-                  <span className="font-bold text-sm text-on-surface">
-                    {activity.denormalized_organizer.name}
+                  <span className="font-bold text-sm text-on-surface hover:text-[#006d37] transition-colors flex items-center gap-1">
+                    {activity.denormalized_organizer?.name || 'Ban tổ chức'}
+                    <span className="material-symbols-outlined text-[14px]">open_in_new</span>
                   </span>
                   <span className="text-xs text-on-surface-variant">
                     Đại diện Ban tổ chức hoạt động
                   </span>
                 </div>
-              </div>
+              </a>
             </div>
 
           </div>
@@ -189,7 +220,7 @@ export const ActivityDetailView: React.FC<ActivityDetailViewProps> = ({ activity
           {/* Right Column (4 cols): Sticky Sidebar */}
           <div className="lg:col-span-4">
             <div className="sticky top-24 bg-white border border-surface-variant/40 rounded-3xl p-6 shadow-sm flex flex-col gap-6">
-              
+
               <h3 className="text-lg font-bold text-on-surface border-b border-surface-variant/40 pb-2">
                 Đăng ký tham gia
               </h3>
@@ -198,7 +229,7 @@ export const ActivityDetailView: React.FC<ActivityDetailViewProps> = ({ activity
               <div className="flex flex-col gap-1.5">
                 <span className="text-xs font-semibold text-on-surface-variant">Trạng thái hiện tại:</span>
                 <span className={`px-4 py-2.5 rounded-xl text-xs font-bold text-center border border-surface-variant/30 ${statusClass}`}>
-                  Trạng thái: {statusText}
+                  {statusText}
                 </span>
               </div>
 
@@ -247,29 +278,38 @@ export const ActivityDetailView: React.FC<ActivityDetailViewProps> = ({ activity
 
               {/* CTA Action Button */}
               <div className="pt-2 border-t border-surface-variant/40">
-                {currentUser?.role !== 'Volunteer' ? (
-                  <button 
-                    disabled 
+                {!currentUser ? (
+                  <button
+                    onClick={() => {
+                      window.location.hash = '#/login';
+                    }}
+                    className="w-full bg-[#006d37] hover:bg-emerald-800 text-white py-3.5 rounded-xl text-sm font-bold shadow transition-all active:scale-95"
+                  >
+                    Đăng nhập để tham gia
+                  </button>
+                ) : currentUser?.role !== 'Volunteer' ? (
+                  <button
+                    disabled
                     className="w-full bg-slate-100 text-slate-400 py-3.5 rounded-xl text-sm font-bold cursor-not-allowed"
                   >
                     Chỉ dành cho Tình nguyện viên
                   </button>
                 ) : userRegistration && userRegistration.status !== 'Cancelled' ? (
-                  <button 
+                  <button
                     onClick={handleCancelRegistration}
                     className="w-full bg-white hover:bg-red-50 border border-red-200 text-red-600 py-3.5 rounded-xl text-sm font-bold transition-all"
                   >
                     Hủy đăng ký tham gia
                   </button>
                 ) : activity.status === 'Full' ? (
-                  <button 
-                    disabled 
+                  <button
+                    disabled
                     className="w-full bg-slate-100 text-slate-400 py-3.5 rounded-xl text-sm font-bold cursor-not-allowed"
                   >
                     Hoạt động đã đầy chỗ
                   </button>
                 ) : (
-                  <button 
+                  <button
                     onClick={handleRegister}
                     className="w-full bg-[#006d37] hover:bg-emerald-800 text-white py-3.5 rounded-xl text-sm font-bold shadow transition-all active:scale-95"
                   >

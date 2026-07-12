@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime
 from app.features.registrations.constants import RegistrationStatus, ReviewAction
 from typing import List, Optional
@@ -25,8 +25,7 @@ class RegistrationResponse(BaseModel):
     activity: Optional[ActivitySnippet] = None
     volunteer: Optional[VolunteerSnippet] = None
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class RegistrationListResponseData(BaseModel):
     registrations: List[RegistrationResponse]
@@ -71,8 +70,7 @@ class RegistrationDetailResponse(BaseModel):
     reviewed_at: Optional[datetime] = None
     activity: Optional[ActivityDetailInRegistration] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class BulkApproveRequest(BaseModel):
@@ -80,10 +78,10 @@ class BulkApproveRequest(BaseModel):
 
 class BulkRejectRequest(BaseModel):
     registration_ids: List[str]
-    rejection_reason: Optional[str] = None
+    rejection_reason: str = Field(..., min_length=5, max_length=500, description="Lý do từ chối bắt buộc phải có")
 
 class RejectRequest(BaseModel):
-    rejection_reason: Optional[str] = None
+    rejection_reason: str = Field(..., min_length=5, max_length=500, description="Lý do từ chối bắt buộc phải có")
 
 class BulkReviewResponse(BaseModel):
     processed: int

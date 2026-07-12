@@ -2,12 +2,12 @@ from beanie import Document, PydanticObjectId
 from pydantic import BaseModel, Field
 from datetime import datetime, timezone
 from typing import Optional
-from pymongo import IndexModel, ASCENDING
+from pymongo import IndexModel, ASCENDING, DESCENDING
 from app.features.registrations.constants import RegistrationStatus
 
 class DenormalizedVolunteer(BaseModel):
     name: str
-    phone: str
+    phone: Optional[str] = None
     email: str
 
 class DenormalizedActivity(BaseModel):
@@ -39,6 +39,7 @@ class Registration(Document):
                 ("status", ASCENDING), 
                 ("denormalized_activity.start_date", ASCENDING), 
                 ("denormalized_activity.end_date", ASCENDING)
-            ], name="idx_overlap_schedule_check")
+            ], name="idx_overlap_schedule_check"),
+            IndexModel([("created_at", DESCENDING)], name="idx_created_at_desc")
         ]
 
