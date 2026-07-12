@@ -475,7 +475,6 @@ export const FeedView: React.FC = () => {
   const [commentsMap, setCommentsMap] = useState<Record<string, PostComment[]>>({});
   const [showCommentsPostId, setShowCommentsPostId] = useState<string | null>(null);
   const [newCommentTexts, setNewCommentTexts] = useState<Record<string, string>>({});
-  const fetchingPostIds = useRef<Set<string>>(new Set());
 
   // Load comments when opening a post
   useEffect(() => {
@@ -580,37 +579,10 @@ export const FeedView: React.FC = () => {
   const totalFeedPages = Math.ceil(filteredPosts.length / postsPerPage);
   const paginatedPosts = filteredPosts.slice((feedPage - 1) * postsPerPage, feedPage * postsPerPage);
 
-  const postIdsString = paginatedPosts.map(p => p._id).join(',');
 
-  // Pre-load comment counts for visible posts to work around the backend comment_count bug
-  useEffect(() => {
-    paginatedPosts.forEach(post => {
-      if (commentsMap[post._id] === undefined && !fetchingPostIds.current.has(post._id)) {
-        fetchingPostIds.current.add(post._id);
-        const fetchComments = async () => {
-          try {
-            const fetched = await commentService.getComments(post._id);
-            const mappedComments = fetched.map((c: any) => ({
-              _id: c.id || c._id,
-              post_id: post._id,
-              author_name: c.author_name || 'Thành viên',
-              author_avatar: c.author_avatar,
-              content: c.content,
-              created_at: c.created_at
-            }));
-            setCommentsMap(prev => ({
-              ...prev,
-              [post._id]: mappedComments
-            }));
-          } catch (e) {
-            console.error("Lỗi lấy bình luận:", e);
-            fetchingPostIds.current.delete(post._id); // Allow retry on error
-          }
-        };
-        fetchComments();
-      }
-    });
-  }, [postIdsString]);
+  // Pre-loading comment counts was removed to fix N+1 query performance bottleneck.
+  // Comments will now only load on-demand when the user opens the comment section.
+
 
   // Relative time helper
   const formatRelativeTime = (dateStr: string): string => {

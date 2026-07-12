@@ -32,8 +32,8 @@ class Registration(Document):
         name = "registrations"
         indexes = [
             IndexModel([("volunteer_id", ASCENDING), ("activity_id", ASCENDING)], unique=True, name="idx_unique_volunteer_activity"),
-            IndexModel([("activity_id", ASCENDING), ("status", ASCENDING)], name="idx_activity_status"),
-            IndexModel([("volunteer_id", ASCENDING), ("status", ASCENDING)], name="idx_volunteer_status"),
+            IndexModel([("activity_id", ASCENDING), ("status", ASCENDING), ("created_at", ASCENDING)], name="idx_activity_status_created"),
+            IndexModel([("volunteer_id", ASCENDING), ("status", ASCENDING), ("created_at", DESCENDING)], name="idx_volunteer_status_created"),
             IndexModel([
                 ("volunteer_id", ASCENDING), 
                 ("status", ASCENDING), 
