@@ -201,7 +201,7 @@ async def test_bulk_review_activities_approve_success(async_client, admin_header
     act2 = Activity(
         organizer_id=PydanticObjectId("60d5ec4b8f1b2c3d4e5f6a7b"),
         title="test_bulk_Activity2",
-        description="Food drive.",
+        description="Food drive campaign for poor families.",
         categories=["Từ thiện"],
         location={"province": "Hồ Chí Minh", "district": "Quận 3", "address_detail": "Mái ấm"},
         start_date=datetime.now(timezone.utc),
