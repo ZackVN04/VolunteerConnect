@@ -33,22 +33,22 @@ const PromptModalWrapper: React.FC<{
             {dialog.message}
           </p>
         </div>
-        <input 
-          type="text" 
+        <textarea
+          rows={2}
           value={value}
           onChange={(e) => setValue(e.target.value)}
           placeholder={dialog.placeholder || "Nhập tại đây..."}
-          className="w-full px-3 py-2 border border-outline-variant rounded-xl text-sm focus:outline-none focus:border-primary text-on-surface"
+          className="w-full px-3 py-2 border border-outline-variant rounded-xl text-sm leading-relaxed text-justify focus:outline-none focus:border-primary text-on-surface resize-y min-h-[64px] max-h-[132px] overflow-y-auto"
           autoFocus
         />
         <div className="flex justify-end gap-2 text-xs font-semibold">
-          <button 
+          <button
             onClick={close}
             className="px-4 py-2 border border-surface-variant rounded-xl text-on-surface-variant hover:bg-slate-50 transition-colors"
           >
             Hủy bỏ
           </button>
-          <button 
+          <button
             onClick={() => {
               dialog.onConfirm(value);
               close();
@@ -64,9 +64,9 @@ const PromptModalWrapper: React.FC<{
 };
 
 const AppContent: React.FC = () => {
-  const { 
-    currentUser, 
-    notification, 
+  const {
+    currentUser,
+    notification,
     confirmDialog, closeConfirm,
     promptDialog, closePrompt
   } = useApp();
@@ -112,11 +112,11 @@ const AppContent: React.FC = () => {
   useEffect(() => {
     if (currentUser) {
       const isDismissed = sessionStorage.getItem('dismissedProfileReminder') === 'true';
-      const isIncomplete = !currentUser.phone || 
-        !currentUser.profile.area_of_interest || 
-        !currentUser.profile.skills || 
+      const isIncomplete = !currentUser.phone ||
+        !currentUser.profile.area_of_interest ||
+        !currentUser.profile.skills ||
         currentUser.profile.skills.length === 0;
-      
+
       setShowIncompleteBanner(isIncomplete && !isDismissed);
     } else {
       setShowIncompleteBanner(false);
@@ -199,7 +199,7 @@ const AppContent: React.FC = () => {
     // If not logged in, allow viewing public pages, but show auth views if path matches
     if (!currentUser) {
       const isAuthRoute = ['#/login', '#/register', '#/forgot-password'].includes(cleanHash) || otpVerifyPhone || otpVerifyEmail;
-      
+
       if (isAuthRoute) {
         if (currentHash === '#/forgot-password') {
           return (
@@ -275,7 +275,7 @@ const AppContent: React.FC = () => {
                 <span>Thông tin cá nhân của bạn chưa hoàn thiện. Vui lòng hoàn thành hồ sơ cá nhân của mình để hoạt động hiệu quả hơn.</span>
               </div>
               <div className="flex items-center gap-3 shrink-0 self-end sm:self-auto">
-                <a 
+                <a
                   href="#/profile?tab=edit"
                   onClick={() => {
                     window.location.hash = '#/profile?tab=edit';
@@ -284,7 +284,7 @@ const AppContent: React.FC = () => {
                 >
                   Cập nhật ngay
                 </a>
-                <button 
+                <button
                   onClick={() => {
                     sessionStorage.setItem('dismissedProfileReminder', 'true');
                     setShowIncompleteBanner(false);
@@ -333,13 +333,12 @@ const AppContent: React.FC = () => {
     <div className="relative">
       {/* Toast Alert */}
       {notification && (
-        <div className={`fixed top-24 right-8 z-[9999] p-4 rounded-xl shadow-lg border text-sm font-semibold flex items-center gap-2 animate-fadeIn ${
-          notification.type === 'success' 
-            ? 'bg-[#e8f5e9] text-[#006d37] border-[#006d37]/20 shadow-[#006d37]/5' 
+        <div className={`fixed top-24 right-8 z-[9999] p-4 rounded-xl shadow-lg border text-sm font-semibold flex items-center gap-2 animate-fadeIn ${notification.type === 'success'
+            ? 'bg-[#e8f5e9] text-[#006d37] border-[#006d37]/20 shadow-[#006d37]/5'
             : notification.type === 'error'
               ? 'bg-red-50 text-red-700 border-red-200 shadow-red-200/5'
               : 'bg-blue-50 text-blue-700 border-blue-200 shadow-blue-200/5'
-        }`}>
+          }`}>
           <span className="material-symbols-outlined text-lg">
             {notification.type === 'success' ? 'check_circle' : notification.type === 'error' ? 'error' : 'info'}
           </span>
@@ -360,13 +359,13 @@ const AppContent: React.FC = () => {
               </p>
             </div>
             <div className="flex justify-end gap-2 text-xs font-semibold pt-2">
-              <button 
+              <button
                 onClick={closeConfirm}
                 className="px-4 py-2 border border-surface-variant rounded-xl text-on-surface-variant hover:bg-slate-50 transition-colors cursor-pointer"
               >
                 Hủy bỏ
               </button>
-              <button 
+              <button
                 onClick={() => {
                   try {
                     confirmDialog.onConfirm();

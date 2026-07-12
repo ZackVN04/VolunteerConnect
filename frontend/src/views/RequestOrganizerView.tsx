@@ -38,7 +38,7 @@ export const RequestOrganizerView: React.FC = () => {
   };
 
   const handleCancel = () => {
-    window.location.hash = '#/profile';
+    window.history.back();
   };
 
   return (
@@ -50,7 +50,7 @@ export const RequestOrganizerView: React.FC = () => {
           onClick={handleCancel}
           className="text-[#006d37] hover:underline font-semibold text-sm flex items-center gap-1 mb-6 border-none bg-transparent cursor-pointer"
         >
-          &larr; Hủy & Quay lại
+          &larr; Quay lại
         </button>
 
         {/* Centered Card */}
