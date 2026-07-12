@@ -49,9 +49,12 @@ export const ActivityDetailView: React.FC<ActivityDetailViewProps> = ({ activity
         <span className="material-symbols-outlined text-outline text-6xl">campaign</span>
         <h2 className="font-headline-md text-xl font-bold text-on-surface">Không tìm thấy hoạt động</h2>
         <p className="text-sm text-on-surface-variant">Hoạt động có thể đã bị xóa hoặc đường dẫn không chính xác.</p>
-        <a href="#/activities" className="inline-block bg-[#006d37] text-white px-6 py-2 rounded-lg font-medium text-xs shadow">
-          Quay lại danh sách
-        </a>
+        <button
+          onClick={() => window.history.back()}
+          className="inline-block bg-[#006d37] text-white px-6 py-2 rounded-lg font-medium text-xs shadow cursor-pointer border-none"
+        >
+          Quay lại trang trước
+        </button>
       </div>
     );
   }
@@ -143,12 +146,12 @@ export const ActivityDetailView: React.FC<ActivityDetailViewProps> = ({ activity
       <div className="max-w-[1280px] mx-auto px-4 md:px-8 py-8 text-left">
 
         {/* Back Link */}
-        <a
-          href="#/activities"
-          className="text-[#006d37] hover:underline font-semibold text-sm inline-flex items-center gap-1 mb-6"
+        <button
+          onClick={() => window.history.back()}
+          className="text-[#006d37] hover:underline font-semibold text-sm inline-flex items-center gap-1 mb-6 border-none bg-transparent cursor-pointer p-0"
         >
-          &larr; Quay lại danh sách
-        </a>
+          &larr; Quay lại
+        </button>
 
         {/* Layout Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">

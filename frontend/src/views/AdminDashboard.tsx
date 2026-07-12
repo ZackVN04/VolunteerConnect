@@ -95,16 +95,16 @@ export const AdminDashboard: React.FC = () => {
       const email = (requesterUser?.email || req.denormalized_volunteer?.email || '').toLowerCase();
       const phone = (requesterUser?.phone || req.contact_phone || '').toLowerCase();
       const search = orgSearch.toLowerCase();
-      
+
       if (search && !name.includes(search) && !email.includes(search) && !phone.includes(search)) {
         return false;
       }
-      
+
       if (orgDateFilter && req.created_at) {
         const itemDateStr = new Date(req.created_at).toISOString().split('T')[0];
         if (itemDateStr !== orgDateFilter) return false;
       }
-      
+
       return true;
     });
 
@@ -114,15 +114,15 @@ export const AdminDashboard: React.FC = () => {
       const title = (act.title || '').toLowerCase();
       const orgName = (act.denormalized_organizer?.name || '').toLowerCase();
       const search = actSearch.toLowerCase();
-      
+
       if (search && !title.includes(search) && !orgName.includes(search)) {
         return false;
       }
-      
+
       if (actCategoryFilter !== 'All') {
         if (!act.categories?.includes(actCategoryFilter)) return false;
       }
-      
+
       return true;
     });
 
@@ -206,7 +206,7 @@ export const AdminDashboard: React.FC = () => {
       async (feedback) => {
         const trimmed = feedback.trim();
         if (trimmed.length < 5 || trimmed.length > 500) {
-          showNotification('Lý do từ chối phải từ 5 đến 500 ký tự (AC-ADM-02.07).', 'error');
+          showNotification('Lý do từ chối phải từ 5 đến 500 ký tự.', 'error');
           return;
         }
         const res = await reviewOrganizerRequest(reqId, false, trimmed);
@@ -1203,15 +1203,15 @@ export const AdminDashboard: React.FC = () => {
               const phone = (u.phone || '').toLowerCase();
               const email = (u.email || '').toLowerCase();
               const search = userSearch.toLowerCase();
-              
+
               if (search && !name.includes(search) && !phone.includes(search) && !email.includes(search)) {
                 return false;
               }
-              
+
               if (userRoleFilter !== 'All') {
                 if (u.role !== userRoleFilter) return false;
               }
-              
+
               return true;
             });
 
@@ -1315,11 +1315,11 @@ export const AdminDashboard: React.FC = () => {
               const name = (reg.denormalized_volunteer?.name || '').toLowerCase();
               const actTitle = (reg.denormalized_activity?.title || '').toLowerCase();
               const search = statsSearch.toLowerCase();
-              
+
               if (search && !name.includes(search) && !actTitle.includes(search)) {
                 return false;
               }
-              
+
               if (statsStatusFilter !== 'All') {
                 if (statsStatusFilter === 'Approved' && reg.status !== 'Approved') return false;
                 if (statsStatusFilter === 'Pending' && reg.status !== 'Pending') return false;
@@ -1328,7 +1328,7 @@ export const AdminDashboard: React.FC = () => {
                 if (statsStatusFilter === 'Rejected' && reg.status !== 'Rejected') return false;
                 if (statsStatusFilter === 'Cancelled' && reg.status !== 'Cancelled') return false;
               }
-              
+
               return true;
             });
 
@@ -1507,8 +1507,8 @@ export const AdminDashboard: React.FC = () => {
                         setHistoryDateFilter('');
                       }}
                       className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${historySubTab === 'organizers'
-                          ? 'bg-[#006d37] text-white shadow-sm'
-                          : 'text-slate-600 hover:text-slate-900'
+                        ? 'bg-[#006d37] text-white shadow-sm'
+                        : 'text-slate-600 hover:text-slate-900'
                         }`}
                     >
                       Duyệt Ban tổ chức
@@ -1521,8 +1521,8 @@ export const AdminDashboard: React.FC = () => {
                         setHistoryDateFilter('');
                       }}
                       className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${historySubTab === 'activities'
-                          ? 'bg-[#006d37] text-white shadow-sm'
-                          : 'text-slate-600 hover:text-slate-900'
+                        ? 'bg-[#006d37] text-white shadow-sm'
+                        : 'text-slate-600 hover:text-slate-900'
                         }`}
                     >
                       Duyệt Hoạt động

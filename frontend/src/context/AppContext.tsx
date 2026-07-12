@@ -306,21 +306,22 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                 'approved': 'Approved',
                 'rejected': 'Rejected'
               };
-              activeUser.profile.organizer_request_status = profileStatusMap[req.status] || 'None';
+              const normalizedStatus = String(req.status || '').toLowerCase();
+              activeUser.profile.organizer_request_status = profileStatusMap[normalizedStatus] || 'None';
               const reqObj: OrganizerRequest = {
                 _id: req.id || req._id,
-                volunteer_id: activeUser._id,
-                reason: req.organization_name,
-                experience: req.documents?.[0] || '',
-                contact_phone: req.documents?.[1] || '',
-                status: requestStatusMap[req.status] || 'Pending',
-                admin_feedback: null,
-                created_at: req.requested_at,
-                reviewed_at: null,
-                reviewed_by: null,
+                volunteer_id: req.volunteer_id || activeUser._id,
+                reason: req.reason || req.organization_name || '',
+                experience: req.experience || req.documents?.[0] || '',
+                contact_phone: req.contact_phone || req.documents?.[1] || '',
+                status: requestStatusMap[normalizedStatus] || 'Pending',
+                admin_feedback: req.admin_feedback || null,
+                created_at: req.created_at || req.requested_at,
+                reviewed_at: req.reviewed_at || null,
+                reviewed_by: req.reviewed_by || null,
                 denormalized_volunteer: {
-                  name: activeUser.profile.full_name,
-                  email: activeUser.email || ''
+                  name: req.denormalized_volunteer?.name || activeUser.profile.full_name,
+                  email: req.denormalized_volunteer?.email || activeUser.email || ''
                 }
               };
               setOrganizerRequests([reqObj]);
@@ -1067,7 +1068,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           } catch (err) {
             console.error(err);
           }
-          
+
           const updatedActivities = activities.map(a => {
             if (a._id === activityId) {
               return { ...a, status: 'Completed' as const };
@@ -1214,7 +1215,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       }
       return r;
     });
-    
+
     const updatedUsers = [...users];
     if (approve) {
       requestIds.forEach(id => {
