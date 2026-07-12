@@ -286,7 +286,6 @@ export const FeedView: React.FC = () => {
   const [commentsMap, setCommentsMap] = useState<Record<string, PostComment[]>>({});
   const [showCommentsPostId, setShowCommentsPostId] = useState<string | null>(null);
   const [newCommentTexts, setNewCommentTexts] = useState<Record<string, string>>({});
-  const fetchingPostIds = useRef<Set<string>>(new Set());
 
   // Load comments when opening a post
   useEffect(() => {
@@ -391,7 +390,6 @@ export const FeedView: React.FC = () => {
   const totalFeedPages = Math.ceil(filteredPosts.length / postsPerPage);
   const paginatedPosts = filteredPosts.slice((feedPage - 1) * postsPerPage, feedPage * postsPerPage);
 
-  const postIdsString = paginatedPosts.map(p => p._id).join(',');
 
   // Pre-loading comment counts was removed to fix N+1 query performance bottleneck.
   // Comments will now only load on-demand when the user opens the comment section.
