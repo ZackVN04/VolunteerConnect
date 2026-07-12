@@ -156,6 +156,8 @@ interface AppContextType {
   createActivity: (activityData: Partial<Activity>, submitForReview: boolean) => Promise<{ success: boolean; error?: string }>;
   editActivity: (activityId: string, activityData: Partial<Activity>) => Promise<{ success: boolean; error?: string }>;
   reviewActivity: (activityId: string, approve: boolean, feedback?: string) => Promise<{ success: boolean; error?: string }>;
+  bulkReviewOrganizerRequests: (requestIds: string[], approve: boolean, feedback?: string) => Promise<{ success: boolean; error?: string }>;
+  bulkReviewActivities: (activityIds: string[], approve: boolean, feedback?: string) => Promise<{ success: boolean; error?: string }>;
   createPost: (title: string, content: string, images: string[], hashtags: string[]) => Promise<{ success: boolean; error?: string }>;
   likePost: (postId: string) => void;
   sharePost: (postId: string) => void;
@@ -1173,6 +1175,116 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     return { success: true };
   };
 
+  const bulkReviewOrganizerRequests = async (requestIds: string[], approve: boolean, feedback?: string): Promise<{ success: boolean; error?: string }> => {
+    if (USE_REAL_BACKEND) {
+      try {
+        const res = await adminService.bulkReviewOrganizerRequests(requestIds, approve, feedback);
+        const reqs = await adminService.getOrganizerRequests();
+        setOrganizerRequests(reqs);
+        const adminUsers = await adminService.getUsers();
+        setUsers(adminUsers);
+        if (currentUser) {
+          const user = await authService.getCurrentUser();
+          setCurrentUserInternal(user);
+        }
+        const summary = `Xử lý thành công: ${res.data?.processed || 0}, Bỏ qua: ${res.data?.skipped || 0}${res.data?.errors?.length ? `, Lỗi: ${res.data.errors.length}` : ''}`;
+        return { success: true, error: summary };
+      } catch (e: any) {
+        console.error(e);
+        let errorMsg = 'Không thể phê duyệt yêu cầu nâng cấp hàng loạt. Lỗi kết nối server.';
+        const detail = e.response?.data?.detail;
+        if (typeof detail === 'string') {
+          errorMsg = detail;
+        }
+        return { success: false, error: errorMsg };
+      }
+    }
+
+    const statusVal = approve ? 'Approved' : 'Rejected';
+    const updatedReqs = organizerRequests.map(r => {
+      if (requestIds.includes(r._id) && r.status === 'Pending') {
+        return {
+          ...r,
+          status: statusVal as any,
+          admin_feedback: feedback || null,
+          reviewed_at: new Date().toISOString()
+        } as OrganizerRequest;
+      }
+      return r;
+    });
+    
+    const updatedUsers = [...users];
+    if (approve) {
+      requestIds.forEach(id => {
+        const req = organizerRequests.find(r => r._id === id);
+        if (req && req.status === 'Pending') {
+          const uIdx = updatedUsers.findIndex(u => u._id === req.volunteer_id);
+          if (uIdx !== -1) {
+            updatedUsers[uIdx] = {
+              ...updatedUsers[uIdx],
+              role: 'Organizer',
+              updated_at: new Date().toISOString()
+            };
+          }
+        }
+      });
+    }
+
+    setOrganizerRequests(updatedReqs);
+    setUsers(updatedUsers);
+    syncToLocalStorage(updatedUsers, activities, registrations, updatedReqs, posts, currentUser);
+    return { success: true };
+  };
+
+  const bulkReviewActivities = async (activityIds: string[], approve: boolean, feedback?: string): Promise<{ success: boolean; error?: string }> => {
+    if (USE_REAL_BACKEND) {
+      try {
+        const res = await adminService.bulkReviewActivities(activityIds, approve, feedback);
+        const [allActs, adminActs] = await Promise.allSettled([
+          activityService.getAll(),
+          adminService.getActivities()
+        ]);
+        const mergedMap = new Map<string, Activity>();
+        if (allActs.status === 'fulfilled') {
+          allActs.value.forEach(a => mergedMap.set(a._id, a));
+        }
+        if (adminActs.status === 'fulfilled') {
+          adminActs.value.forEach(a => mergedMap.set(a._id, a));
+        }
+        if (mergedMap.size > 0) {
+          setActivitiesWithLocalOverride(Array.from(mergedMap.values()));
+        }
+        const summary = `Xử lý thành công: ${res.data?.processed || 0}, Bỏ qua: ${res.data?.skipped || 0}${res.data?.errors?.length ? `, Lỗi: ${res.data.errors.length}` : ''}`;
+        return { success: true, error: summary };
+      } catch (e: any) {
+        console.error(e);
+        let errorMsg = 'Không thể phê duyệt hoạt động hàng loạt. Lỗi kết nối server.';
+        const detail = e.response?.data?.detail;
+        if (typeof detail === 'string') {
+          errorMsg = detail;
+        }
+        return { success: false, error: errorMsg };
+      }
+    }
+
+    const statusVal = approve ? 'Open' : 'Rejected';
+    const updatedActs = activities.map(a => {
+      if (activityIds.includes(a._id) && a.status === 'Pending Review') {
+        return {
+          ...a,
+          status: statusVal as any,
+          updated_at: new Date().toISOString()
+        };
+      }
+      return a;
+    });
+
+    setActivities(updatedActs);
+    syncToLocalStorage(users, updatedActs, registrations, organizerRequests, posts, currentUser);
+    return { success: true };
+  };
+
+
   // Create Community Post
   const createPost = async (title: string, content: string, images: string[], hashtags: string[]): Promise<{ success: boolean; error?: string }> => {
     if (USE_REAL_BACKEND) {
@@ -1532,6 +1644,8 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         createActivity,
         editActivity,
         reviewActivity,
+        bulkReviewOrganizerRequests,
+        bulkReviewActivities,
         createPost,
         likePost,
         sharePost,

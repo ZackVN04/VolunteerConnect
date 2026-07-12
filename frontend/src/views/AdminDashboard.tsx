@@ -40,8 +40,8 @@ const ExpandableText: React.FC<{ text: string; limit?: number }> = ({ text, limi
 export const AdminDashboard: React.FC = () => {
   const {
     currentUser, users, activities, registrations, organizerRequests,
-    reviewOrganizerRequest, reviewActivity, setCurrentUser,
-    showNotification, showPrompt, refreshAllData
+    reviewOrganizerRequest, reviewActivity, bulkReviewOrganizerRequests, bulkReviewActivities,
+    setCurrentUser, showNotification, showPrompt, refreshAllData
   } = useApp();
 
   useEffect(() => {
@@ -75,6 +75,14 @@ export const AdminDashboard: React.FC = () => {
   // Filters for Stats Tab
   const [statsSearch, setStatsSearch] = useState('');
   const [statsStatusFilter, setStatsStatusFilter] = useState('All');
+
+  const [selectedRequestIds, setSelectedRequestIds] = useState<string[]>([]);
+  const [selectedActivityIds, setSelectedActivityIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    setSelectedRequestIds([]);
+    setSelectedActivityIds([]);
+  }, [activeTab]);
 
   if (!currentUser) return null;
 
@@ -117,6 +125,71 @@ export const AdminDashboard: React.FC = () => {
       
       return true;
     });
+
+  const handleBulkApproveRequests = async () => {
+    if (selectedRequestIds.length === 0) return;
+    const res = await bulkReviewOrganizerRequests(selectedRequestIds, true);
+    if (res.success) {
+      showNotification(res.error || 'Đã duyệt nâng cấp các tài khoản được chọn.', 'success');
+      setSelectedRequestIds([]);
+    } else {
+      showNotification(res.error || 'Duyệt nâng cấp hàng loạt thất bại.', 'error');
+    }
+  };
+
+  const handleBulkRejectRequests = () => {
+    if (selectedRequestIds.length === 0) return;
+    showPrompt(
+      'Nhập lý do từ chối nâng cấp hàng loạt:',
+      async (feedback) => {
+        const trimmed = feedback.trim();
+        if (trimmed.length < 5 || trimmed.length > 500) {
+          showNotification('Lý do từ chối phải từ 5 đến 500 ký tự (AC-ADM-02.07).', 'error');
+          return;
+        }
+        const res = await bulkReviewOrganizerRequests(selectedRequestIds, false, trimmed);
+        if (res.success) {
+          showNotification(res.error || 'Đã từ chối các yêu cầu nâng cấp được chọn.', 'success');
+          setSelectedRequestIds([]);
+        } else {
+          showNotification(res.error || 'Từ chối nâng cấp hàng loạt thất bại.', 'error');
+        }
+      },
+      'Từ chối nâng cấp hàng loạt'
+    );
+  };
+
+  const handleBulkApproveActivities = async () => {
+    if (selectedActivityIds.length === 0) return;
+    const res = await bulkReviewActivities(selectedActivityIds, true);
+    if (res.success) {
+      showNotification(res.error || 'Đã duyệt các hoạt động được chọn.', 'success');
+      setSelectedActivityIds([]);
+    } else {
+      showNotification(res.error || 'Duyệt hoạt động hàng loạt thất bại.', 'error');
+    }
+  };
+
+  const handleBulkRejectActivities = () => {
+    if (selectedActivityIds.length === 0) return;
+    showPrompt(
+      'Nhập lý do từ chối duyệt hoạt động hàng loạt:',
+      async (feedback) => {
+        if (!feedback.trim()) {
+          showNotification('Vui lòng nhập lý do từ chối.', 'error');
+          return;
+        }
+        const res = await bulkReviewActivities(selectedActivityIds, false, feedback);
+        if (res.success) {
+          showNotification(res.error || 'Đã từ chối duyệt các hoạt động được chọn.', 'success');
+          setSelectedActivityIds([]);
+        } else {
+          showNotification(res.error || 'Từ chối duyệt hoạt động hàng loạt thất bại.', 'error');
+        }
+      },
+      'Từ chối hoạt động hàng loạt'
+    );
+  };
 
   const handleApproveOrganizer = async (reqId: string) => {
     const res = await reviewOrganizerRequest(reqId, true);
@@ -846,6 +919,29 @@ export const AdminDashboard: React.FC = () => {
                 </div>
               </div>
 
+              {/* Bulk actions bar */}
+              {selectedRequestIds.length > 0 && (
+                <div className="bg-[#e8f5e9] border border-[#b2dfdb] rounded-2xl p-4 shadow-sm flex items-center justify-between">
+                  <div className="text-xs text-[#004d40] font-bold">
+                    Đã chọn <span className="text-[#00796b] text-sm">{selectedRequestIds.length}</span> yêu cầu
+                  </div>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={handleBulkApproveRequests}
+                      className="px-4 py-2 bg-[#006d37] text-white rounded-xl text-xs font-bold shadow hover:bg-[#005229] transition-colors cursor-pointer"
+                    >
+                      Duyệt nâng cấp hàng loạt
+                    </button>
+                    <button
+                      onClick={handleBulkRejectRequests}
+                      className="px-4 py-2 bg-red-600 text-white rounded-xl text-xs font-bold shadow hover:bg-red-700 transition-colors cursor-pointer"
+                    >
+                      Từ chối hàng loạt
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className="bg-white border border-surface-variant/40 rounded-2xl shadow-sm overflow-hidden">
                 {pendingRequests.length === 0 ? (
                   <div className="p-16 text-center space-y-3">
@@ -857,6 +953,20 @@ export const AdminDashboard: React.FC = () => {
                     <table className="w-full border-collapse text-left text-sm">
                       <thead>
                         <tr className="bg-[#f8f9fa] border-b border-surface-variant/40 text-on-surface-variant font-bold text-xs uppercase tracking-wider">
+                          <th className="px-6 py-4 w-12 text-center">
+                            <input
+                              type="checkbox"
+                              checked={pendingRequests.length > 0 && selectedRequestIds.length === pendingRequests.length}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedRequestIds(pendingRequests.map(r => r._id));
+                                } else {
+                                  setSelectedRequestIds([]);
+                                }
+                              }}
+                              className="rounded border-slate-300 text-[#006d37] focus:ring-[#006d37] cursor-pointer"
+                            />
+                          </th>
                           <th className="px-6 py-4">Tên tài khoản</th>
                           <th className="px-6 py-4">Đơn vị đại diện</th>
                           <th className="px-6 py-4">Mô tả hoạt động</th>
@@ -866,6 +976,20 @@ export const AdminDashboard: React.FC = () => {
                       <tbody className="divide-y divide-surface-variant/30 text-on-surface">
                         {pendingRequests.map(req => (
                           <tr key={req._id} className="hover:bg-slate-50 transition-colors">
+                            <td className="px-6 py-5 w-12 text-center">
+                              <input
+                                type="checkbox"
+                                checked={selectedRequestIds.includes(req._id)}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedRequestIds(prev => [...prev, req._id]);
+                                  } else {
+                                    setSelectedRequestIds(prev => prev.filter(id => id !== req._id));
+                                  }
+                                }}
+                                className="rounded border-slate-300 text-[#006d37] focus:ring-[#006d37] cursor-pointer"
+                              />
+                            </td>
                             <td className="px-6 py-5 font-bold">{req.denormalized_volunteer.name}</td>
                             <td className="px-6 py-5 text-on-surface-variant font-semibold">
                               {req.experience}
@@ -955,6 +1079,29 @@ export const AdminDashboard: React.FC = () => {
                 </div>
               </div>
 
+              {/* Bulk actions bar */}
+              {selectedActivityIds.length > 0 && (
+                <div className="bg-[#e8f5e9] border border-[#b2dfdb] rounded-2xl p-4 shadow-sm flex items-center justify-between">
+                  <div className="text-xs text-[#004d40] font-bold">
+                    Đã chọn <span className="text-[#00796b] text-sm">{selectedActivityIds.length}</span> hoạt động
+                  </div>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={handleBulkApproveActivities}
+                      className="px-4 py-2 bg-[#006d37] text-white rounded-xl text-xs font-bold shadow hover:bg-[#005229] transition-colors cursor-pointer"
+                    >
+                      Duyệt hoạt động hàng loạt
+                    </button>
+                    <button
+                      onClick={handleBulkRejectActivities}
+                      className="px-4 py-2 bg-red-600 text-white rounded-xl text-xs font-bold shadow hover:bg-red-700 transition-colors cursor-pointer"
+                    >
+                      Từ chối hàng loạt
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className="bg-white border border-surface-variant/40 rounded-2xl shadow-sm overflow-hidden">
                 {pendingActivities.length === 0 ? (
                   <div className="p-16 text-center space-y-3">
@@ -966,6 +1113,20 @@ export const AdminDashboard: React.FC = () => {
                     <table className="w-full border-collapse text-left text-sm">
                       <thead>
                         <tr className="bg-[#f8f9fa] border-b border-surface-variant/40 text-on-surface-variant font-bold text-xs uppercase tracking-wider">
+                          <th className="px-6 py-4 w-12 text-center">
+                            <input
+                              type="checkbox"
+                              checked={pendingActivities.length > 0 && selectedActivityIds.length === pendingActivities.length}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedActivityIds(pendingActivities.map(a => a._id));
+                                } else {
+                                  setSelectedActivityIds([]);
+                                }
+                              }}
+                              className="rounded border-slate-300 text-[#006d37] focus:ring-[#006d37] cursor-pointer"
+                            />
+                          </th>
                           <th className="px-6 py-4">Tên hoạt động</th>
                           <th className="px-6 py-4">Lĩnh vực</th>
                           <th className="px-6 py-4">Ngày tạo</th>
@@ -976,6 +1137,20 @@ export const AdminDashboard: React.FC = () => {
                       <tbody className="divide-y divide-surface-variant/30 text-on-surface">
                         {pendingActivities.map(act => (
                           <tr key={act._id} className="hover:bg-slate-50 transition-colors">
+                            <td className="px-6 py-5 w-12 text-center">
+                              <input
+                                type="checkbox"
+                                checked={selectedActivityIds.includes(act._id)}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedActivityIds(prev => [...prev, act._id]);
+                                  } else {
+                                    setSelectedActivityIds(prev => prev.filter(id => id !== act._id));
+                                  }
+                                }}
+                                className="rounded border-slate-300 text-[#006d37] focus:ring-[#006d37] cursor-pointer"
+                              />
+                            </td>
                             <td className="px-6 py-5 font-bold">
                               <a
                                 href={`#/activity/${act._id}`}

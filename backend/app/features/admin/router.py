@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, status, Depends, Query
-from .schemas import AdminReviewRequest, RequestStatus, StatisticsResponse, ActivityApprovalRequest
+from .schemas import AdminReviewRequest, RequestStatus, StatisticsResponse, ActivityApprovalRequest, AdminBulkReviewRequest, ActivityBulkApprovalRequest
 from .services import AdminService
 from app.features.auth.dependencies import require_admin, get_current_user
 from app.features.users.models import User
@@ -137,3 +137,42 @@ async def get_registrations(
         return {"success": True, "data": {"registrations": serialized}}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Serialization error: {type(e).__name__}: {str(e)}")
+
+
+@router.patch("/requests/bulk-review")
+async def bulk_review_requests(
+    data: AdminBulkReviewRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Bulk approve or reject organizer requests.
+    """
+    try:
+        result = await AdminService.bulk_review_requests(
+            request_ids=data.request_ids,
+            is_approved=data.is_approved,
+            admin_id=str(current_user.id),
+            reason=data.reason
+        )
+        return {"success": True, "message": "Bulk review completed", "data": result}
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@router.patch("/activities/bulk-review")
+async def bulk_review_activities(
+    data: ActivityBulkApprovalRequest
+):
+    """
+    Bulk approve or reject activities.
+    """
+    try:
+        result = await AdminService.bulk_review_activities(
+            activity_ids=data.activity_ids,
+            is_approved=data.is_approved,
+            reason=data.reason
+        )
+        return {"success": True, "message": "Bulk activities review completed", "data": result}
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+

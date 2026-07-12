@@ -29,3 +29,36 @@ class StatisticsResponse(BaseModel):
 class ActivityApprovalRequest(BaseModel):
     is_approved: bool = Field(..., description="True to publish, False to reject")
     reason: Optional[str] = Field(None, max_length=1000, description="Reason for rejection or approval notes")
+
+
+class AdminBulkReviewRequest(BaseModel):
+    request_ids: list[str] = Field(..., description="List of organizer request IDs to review")
+    is_approved: bool = Field(..., description="True to approve, False to reject")
+    reason: Optional[str] = Field(None, max_length=1000, description="Reason for rejection or approval notes")
+
+    @model_validator(mode="after")
+    def validate_rejection_reason(self):
+        if not self.is_approved:
+            if not self.reason:
+                raise ValueError("Rejection reason must be between 5 and 500 characters.")
+            length = len(self.reason.strip())
+            if length < 5 or length > 500:
+                raise ValueError(f"Rejection reason must be between 5 and 500 characters. Current length: {length}")
+        return self
+
+
+class ActivityBulkApprovalRequest(BaseModel):
+    activity_ids: list[str] = Field(..., description="List of activity IDs to review")
+    is_approved: bool = Field(..., description="True to approve, False to reject")
+    reason: Optional[str] = Field(None, max_length=1000, description="Reason for rejection or approval notes")
+
+    @model_validator(mode="after")
+    def validate_rejection_reason(self):
+        if not self.is_approved:
+            if not self.reason:
+                raise ValueError("Rejection reason must be between 5 and 500 characters.")
+            length = len(self.reason.strip())
+            if length < 5 or length > 500:
+                raise ValueError(f"Rejection reason must be between 5 and 500 characters. Current length: {length}")
+        return self
+
