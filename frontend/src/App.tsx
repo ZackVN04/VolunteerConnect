@@ -280,7 +280,7 @@ const AppContent: React.FC = () => {
 
         {/* Profile Incomplete Banner - Toast Style */}
         {showIncompleteBanner && (
-          <div className="absolute top-[88px] right-4 md:right-8 z-40 w-[calc(100%-2rem)] md:w-[360px] animate-fadeIn shadow-2xl rounded-2xl overflow-hidden border border-amber-100">
+          <div className="fixed top-[88px] right-4 md:right-8 z-40 w-[calc(100%-2rem)] md:w-[360px] animate-fadeIn shadow-2xl rounded-2xl overflow-hidden border border-amber-100">
             <div className="bg-white p-4 flex items-start gap-3.5 relative">
               <div className="bg-amber-100/80 text-amber-600 p-2 rounded-full shrink-0 flex items-center justify-center">
                  <span className="material-symbols-outlined text-[20px]">warning</span>

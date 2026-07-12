@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
+import type { Activity } from '../context/AppContext';
+import { activityService } from '../services/apiService';
+import { USE_REAL_BACKEND } from '../config/backend';
 
 export const ActivityListView: React.FC = () => {
   const { activities } = useApp();
@@ -8,6 +11,10 @@ export const ActivityListView: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('Open/Full');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 9;
+
+  const [serverActivities, setServerActivities] = useState<Activity[]>([]);
+  const [totalServerCount, setTotalServerCount] = useState(0);
+  const [loading, setLoading] = useState(false);
 
   // Reset page when filters change
   useEffect(() => {
@@ -31,7 +38,35 @@ export const ActivityListView: React.FC = () => {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
-  // Filter activities
+  // Fetch activities from backend if using real backend
+  useEffect(() => {
+    if (USE_REAL_BACKEND) {
+      setLoading(true);
+      activityService.list({
+        search: searchQuery,
+        category: selectedCategory,
+        page: currentPage,
+        limit: itemsPerPage
+      }).then(res => {
+        let list = res.activities;
+        if (statusFilter === 'Open') {
+          list = list.filter(a => a.status === 'Open');
+        } else if (statusFilter === 'Full') {
+          list = list.filter(a => a.status === 'Full');
+        } else if (statusFilter === 'Completed') {
+          list = list.filter(a => a.status === 'Completed');
+        }
+        setServerActivities(list);
+        setTotalServerCount(res.total);
+        setLoading(false);
+      }).catch(err => {
+        console.error("Lỗi lấy danh sách hoạt động từ server:", err);
+        setLoading(false);
+      });
+    }
+  }, [searchQuery, selectedCategory, statusFilter, currentPage]);
+
+  // Filter activities for local mock simulation mode
   const filteredActivities = activities.filter(act => {
     // Search query match (title, location district/province, address)
     if (searchQuery.trim()) {
@@ -62,11 +97,16 @@ export const ActivityListView: React.FC = () => {
     return true;
   });
 
-  const totalPages = Math.ceil(filteredActivities.length / itemsPerPage);
-  const paginatedActivities = filteredActivities.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+  const totalPages = USE_REAL_BACKEND 
+    ? Math.ceil(totalServerCount / itemsPerPage)
+    : Math.ceil(filteredActivities.length / itemsPerPage);
+
+  const paginatedActivities = USE_REAL_BACKEND
+    ? serverActivities
+    : filteredActivities.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+      );
 
   return (
     <div className="w-full bg-[#f8f9fa] min-h-screen pb-16">
@@ -137,7 +177,7 @@ export const ActivityListView: React.FC = () => {
 
         {/* Results Count & Reset Filter */}
         <div className="flex justify-between items-center text-sm text-on-surface-variant">
-          <span>Tìm thấy <strong>{filteredActivities.length}</strong> hoạt động phù hợp</span>
+          <span>Tìm thấy <strong>{USE_REAL_BACKEND ? totalServerCount : filteredActivities.length}</strong> hoạt động phù hợp</span>
           {(searchQuery || selectedCategory !== 'All' || statusFilter !== 'Open/Full') && (
             <button 
               onClick={() => {
@@ -153,7 +193,11 @@ export const ActivityListView: React.FC = () => {
           )}
         </div>
 
-        {filteredActivities.length === 0 ? (
+        {loading ? (
+          <div className="flex justify-center items-center py-20">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#006d37]"></div>
+          </div>
+        ) : (USE_REAL_BACKEND ? paginatedActivities.length === 0 : filteredActivities.length === 0) ? (
           <div className="bg-white rounded-3xl p-16 border border-surface-variant/40 text-center space-y-4 shadow-sm">
             <span className="material-symbols-outlined text-outline text-5xl">search_off</span>
             <p className="text-sm text-on-surface-variant italic">Không tìm thấy hoạt động nào phù hợp.</p>

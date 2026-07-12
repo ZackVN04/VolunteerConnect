@@ -9,6 +9,17 @@ from app.features.users.models import User
 
 router = APIRouter(prefix="/api/v1/media", tags=["Media"])
 
+_storage_client = None
+
+def get_storage_client():
+    global _storage_client
+    if _storage_client is None:
+        try:
+            _storage_client = storage.Client()
+        except Exception:
+            _storage_client = None
+    return _storage_client
+
 @router.post("/upload", status_code=status.HTTP_201_CREATED)
 async def upload_file(
     file: UploadFile = File(...),
@@ -44,8 +55,10 @@ async def upload_file(
 
     # 4. Tải lên Google Cloud Storage (GCS)
     try:
-        # Khởi tạo client GCS (Sẽ tự động lấy Credentials trong môi trường Cloud Run revision)
-        storage_client = storage.Client()
+        # Lấy client GCS đã cache
+        storage_client = get_storage_client()
+        if storage_client is None:
+            raise Exception("GCS Client is not configured")
         bucket = storage_client.bucket(settings.GCS_BUCKET_NAME)
         blob = bucket.blob(unique_filename)
 
