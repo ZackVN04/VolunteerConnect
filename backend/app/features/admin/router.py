@@ -97,9 +97,11 @@ async def get_activities(
     Get activities for admin with mandatory pagination.
     OOM FIX: Identical to organizer-requests — capped at 500 per request.
     """
+    import json
     from app.features.activities.models import Activity
     activities = await Activity.find_all().sort("-created_at").skip(skip).limit(limit).to_list()
-    return {"success": True, "data": {"activities": activities}}
+    serialized = [json.loads(act.model_dump_json()) for act in activities]
+    return {"success": True, "data": {"activities": serialized}}
 
 @router.get("/users")
 async def get_users(

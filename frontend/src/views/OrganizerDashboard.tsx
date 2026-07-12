@@ -82,6 +82,8 @@ export const OrganizerDashboard: React.FC = () => {
   const [requirements, setRequirements] = useState('');
    const [imageUrl, setImageUrl] = useState('');
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -231,6 +233,8 @@ export const OrganizerDashboard: React.FC = () => {
 
   const handleSubmitActivity = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     try {
       if (!title.trim() || !description.trim() || !district.trim() || !addressDetail.trim() || !startDate || !endDate) {
         showNotification('Vui lòng điền đầy đủ các thông tin bắt buộc', 'error');
@@ -277,8 +281,11 @@ export const OrganizerDashboard: React.FC = () => {
     } catch (err: any) {
       console.error('Lỗi không mong muốn:', err);
       showNotification('Có lỗi không mong muốn. Vui lòng thử lại.', 'error');
+    } finally {
+      setIsSubmitting(false);
     }
   };
+
 
   const handleApprove = (regId: string) => {
     approveRegistration(regId);
@@ -558,10 +565,15 @@ export const OrganizerDashboard: React.FC = () => {
                       className="px-5 py-2.5 border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 text-sm font-bold cursor-pointer transition-all">
                       Hủy
                     </button>
-                    <button type="submit"
-                      className="px-5 py-2.5 bg-[#006d37] hover:bg-[#005027] text-white rounded-xl text-sm font-bold shadow-sm cursor-pointer transition-all">
-                      {editMode ? 'Cập nhật hoạt động' : 'Tạo hoạt động mới'}
+                    <button type="submit" disabled={isSubmitting}
+                      className={`px-5 py-2.5 rounded-xl text-sm font-bold shadow-sm transition-all ${
+                        isSubmitting 
+                          ? 'bg-gray-400 text-gray-200 cursor-not-allowed' 
+                          : 'bg-[#006d37] hover:bg-[#005027] text-white cursor-pointer'
+                      }`}>
+                      {isSubmitting ? 'Đang gửi...' : (editMode ? 'Cập nhật hoạt động' : 'Tạo hoạt động mới')}
                     </button>
+
                   </div>
                 </form>
               </div>

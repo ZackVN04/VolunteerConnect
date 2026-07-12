@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import type { User } from '../context/AppContext';
 
@@ -41,8 +41,15 @@ export const AdminDashboard: React.FC = () => {
   const {
     currentUser, users, activities, registrations, organizerRequests,
     reviewOrganizerRequest, reviewActivity, setCurrentUser,
-    showNotification, showPrompt
+    showNotification, showPrompt, refreshAllData
   } = useApp();
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      refreshAllData().catch((err) => console.error("Lỗi tự động cập nhật dữ liệu Admin:", err));
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [refreshAllData]);
 
   const [activeTab, setActiveTab] = useState<'overview' | 'organizers' | 'activities' | 'users' | 'stats' | 'history'>('overview');
   const [historySubTab, setHistorySubTab] = useState<'organizers' | 'activities'>('organizers');
