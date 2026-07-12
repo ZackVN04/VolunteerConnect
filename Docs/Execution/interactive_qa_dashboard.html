@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Deployed QA Dashboard - Volunteer Connect</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0b0f19;
+            --bg-secondary: #161f30;
+            --bg-tertiary: #1f2d44;
+            --accent: #2563eb;
+            --accent-hover: #3b82f6;
+            --accent-glow: rgba(37, 99, 235, 0.4);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --success: #10b981;
+            --success-glow: rgba(16, 185, 129, 0.2);
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --border: rgba(255, 255, 255, 0.08);
+            --glass-bg: rgba(22, 31, 48, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.05);
+            --font-main: 'Outfit', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: var(--font-main);
+            line-height: 1.6;
+            padding-bottom: 60px;
+        }
+
+        .ambient-glow-1 {
+            position: fixed;
+            top: -200px;
+            left: -200px;
+            width: 600px;
+            height: 600px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(37, 99, 235, 0.15) 0%, rgba(0,0,0,0) 70%);
+            z-index: -1;
+            pointer-events: none;
+        }
+        .ambient-glow-2 {
+            position: fixed;
+            bottom: -200px;
+            right: -200px;
+            width: 600px;
+            height: 600px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(16, 185, 129, 0.1) 0%, rgba(0,0,0,0) 70%);
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        header {
+            background: rgba(11, 15, 25, 0.8);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--glass-border);
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--accent), #10b981);
+            box-shadow: 0 0 20px var(--accent-glow);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 1.2rem;
+            color: #fff;
+        }
+
+        .logo-text h1 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #fff, var(--text-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .logo-text p {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .badge-dev {
+            background: rgba(37, 99, 235, 0.15);
+            border: 1px solid var(--accent);
+            color: #3b82f6;
+            padding: 4px 12px;
+            border-radius: 99px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .main-container {
+            max-width: 1450px;
+            margin: 40px auto;
+            padding: 0 20px;
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 30px;
+        }
+
+        .sidebar {
+            position: sticky;
+            top: 110px;
+            height: fit-content;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .sidebar-title {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .nav-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .nav-item button {
+            width: 100%;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-family: var(--font-main);
+            font-size: 0.95rem;
+            text-align: left;
+            padding: 12px 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .nav-item button:hover {
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text-primary);
+        }
+
+        .nav-item.active button {
+            background: var(--accent);
+            color: #fff;
+            font-weight: 600;
+            box-shadow: 0 4px 15px var(--accent-glow);
+        }
+
+        .content-area {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 40px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h2 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            letter-spacing: -0.5px;
+        }
+
+        .tab-desc {
+            color: var(--text-secondary);
+            font-size: 1.05rem;
+            margin-bottom: 30px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 30px 0 15px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-primary);
+        }
+
+        .step-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .step-card:hover {
+            border-color: rgba(37, 99, 235, 0.3);
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .step-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+            padding-bottom: 10px;
+        }
+
+        .step-badge {
+            background: var(--accent);
+            color: #fff;
+            font-size: 0.8rem;
+            font-weight: 700;
+            padding: 4px 12px;
+            border-radius: 6px;
+            text-transform: uppercase;
+        }
+
+        .step-title {
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .step-body {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            margin-top: 15px;
+        }
+
+        .panel-fe, .panel-be {
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .panel-title {
+            font-size: 0.9rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .panel-fe .panel-title { color: #f59e0b; }
+        .panel-be .panel-title { color: #10b981; }
+
+        ol, ul {
+            padding-left: 20px;
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        code {
+            font-family: 'Courier New', Courier, monospace;
+            background: rgba(255, 255, 255, 0.06);
+            color: #f43f5e;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .url-box {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-family: monospace;
+            font-size: 0.9rem;
+            color: #38bdf8;
+            margin-bottom: 12px;
+            word-break: break-all;
+        }
+
+        .code-block-wrapper {
+            position: relative;
+            margin-top: 10px;
+        }
+
+        .code-block {
+            background: #05070c;
+            color: #a7f3d0;
+            padding: 14px;
+            border-radius: 6px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.85rem;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .btn-copy {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-copy:hover {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+        }
+
+        .checklist-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 12px;
+            padding: 10px 14px;
+            background: rgba(255,255,255,0.01);
+            border-radius: 6px;
+            border-left: 3px solid var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .checklist-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: var(--accent);
+        }
+
+        .checklist-item.checked {
+            border-left-color: var(--success);
+            background: rgba(16, 185, 129, 0.05);
+        }
+
+        .checklist-item.checked span {
+            text-decoration: line-through;
+            color: var(--text-muted);
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .stat-val {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--accent-hover);
+            word-break: break-all;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .info-box {
+            background: rgba(37, 99, 235, 0.05); 
+            border: 1px solid var(--accent); 
+            border-radius: 12px; 
+            padding: 24px; 
+            margin-bottom: 25px;
+        }
+
+        .info-box p {
+            margin-bottom: 12px;
+        }
+
+        /* Beautiful Arrow step badge */
+        .arrow-step {
+            color: #f59e0b;
+            font-weight: 800;
+            font-size: 1.1rem;
+            margin: 0 6px;
+            display: inline-block;
+            transition: transform 0.2s;
+        }
+        .arrow-step:hover {
+            transform: translateX(3px);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="ambient-glow-1"></div>
+    <div class="ambient-glow-2"></div>
+
+    <header>
+        <div class="logo-area">
+            <div class="logo-icon">V</div>
+            <div class="logo-text">
+                <h1>Volunteer Connect</h1>
+                <p>Interactive Deployed QA Dashboard (GitHub Actions / Cloud Run)</p>
+            </div>
+        </div>
+        <div class="badge-dev">Cloud Deploy Mode</div>
+    </header>
+
+    <div class="main-container">
+        
+        <!-- Sidebar Navigation -->
+        <div class="sidebar">
+            <div class="sidebar-title">Kịch bản kiểm thử</div>
+            <ul class="nav-list">
+                <li class="nav-item active" onclick="switchTab(event, 'tab-overview')">
+                    <button>
+                        <span>🏠</span> Tổng quan Deploy
+                    </button>
+                </li>
+                <li class="nav-item" onclick="switchTab(event, 'tab-auth')">
+                    <button>
+                        <span>🔐</span> 1. Đăng ký & OTP
+                    </button>
+                </li>
+                <li class="nav-item" onclick="switchTab(event, 'tab-upgrade')">
+                    <button>
+                        <span>🛡️</span> 2. Nâng quyền Organizer
+                    </button>
+                </li>
+                <li class="nav-item" onclick="switchTab(event, 'tab-activity')">
+                    <button>
+                        <span>📅</span> 3. Vòng đời Hoạt động
+                    </button>
+                </li>
+                <li class="nav-item" onclick="switchTab(event, 'tab-registration')">
+                    <button>
+                        <span>👥</span> 4. Đăng ký & Capacity
+                    </button>
+                </li>
+                <li class="nav-item" onclick="switchTab(event, 'tab-attendance')">
+                    <button>
+                        <span>✓</span> 5. Điểm danh
+                    </button>
+                </li>
+                <li class="nav-item" onclick="switchTab(event, 'tab-posts')">
+                    <button>
+                        <span>💬</span> 6. Feed & Bảng tin
+                    </button>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="content-area">
+
+            <!-- TAB 0: OVERVIEW -->
+            <div id="tab-overview" class="tab-content active">
+                <h2>Kiểm thử trên Môi trường Deploy</h2>
+                <p class="tab-desc">Kịch bản QA này được thiết kế đặc trị cho các URL đã deploy trên Google Cloud Run thông qua GitHub Actions.</p>
+                
+                <div class="dashboard-grid">
+                    <div class="stat-card" style="border-color: var(--accent);">
+                        <span class="stat-val" style="font-size: 1.1rem; color: #38bdf8;">https://volunteer-connect-frontend-dev-iz4fa4z53q-as.a.run.app</span>
+                        <span class="stat-label">🚀 URL Giao diện Frontend</span>
+                    </div>
+                    <div class="stat-card" style="border-color: var(--success);">
+                        <span class="stat-val" style="font-size: 1.1rem; color: var(--success);">https://volunteer-connect-backend-dev-iz4fa4z53q-as.a.run.app/docs</span>
+                        <span class="stat-label">📡 URL Swagger UI Backend</span>
+                    </div>
+                </div>
+
+                <div class="info-box">
+                    <h3 style="margin-bottom: 12px;">🔑 Hướng dẫn sử dụng Token trên Swagger UI:</h3>
+                    <p>Hầu hết các API chỉnh sửa (POST, PATCH, DELETE) đều được cấu hình Auth Guard chặt chẽ để chống lỗi bảo mật leo thang đặc quyền:</p>
+                    <ol style="margin-left: 20px; margin-bottom: 15px;">
+                        <li>Khi chạy API Đăng nhập (Login), copy toàn bộ giá trị trong trường <code>access_token</code> của JSON trả về.</li>
+                        <li>Cuộn lên trên cùng của trang Swagger UI, nhấn nút <strong>Authorize</strong> màu xanh.</li>
+                        <li>Dán Token vừa copy vào ô dữ liệu và nhấn <strong>Authorize</strong> để áp dụng token cho tất cả các thao tác tiếp theo.</li>
+                    </ol>
+                </div>
+            </div>
+
+            <!-- TAB 1: AUTH & OTP -->
+            <div id="tab-auth" class="tab-content">
+                <h2>1. Đăng ký tài khoản, OTP & Xác thực</h2>
+                <p class="tab-desc">Kiểm tra luồng tạo tài khoản ở trạng thái chưa active và kích hoạt OTP trên môi trường cloud.</p>
+
+                <!-- Step 1 -->
+                <div class="step-card">
+                    <div class="step-header">
+                        <span class="step-badge">Bước 1.1</span>
+                        <span class="step-title">Đăng ký tài khoản Volunteer mới</span>
+                    </div>
+                    <div class="step-body">
+                        <div class="panel-fe">
+                            <div class="panel-title">🖥️ Trên Frontend đã Deploy</div>
+                            <ol>
+                                <li>Truy cập <a href="https://volunteer-connect-frontend-dev-iz4fa4z53q-as.a.run.app" target="_blank" style="color: var(--accent-hover);">Frontend Dev URL</a>.</li>
+                                <li>Nhấn <strong>Đăng ký</strong> (Register).</li>
+                                <li>Nhập Email mới chưa từng đăng ký, Số điện thoại và Họ tên.</li>
+                                <li>Nhấn nút <strong>Đăng ký</strong> <span class="arrow-step">→</span> Màn hình sẽ chuyển sang trang nhập mã OTP.</li>
+                            </ol>
+                        </div>
+                        <div class="panel-be">
+                            <div class="panel-title">🛠️ Trên Swagger UI</div>
+                            <div class="url-box">POST /api/v1/auth/register</div>
+                            <p>Mở Swagger UI <span class="arrow-step">→</span> <code>auth/register</code> <span class="arrow-step">→</span> Nhấn <strong>Try it out</strong> <span class="arrow-step">→</span> Nhập body và chạy:</p>
+                            <div class="code-block-wrapper">
+                                <button class="btn-copy" onclick="copyCode(this)">Copy JSON</button>
+                                <pre class="code-block">{
+  "email": "volunteer_cloud_test@example.com",
+  "password": "Password123!",
+  "phone_number": "+84912345678",
+  "full_name": "Nguyễn Văn Test Cloud"
+}</pre>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="checklist-item" onclick="toggleChecklist(this)">
+                        <input type="checkbox">
+                        <span>Xác nhận tài khoản đăng ký thành công (trả về trạng thái <code>pending_otp</code>).</span>
+                    </div>
+                </div>
+
+                <!-- Step 2 -->
+                <div class="step-card">
+                    <div class="step-header">
+                        <span class="step-badge">Bước 1.2</span>
+                        <span class="step-title">Xác thực mã OTP</span>
+                    </div>
+                    <div class="step-body">
+                        <div class="panel-fe">
+                            <div class="panel-title">🖥️ Giao diện Frontend</div>
+                            <ol>
+                                <li>Nhập mã OTP mặc định để debug là: <code>123456</code>.</li>
+                                <li>Nhấn <strong>Xác nhận</strong>.</li>
+                                <li>Xác nhận thông báo kích hoạt thành công xuất hiện và chuyển hướng tới trang Đăng nhập.</li>
+                            </ol>
+                        </div>
+                        <div class="panel-be">
+                            <div class="panel-title">🛠️ Trên Swagger UI</div>
+                            <div class="url-box">POST /api/v1/auth/verify-otp</div>
+                            <p>Mở API <code>auth/verify-otp</code> và gửi mã kích hoạt:</p>
+                            <div class="code-block-wrapper">
+                                <button class="btn-copy" onclick="copyCode(this)">Copy JSON</button>
+                                <pre class="code-block">{
+  "email": "volunteer_cloud_test@example.com",
+  "otp_code": "123456"
+}</pre>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="checklist-item" onclick="toggleChecklist(this)">
+                        <input type="checkbox">
+                        <span>Xác nhận tài khoản chuyển sang trạng thái <code>active</code>. Đăng nhập với mật khẩu đã tạo thành công.</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: ORGANIZER UPGRADE -->
+            <div id="tab-upgrade" class="tab-content">
+                <h2>2. Luồng Nâng Cấp Quyền Organizer (Ban Tổ Chức)</h2>
+                <p class="tab-desc">Kiểm thử luồng gửi yêu cầu nâng quyền của Volunteer và sự phê duyệt bảo mật của Admin.</p>
+
+                <!-- Step 1 -->
+                <div class="step-card">
+                    <div class="step-header">
+                        <span class="step-badge">Bước 2.1</span>
+                        <span class="step-title">Volunteer gửi đơn xin nâng quyền</span>
+                    </div>
+                    <div class="step-body">
+                        <div class="panel-fe">
+                            <div class="panel-title">🖥️ Giao diện Frontend</div>
+                            <ol>
+                                <li>Đăng nhập tài khoản Volunteer vừa tạo trên Web.</li>
+                                <li>Vào mục Cá nhân <span class="arrow-step">→</span> Nhấn <strong>Đăng ký làm Ban tổ chức (Organizer)</strong>.</li>
+                                <li>Điền lý do và kinh nghiệm <span class="arrow-step">→</span> Click <strong>Gửi đơn</strong>.</li>
+                                <li>Màn hình sẽ hiển thị trạng thái: <code>Đang chờ duyệt (Pending)</code>.</li>
+                            </ol>
+                        </div>
+                        <div class="panel-be">
+                            <div class="panel-title">🛠️ Trên Swagger UI</div>
+                            <div class="url-box">POST /api/v1/organizer-requests/request-upgrade</div>
+                            <p>1. Gọi API <code>auth/login</code> để lấy access token của Volunteer và nhấn <strong>Authorize</strong> trên Swagger.</p>
+                            <p>2. Gọi API gửi đơn nâng cấp với cấu trúc trường phẳng mới đồng bộ:</p>
+                            <div class="code-block-wrapper">
+                                <button class="btn-copy" onclick="copyCode(this)">Copy JSON</button>
+                                <pre class="code-block">{
+  "reason": "Tổ chức chiến dịch phân loại rác thải",
+  "experience": "Hoạt động xã hội 2 năm",
+  "contact_phone": "+84912345678"
+}</pre>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="checklist-item" onclick="toggleChecklist(this)">
+                        <input type="checkbox">
+                        <span>Xác nhận hồ sơ gửi lên thành công không bị lỗi Validate Pydantic 422.</span>
+                    </div>
+                </div>
+
+                <!-- Step 2 -->
+                <div class="step-card">
+                    <div class="step-header">
+                        <span class="step-badge">Bước 2.2</span>
+                        <span class="step-title">Admin phê duyệt đơn nâng cấp</span>
+                    </div>
+                    <div class="step-body">
+                        <div class="panel-fe">
+                            <div class="panel-title">🖥️ Giao diện Frontend</div>
+                            <ol>
+                                <li>Đăng xuất tài khoản Volunteer.</li>
+                                <li>Đăng nhập bằng tài khoản Admin hệ thống: <code>admin@volunteerconnect.org</code> / <code>AdminSecurePassword123!</code>.</li>
+                                <li>Vào mục <strong>Admin Dashboard</strong> <span class="arrow-step">→</span> danh sách đơn xin nâng quyền.</li>
+                                <li>Nhấn nút <strong>Duyệt (Approve)</strong>.</li>
+                            </ol>
+                        </div>
+                        <div class="panel-be">
+                            <div class="panel-title">🛠️ Trên Swagger UI</div>
+                            <div class="url-box">PATCH /api/v1/admin/requests/{request_id}/approve</div>
+                            <p>1. Lấy token Admin bằng API login <span class="arrow-step">→</span> Nhấn <strong>Authorize</strong> trên Swagger.</p>
+                            <p>2. Lấy ID đơn vừa gửi bằng API: <code>GET /api/v1/admin/organizer-requests</code>.</p>
+                            <p>3. Gửi lệnh duyệt (sử dụng phương thức <strong>PATCH</strong> chuẩn bảo mật mới):</p>
+                            <div class="code-block-wrapper">
+                                <button class="btn-copy" onclick="copyCode(this)">Copy JSON</button>
+                                <pre class="code-block">{
+  "status": "approved",
+  "reason": "Yêu cầu hợp lệ"
+}</pre>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="checklist-item" onclick="toggleChecklist(this)">
+                        <input type="checkbox">
+                        <span>Xác nhận tài khoản Volunteer được chuyển đổi vai trò thành <code>organizer</code> thành công.</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: ACTIVITY LIFECYCLE -->
+            <div id="tab-activity" class="tab-content">
+                <h2>3. Vòng Đời Hoạt Động (Draft $\rightarrow$ Submit $\rightarrow$ Approve $\rightarrow$ Open)</h2>
+                <p class="tab-desc">Kiểm thử luồng đăng hoạt động mới và quy trình phê duyệt hoạt động của Ban quản trị hệ thống.</p>
+
+                <!-- Step 1 -->
+                <div class="step-card">
+                    <div class="step-header">
+                        <span class="step-badge">Bước 3.1</span>
+                        <span class="step-title">Organizer tạo hoạt động & Gửi duyệt</span>
+                    </div>
+                    <div class="step-body">
+                        <div class="panel-fe">
+                            <div class="panel-title">🖥️ Giao diện Frontend</div>
+                            <ol>
+                                <li>Đăng nhập tài khoản Organizer mới được duyệt ở Kịch bản 2.</li>
+                                <li>Vào Organizer Dashboard <span class="arrow-step">→</span> Click <strong>Tạo hoạt động mới</strong>.</li>
+                                <li>Đặt giới hạn số lượng TNV (limit_volunteers) là <code>2</code> người <span class="arrow-step">→</span> Lưu bản nháp (Draft).</li>
+                                <li>Nhấn nút <strong>Gửi kiểm duyệt (Submit)</strong>.</li>
+                            </ol>
+                        </div>
+                        <div class="panel-be">
+                            <div class="panel-title">🛠️ Trên Swagger UI</div>
+                            <div class="url-box">POST /api/v1/activities & /submit</div>
+                            <p>1. Gửi lệnh tạo hoạt động dưới Token của Organizer:</p>
+                            <div class="code-block-wrapper">
+                                <button class="btn-copy" onclick="copyCode(this)">Copy JSON</button>
+                                <pre class="code-block">{
+  "title": "Chương trình Dọn rác Vũng Tàu",
+  "description": "Hoạt động bảo vệ môi trường biển cuối tuần sạch đẹp xanh mát",
+  "categories": ["Môi trường"],
+  "location": {
+    "province": "Bà Rịa - Vũng Tàu",
+    "district": "Vũng Tàu",
+    "address_detail": "Bãi Sau"
+  },
+  "start_date": "2026-09-01T08:00:00Z",
+  "end_date": "2026-09-02T17:00:00Z",
+  "limit_volunteers": 2,
+  "requirements": "Không ngại nắng nóng"
+}</pre>
+                            </div>
+                            <p style="margin-top: 10px;">2. Gửi duyệt hoạt động bằng API: <code>POST /api/v1/activities/{activity_id}/submit</code>.</p>
+                        </div>
+                    </div>
+                    <div class="checklist-item" onclick="toggleChecklist(this)">
+                        <input type="checkbox">
+                        <span>Xác nhận hoạt động được tạo ở trạng thái <code>draft</code> and gửi duyệt thành công sang trạng thái <code>pending_review</code>.</span>
+                    </div>
+                </div>
+
+                <!-- Step 2 -->
+                <div class="step-card">
+                    <div class="step-header">
+                        <span class="step-badge">Bước 3.2</span>
+                        <span class="step-title">Admin duyệt hoạt động</span>
+                    </div>
+                    <div class="step-body">
+                        <div class="panel-fe">
+                            <div class="panel-title">🖥️ Giao diện Frontend</div>
+                            <ol>
+                                <li>Đăng nhập tài khoản Admin.</li>
+                                <li>Mở Admin Dashboard <span class="arrow-step">→</span> mục duyệt hoạt động.</li>
+                                <li>Nhấn nút <strong>Duyệt (Approve)</strong>.</li>
+                            </ol>
+                        </div>
+                        <div class="panel-be">
+                            <div class="panel-title">🛠️ Trên Swagger UI</div>
+                            <div class="url-box">PATCH /api/v1/admin/activities/{activity_id}/approve</div>
+                            <p>Admin gửi yêu cầu phê duyệt hoạt động:</p>
+                            <div class="code-block-wrapper">
+                                <button class="btn-copy" onclick="copyCode(this)">Copy JSON</button>
+                                <pre class="code-block">{
+  "is_approved": true,
+  "reason": "Hoạt động thiết thực"
+}</pre>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="checklist-item" onclick="toggleChecklist(this)">
+                        <input type="checkbox">
+                        <span>Xác nhận hoạt động chuyển sang trạng thái <code>open</code> chuẩn xác (đã được sửa lỗi PUBLISHED status cũ) và xuất hiện trên trang khám phá của TNV.</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 4: REGISTRATION & CAPACITY -->
+            <div id="tab-registration" class="tab-content">
+                <h2>4. Đăng Ký Đơn & Tự Động Quản Lý Sức Chứa (Capacity)</h2>
+                <p class="tab-desc">Kiểm thử cơ chế tự động chuyển đổi thông minh giữa hai trạng thái Open (Mở tuyển) và Full (Hết chỗ) khi có biến động số lượng đăng ký.</p>
+
+                <!-- Step 1 -->
+                <div class="step-card">
+                    <div class="step-header">
+                        <span class="step-badge">Bước 4.1</span>
+                        <span class="step-title">Tuyển đủ số lượng TNV (Chuyển sang FULL)</span>
+                    </div>
+                    <div class="step-body">
+                        <div class="panel-fe">
+                            <div class="panel-title">🖥️ Giao diện Frontend</div>
+                            <ol>
+                                <li>Dùng 2 tài khoản Volunteer khác đăng ký tham gia sự kiện.</li>
+                                <li>Organizer vào trang quản lý hoạt động <span class="arrow-step">→</span> Click duyệt (Approve) đơn đăng ký của cả 2 Volunteer.</li>
+                                <li>Quay lại trang khám phá hoạt động.</li>
+                                <li>Xác nhận trạng thái hoạt động tự động chuyển sang <strong>Hết chỗ (Full)</strong>.</li>
+                            </ol>
+                        </div>
+                        <div class="panel-be">
+                            <div class="panel-title">🛠️ Trên Swagger UI</div>
+                            <div class="url-box">PATCH /api/v1/registrations/{registration_id}/approve</div>
+                            <p>Duyệt đơn đăng ký của TNV bằng API PATCH chuẩn mới (trước đây Frontend gọi sai bằng POST):</p>
+                            <div class="code-block-wrapper">
+                                <button class="btn-copy" onclick="copyCode(this)">Copy curl</button>
+                                <pre class="code-block">curl -X PATCH https://volunteer-connect-backend-dev-iz4fa4z53q-as.a.run.app/api/v1/registrations/&lt;REGISTRATION_ID&gt;/approve \
+-H "Authorization: Bearer &lt;ORGANIZER_TOKEN&gt;"</pre>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="checklist-item" onclick="toggleChecklist(this)">
+                        <input type="checkbox">
+                        <span>Xác nhận khi số lượng đơn được duyệt chạm mốc limit (2), status chuyển sang <code>full</code>. Đơn ở trạng thái <code>pending</code> (chưa duyệt) không được chiếm chỗ.</span>
+                    </div>
+                </div>
+
+                <!-- Step 2 -->
+                <div class="step-card">
+                    <div class="step-header">
+                        <span class="step-badge">Bước 4.2</span>
+                        <span class="step-title">Hủy đăng ký (Chuyển ngược về OPEN)</span>
+                    </div>
+                    <div class="step-body">
+                        <div class="panel-fe">
+                            <div class="panel-title">🖥️ Giao diện Frontend</div>
+                            <ol>
+                                <li>Đăng nhập bằng 1 trong các tài khoản Volunteer đã được duyệt tham gia ở trên.</li>
+                                <li>Vào trang **Hoạt động của tôi** <span class="arrow-step">→</span> Chọn sự kiện <span class="arrow-step">→</span> Click **Hủy đăng ký** (Cancel).</li>
+                                <li>Quay lại trang khám phá chính, xác nhận hoạt động tự động quay lại trạng thái **Mở tuyển (Open)**.</li>
+                            </ol>
+                        </div>
+                        <div class="panel-be">
+                            <div class="panel-title">🛠️ Trên Swagger UI</div>
+                            <div class="url-box">POST /api/v1/registrations/{registration_id}/cancel</div>
+                            <p>Volunteer gửi lệnh hủy đơn bằng API:</p>
+                            <div class="code-block-wrapper">
+                                <button class="btn-copy" onclick="copyCode(this)">Copy curl</button>
+                                <pre class="code-block">curl -X POST https://volunteer-connect-backend-dev-iz4fa4z53q-as.a.run.app/api/v1/registrations/&lt;REGISTRATION_ID&gt;/cancel \
+-H "Authorization: Bearer &lt;VOLUNTEER_TOKEN&gt;"</pre>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="checklist-item" onclick="toggleChecklist(this)">
+                        <input type="checkbox">
+                        <span>Xác nhận khi số lượng thành viên thực tế giảm xuống dưới mốc limit, hoạt động mở lại trạng thái <code>open</code> ngay lập tức.</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 5: ATTENDANCE -->
+            <div id="tab-attendance" class="tab-content">
+                <h2>5. Điểm Danh Tình Nguyện Viên (Attendance)</h2>
+                <p class="tab-desc">Kiểm thử tính năng điểm danh và cập nhật điểm tích lũy hoạt động tham gia của Volunteer.</p>
+
+                <div class="step-card">
+                    <div class="step-header">
+                        <span class="step-badge">Điểm danh</span>
+                        <span class="step-title">Ghi nhận tham dự và tích điểm</span>
+                    </div>
+                    <div class="step-body">
+                        <div class="panel-fe">
+                            <div class="panel-title">🖥️ Giao diện Frontend</div>
+                            <ol>
+                                <li>Đăng nhập tài khoản Organizer sở hữu hoạt động.</li>
+                                <li>Vào trang quản lý hoạt động <span class="arrow-step">→</span> Click xem danh sách Tình nguyện viên tham gia.</li>
+                                <li>Tích chọn trạng thái **Có mặt (Completed)** cho các TNV có mặt thực tế.</li>
+                                <li>Nhấn nút **Lưu điểm danh**.</li>
+                            </ol>
+                        </div>
+                        <div class="panel-be">
+                            <div class="panel-title">🛠️ Trên Swagger UI</div>
+                            <div class="url-box">PATCH /api/v1/registrations/{registration_id}/attendance</div>
+                            <p>Điểm danh an toàn bằng API PATCH đồng bộ mới (Frontend gọi sai bằng POST check-in cũ):</p>
+                            <div class="code-block-wrapper">
+                                <button class="btn-copy" onclick="copyCode(this)">Copy JSON</button>
+                                <pre class="code-block">{
+  "status": "completed"
+}</pre>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="checklist-item" onclick="toggleChecklist(this)">
+                        <input type="checkbox">
+                        <span>Xác nhận thông tin điểm danh được lưu trữ, kiểm tra profile Volunteer có điểm <code>joined_activity_count</code> tăng lên 1 điểm.</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 6: FEED & POSTS -->
+            <div id="tab-posts" class="tab-content">
+                <h2>6. Bảng Tin Cộng Đồng (Feed & Posts)</h2>
+                <p class="tab-desc">Kiểm thử tính năng tương tác đăng bài viết lên bảng tin cộng đồng, thích bài viết (like) và bảo mật quyền xóa bài viết.</p>
+
+                <div class="step-card">
+                    <div class="step-header">
+                        <span class="step-badge">Bảng tin</span>
+                        <span class="step-title">Tương tác bài đăng trên Feed</span>
+                    </div>
+                    <div class="step-body">
+                        <div class="panel-fe">
+                            <div class="panel-title">🖥️ Giao diện Frontend</div>
+                            <ol>
+                                <li>Đăng nhập tài khoản bất kỳ <span class="arrow-step">→</span> Vào mục **Bảng tin** (Feed).</li>
+                                <li>Nhập nội dung chia sẻ, tải ảnh minh họa <span class="arrow-step">→</span> nhấn **Đăng bài**.</li>
+                                <li>Nhấn nút **Thích (Like)** <span class="arrow-step">→</span> xác nhận số lượng thích tăng lên.</li>
+                                <li>Nhấn **Xóa** bài đăng của chính mình <span class="arrow-step">→</span> bài đăng biến mất khỏi bảng tin.</li>
+                            </ol>
+                        </div>
+                        <div class="panel-be">
+                            <div class="panel-title">🛠️ Trên Swagger UI</div>
+                            <div class="url-box">POST /api/v1/posts/ & PATCH /like & DELETE</div>
+                            <p>Tương tác bảng tin Feed an toàn qua tiền tố prefix `/api/v1/posts` mới sửa đổi:</p>
+                            <div class="code-block-wrapper">
+                                <button class="btn-copy" onclick="copyCode(this)">Copy JSON</button>
+                                <pre class="code-block">{
+  "title": "Chương trình dọn rác xanh",
+  "content": "Một ngày cuối tuần dọn dẹp bãi biển đầy ý nghĩa tại Vũng Tàu!",
+  "images": ["https://picsum.photos/200"],
+  "hashtags": ["vungtau", "moitruong"]
+}</pre>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="checklist-item" onclick="toggleChecklist(this)">
+                        <input type="checkbox">
+                        <span>Xác nhận luồng Feed hoạt động bình thường, không bị lỗi prefix đường dẫn và được bảo vệ quyền sở hữu an toàn (chỉ tác giả hoặc admin mới xóa được bài).</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        function switchTab(event, tabId) {
+            const tabContents = document.querySelectorAll('.tab-content');
+            tabContents.forEach(content => content.classList.remove('active'));
+
+            const navItems = document.querySelectorAll('.nav-item');
+            navItems.forEach(item => item.classList.remove('active'));
+
+            document.getElementById(tabId).classList.add('active');
+            event.currentTarget.classList.add('active');
+        }
+
+        function toggleChecklist(element) {
+            const checkbox = element.querySelector('input[type="checkbox"]');
+            checkbox.checked = !checkbox.checked;
+            if (checkbox.checked) {
+                element.classList.add('checked');
+            } else {
+                element.classList.remove('checked');
+            }
+        }
+
+        document.querySelectorAll('.checklist-item input').forEach(checkbox => {
+            checkbox.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const parent = checkbox.closest('.checklist-item');
+                if (checkbox.checked) {
+                    parent.classList.add('checked');
+                } else {
+                    parent.classList.remove('checked');
+                }
+            });
+        });
+
+        function copyCode(btn) {
+            const pre = btn.nextElementSibling;
+            navigator.clipboard.writeText(pre.innerText).then(() => {
+                const originalText = btn.innerText;
+                btn.innerText = "Copied!";
+                btn.style.background = "#10b981";
+                btn.style.borderColor = "#10b981";
+                btn.style.color = "#fff";
+                setTimeout(() => {
+                    btn.innerText = originalText;
+                    btn.style.background = "";
+                    btn.style.borderColor = "";
+                    btn.style.color = "";
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>
