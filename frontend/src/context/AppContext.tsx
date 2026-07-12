@@ -7,7 +7,8 @@ import {
   organizerService,
   postService,
   userService,
-  adminService
+  adminService,
+  statsService
 } from '../services/apiService';
 
 const USE_REAL_BACKEND = true;
@@ -179,6 +180,9 @@ interface AppContextType {
   promptDialog: { message: string; title?: string; placeholder?: string; onConfirm: (val: string) => void } | null;
   showPrompt: (message: string, onConfirm: (val: string) => void, title?: string, placeholder?: string) => void;
   closePrompt: () => void;
+  isAuthLoading: boolean;
+  isDataLoading: boolean;
+  globalStats: { totalCampaigns: number, totalVolunteers: number, totalOrganizers: number, totalCompleted: number } | null;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -187,12 +191,31 @@ const LOCAL_STORAGE_KEY = 'volunteer_connect_db';
 
 export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Main states
-  const [currentUser, setCurrentUserInternal] = useState<User | null>(null);
+  const [currentUser, setCurrentUserInternal] = useState<User | null>(() => {
+    try {
+      const savedDb = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (savedDb) {
+        const db = JSON.parse(savedDb);
+        return db.currentUser || null;
+      }
+    } catch (e) {}
+    return null;
+  });
   const [users, setUsers] = useState<User[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [organizerRequests, setOrganizerRequests] = useState<OrganizerRequest[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
+  const [deletingActivityId, setDeletingActivityId] = useState<string | null>(null);
+
+  const [globalStats, setGlobalStats] = useState<{ totalCampaigns: number, totalVolunteers: number, totalOrganizers: number, totalCompleted: number } | null>(null);
+
+  const [isAuthLoading, setIsAuthLoading] = useState<boolean>(() => {
+    return !!localStorage.getItem('token');
+  });
+  
+  // Track initial data loading state for skeleton screens
+  const [isDataLoading, setIsDataLoading] = useState<boolean>(true);
 
   // Dialog / Toast states
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
@@ -281,14 +304,18 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const refreshAllData = useCallback(async () => {
     if (USE_REAL_BACKEND) {
       try {
+        setIsDataLoading(true);
         let activeUser = currentUser;
         const token = localStorage.getItem('token');
-        if (token && !activeUser) {
+        if (token) {
           try {
+            // Revalidate token & fetch latest user data
             activeUser = await authService.getCurrentUser();
             setCurrentUserInternal(activeUser);
           } catch (e) {
-            console.warn("Lỗi khôi phục phiên đăng nhập backend:", e);
+            console.warn("Lỗi khôi phục phiên đăng nhập backend (Token hết hạn):", e);
+            setCurrentUserInternal(null);
+            activeUser = null;
           }
         }
 
@@ -424,11 +451,24 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         } catch (err) {
           console.error("Lỗi lấy danh sách bài viết từ server:", err);
         }
+
+        // 5. Load global stats
+        try {
+          const stats = await statsService.getGlobalStats();
+          setGlobalStats(stats);
+        } catch (err) {
+          console.error("Lỗi lấy thống kê từ server:", err);
+        }
       } catch (e) {
         console.error('Lỗi khi tải dữ liệu từ Backend:', e);
+      } finally {
+        setIsAuthLoading(false);
+        setIsDataLoading(false);
       }
     } else {
       loadLocalStorageData();
+      setIsAuthLoading(false);
+      setIsDataLoading(false);
     }
   }, [currentUser?._id, currentUser?.role]);
 
@@ -1687,6 +1727,9 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         posts,
         setCurrentUser,
         refreshAllData,
+        isAuthLoading,
+        isDataLoading,
+        globalStats,
         loginAs,
         registerForActivity,
         cancelOrRejectRegistration,

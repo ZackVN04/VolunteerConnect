@@ -66,6 +66,7 @@ const PromptModalWrapper: React.FC<{
 const AppContent: React.FC = () => {
   const {
     currentUser,
+    isAuthLoading,
     notification,
     confirmDialog, closeConfirm,
     promptDialog, closePrompt
@@ -96,6 +97,7 @@ const AppContent: React.FC = () => {
 
   // Redirect logged-in users away from auth routes
   useEffect(() => {
+    if (isAuthLoading) return;
     if (currentUser) {
       const cleanHash = window.location.hash.split('?')[0];
       if (['#/login', '#/register', '#/forgot-password'].includes(cleanHash)) {
@@ -116,8 +118,10 @@ const AppContent: React.FC = () => {
         !currentUser.profile.area_of_interest ||
         !currentUser.profile.skills ||
         currentUser.profile.skills.length === 0;
+      
+      const isFeedPage = currentHash.split('?')[0] === '#/feed';
 
-      setShowIncompleteBanner(isIncomplete && !isDismissed);
+      setShowIncompleteBanner(isIncomplete && !isDismissed && isFeedPage);
     } else {
       setShowIncompleteBanner(false);
     }
@@ -125,6 +129,7 @@ const AppContent: React.FC = () => {
 
   // Parse Hash Route
   const getRouteView = () => {
+    // Render normally with stale data while auth is checking
     const cleanHash = currentHash.split('?')[0]; // strip params
 
     if (cleanHash === '#/feed') {
@@ -263,38 +268,43 @@ const AppContent: React.FC = () => {
 
     return (
       <div className="min-h-screen flex flex-col bg-background text-on-surface antialiased transition-all">
+        {/* Top Loading Bar Overlay */}
+        {isAuthLoading && (
+          <div className="fixed top-0 left-0 w-full h-1 bg-gray-200 z-[9999] overflow-hidden">
+            <div className="h-full bg-[#006d37] w-1/2 animate-pulse rounded-r-full"></div>
+          </div>
+        )}
+        
         {/* Top Navigation Bar */}
         <Navbar />
 
-        {/* Profile Incomplete Banner */}
+        {/* Profile Incomplete Banner - Toast Style */}
         {showIncompleteBanner && (
-          <div className="w-full max-w-[1280px] mx-auto px-4 md:px-8 mt-4 animate-fadeIn">
-            <div className="bg-[#fff9e6] border border-amber-200/60 rounded-2xl p-4 flex flex-col sm:flex-row justify-between items-center gap-3 shadow-sm">
-              <div className="flex items-center gap-2.5 text-amber-800 text-sm font-semibold text-left">
-                <span className="material-symbols-outlined text-amber-600 shrink-0">warning</span>
-                <span>Thông tin cá nhân của bạn chưa hoàn thiện. Vui lòng hoàn thành hồ sơ cá nhân của mình để hoạt động hiệu quả hơn.</span>
+          <div className="absolute top-[88px] right-4 md:right-8 z-40 w-[calc(100%-2rem)] md:w-[360px] animate-fadeIn shadow-2xl rounded-2xl overflow-hidden border border-amber-100">
+            <div className="bg-white p-4 flex items-start gap-3.5 relative">
+              <div className="bg-amber-100/80 text-amber-600 p-2 rounded-full shrink-0 flex items-center justify-center">
+                 <span className="material-symbols-outlined text-[20px]">warning</span>
               </div>
-              <div className="flex items-center gap-3 shrink-0 self-end sm:self-auto">
-                <a
-                  href="#/profile?tab=edit"
-                  onClick={() => {
-                    window.location.hash = '#/profile?tab=edit';
-                  }}
-                  className="text-xs bg-[#006d37] hover:bg-[#005027] text-white font-bold px-4 py-2 rounded-xl transition-all shadow-sm"
+              <div className="flex-grow pr-5">
+                <h4 className="text-sm font-bold text-slate-800 mb-1">Thiếu thông tin</h4>
+                <p className="text-xs text-slate-500 leading-relaxed mb-3">Hồ sơ của bạn chưa hoàn thiện. Hãy cập nhật để dễ dàng ứng tuyển các hoạt động nhé.</p>
+                <button 
+                  onClick={() => { window.location.hash = '#/profile'; }}
+                  className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-1.5 rounded-xl text-xs font-semibold transition-colors shadow-sm"
                 >
                   Cập nhật ngay
-                </a>
-                <button
-                  onClick={() => {
-                    sessionStorage.setItem('dismissedProfileReminder', 'true');
-                    setShowIncompleteBanner(false);
-                  }}
-                  className="text-amber-600 hover:text-amber-800 p-1 flex items-center justify-center cursor-pointer"
-                  aria-label="Đóng thông báo"
-                >
-                  <span className="material-symbols-outlined text-lg block">close</span>
                 </button>
               </div>
+              <button 
+                onClick={() => {
+                  sessionStorage.setItem('dismissedProfileReminder', 'true');
+                  setShowIncompleteBanner(false);
+                }}
+                className="absolute top-3 right-3 text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-1 rounded-lg transition-colors flex items-center justify-center"
+                aria-label="Đóng thông báo"
+              >
+                <span className="material-symbols-outlined text-[18px]">close</span>
+              </button>
             </div>
           </div>
         )}
@@ -334,10 +344,10 @@ const AppContent: React.FC = () => {
       {/* Toast Alert */}
       {notification && (
         <div className={`fixed top-24 right-8 z-[9999] p-4 rounded-xl shadow-lg border text-sm font-semibold flex items-center gap-2 animate-fadeIn ${notification.type === 'success'
-            ? 'bg-[#e8f5e9] text-[#006d37] border-[#006d37]/20 shadow-[#006d37]/5'
-            : notification.type === 'error'
-              ? 'bg-red-50 text-red-700 border-red-200 shadow-red-200/5'
-              : 'bg-blue-50 text-blue-700 border-blue-200 shadow-blue-200/5'
+          ? 'bg-[#e8f5e9] text-[#006d37] border-[#006d37]/20 shadow-[#006d37]/5'
+          : notification.type === 'error'
+            ? 'bg-red-50 text-red-700 border-red-200 shadow-red-200/5'
+            : 'bg-blue-50 text-blue-700 border-blue-200 shadow-blue-200/5'
           }`}>
           <span className="material-symbols-outlined text-lg">
             {notification.type === 'success' ? 'check_circle' : notification.type === 'error' ? 'error' : 'info'}

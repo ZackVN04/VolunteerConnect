@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import type { Post } from '../context/AppContext';
 import { mediaService, commentService } from '../services/apiService';
+import { AnimatedCounter } from '../components/AnimatedCounter';
+import { ActivitySkeleton, PostSkeleton, PaginationSkeleton } from '../components/Skeletons';
 
 // Avatar helper
 const PostAvatar: React.FC<{ name: string; src?: string | null; size?: number }> = ({ name, src, size = 44 }) => {
@@ -264,7 +266,7 @@ const EditPostModal: React.FC<{
   onSubmit: (title: string, content: string, images: string[], hashtags: string[]) => Promise<void>;
 }> = ({ post, onClose, onSubmit }) => {
   const { showNotification } = useApp();
-  
+
   // Extract title and body content for editing from content and post.title
   const contentLines = post.content.split('\n');
   const fallbackTitle = contentLines.length > 1 ? contentLines[0] : '';
@@ -453,7 +455,7 @@ export interface PostComment {
 }
 
 export const FeedView: React.FC = () => {
-  const { currentUser, users, activities, posts, createPost, editPost, likePost, sharePost, deletePost, incrementCommentCount, showNotification } = useApp();
+  const { currentUser, isDataLoading, globalStats, users, activities, posts, createPost, editPost, likePost, sharePost, deletePost, incrementCommentCount, showNotification } = useApp();
   const [currentPage, setCurrentPage] = useState(1);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingPost, setEditingPost] = useState<Post | null>(null);
@@ -557,10 +559,10 @@ export const FeedView: React.FC = () => {
   };
 
   // Stats
-  const totalCampaigns = activities.length;
-  const totalVolunteers = users.filter(u => u.role === 'Volunteer').length;
-  const totalOrganizers = users.filter(u => u.role === 'Organizer').length;
-  const totalCompleted = activities.filter(a => a.status === 'Completed').length;
+  const totalCampaigns = globalStats?.totalCampaigns || 0;
+  const totalVolunteers = globalStats?.totalVolunteers || 0;
+  const totalOrganizers = globalStats?.totalOrganizers || 0;
+  const totalCompleted = globalStats?.totalCompleted || 0;
 
   // Featured activities
   const featuredList = activities.filter(a => a.status === 'Open' || a.status === 'Full');
@@ -715,7 +717,10 @@ export const FeedView: React.FC = () => {
             { value: totalCompleted, label: 'Đã hoàn thành' },
           ].map((s, i) => (
             <div key={i} className="bg-white border border-surface-variant/40 rounded-2xl p-6 text-center shadow-sm">
-              <h3 className="text-4xl font-bold text-[#006d37]">{s.value}</h3>
+              <h3 className="text-4xl font-bold text-[#006d37] flex items-center justify-center">
+                <AnimatedCounter target={s.value} />
+                {s.value > 0 && <span className="text-3xl ml-0.5 text-[#006d37]/80">+</span>}
+              </h3>
               <p className="text-on-surface-variant font-semibold text-sm mt-1">{s.label}</p>
             </div>
           ))}
@@ -731,7 +736,16 @@ export const FeedView: React.FC = () => {
             <a href="#/activities" className="text-[#006d37] hover:underline font-bold text-sm flex items-center gap-1">Xem tất cả →</a>
           </div>
 
-          {featuredActivities.length === 0 ? (
+          {isDataLoading ? (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {[1, 2, 3].map(i => (
+                  <ActivitySkeleton key={i} />
+                ))}
+              </div>
+              <PaginationSkeleton count={3} className="pt-2" />
+            </div>
+          ) : featuredActivities.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center space-y-3 bg-white border border-slate-100 rounded-3xl">
               <span className="material-symbols-outlined text-5xl text-slate-300">volunteer_activism</span>
               <p className="text-slate-500 font-semibold text-sm">Hiện chưa có hoạt động nổi bật nào đang mở đăng ký.</p>
@@ -940,7 +954,13 @@ export const FeedView: React.FC = () => {
 
             {/* Posts list */}
             <div className="space-y-5">
-              {filteredPosts.length === 0 ? (
+              {isDataLoading ? (
+                <>
+                  {[1, 2].map(i => (
+                    <PostSkeleton key={i} />
+                  ))}
+                </>
+              ) : filteredPosts.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center space-y-3 bg-white border border-slate-200/80 rounded-2xl">
                   <span className="material-symbols-outlined text-5xl text-slate-300">chat_bubble_outline</span>
                   <p className="text-slate-500 font-semibold text-sm">Không tìm thấy bài viết phù hợp.</p>
@@ -1171,7 +1191,9 @@ export const FeedView: React.FC = () => {
             </div>
 
             {/* Community Feed Pagination */}
-            {totalFeedPages > 1 && (
+            {isDataLoading ? (
+              <PaginationSkeleton count={4} className="pt-6" />
+            ) : totalFeedPages > 1 && (
               <div className="flex justify-center gap-2 pt-6">
                 {Array.from({ length: totalFeedPages }, (_, i) => (
                   <button
@@ -1186,8 +1208,8 @@ export const FeedView: React.FC = () => {
                       }
                     }}
                     className={`w-8 h-8 rounded-full text-sm font-bold transition-all ${feedPage === i + 1
-                        ? 'bg-[#006d37] text-white'
-                        : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                      ? 'bg-[#006d37] text-white'
+                      : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
                       }`}
                   >
                     {i + 1}
