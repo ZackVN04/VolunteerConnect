@@ -69,6 +69,7 @@ export const OrganizerDashboard: React.FC = () => {
     currentUser, activities, registrations,
     createActivity, editActivity,
     approveRegistration, cancelOrRejectRegistration, updateParticipation,
+    bulkReviewRegistrations,
     showNotification, showPrompt, showConfirm
   } = useApp();
 
@@ -91,6 +92,7 @@ export const OrganizerDashboard: React.FC = () => {
   const [showActivityFilters, setShowActivityFilters] = useState(false);
   const [showRegFilters, setShowRegFilters] = useState(false);
   const [checkedRegIds, setCheckedRegIds] = useState<string[]>([]);
+  const [selectedRegIds, setSelectedRegIds] = useState<string[]>([]);
   const [attendanceSearch, setAttendanceSearch] = useState('');
   const [attendanceStatusFilter, setAttendanceStatusFilter] = useState('All');
 
@@ -167,7 +169,8 @@ export const OrganizerDashboard: React.FC = () => {
 
   useEffect(() => {
     setCheckedRegIds([]);
-  }, [activeTab]);
+    setSelectedRegIds([]);
+  }, [activeTab, regSubTab]);
 
   if (!currentUser) return null;
 
@@ -360,6 +363,40 @@ export const OrganizerDashboard: React.FC = () => {
         showNotification('Đã từ chối đơn đăng ký.', 'success');
       },
       'Từ chối đăng ký',
+      'Lý do từ chối...'
+    );
+  };
+
+  const handleBulkApproveRegistrations = async () => {
+    if (selectedRegIds.length === 0) return;
+    const res = await bulkReviewRegistrations(selectedRegIds, true);
+    if (res.success) {
+      showNotification(res.error || 'Đã duyệt đơn đăng ký hàng loạt thành công.', 'success');
+      setSelectedRegIds([]);
+    } else {
+      showNotification(res.error || 'Duyệt hàng loạt thất bại.', 'error');
+    }
+  };
+
+  const handleBulkRejectRegistrations = () => {
+    if (selectedRegIds.length === 0) return;
+    showPrompt(
+      'Nhập lý do từ chối đăng ký hàng loạt:',
+      async (feedback) => {
+        const trimmed = feedback.trim();
+        if (trimmed.length < 5 || trimmed.length > 500) {
+          showNotification('Lý do từ chối phải từ 5 đến 500 ký tự.', 'error');
+          return;
+        }
+        const res = await bulkReviewRegistrations(selectedRegIds, false, trimmed);
+        if (res.success) {
+          showNotification(res.error || 'Đã từ chối hàng loạt thành công.', 'success');
+          setSelectedRegIds([]);
+        } else {
+          showNotification(res.error || 'Từ chối hàng loạt thất bại.', 'error');
+        }
+      },
+      'Từ chối đăng ký hàng loạt',
       'Lý do từ chối...'
     );
   };
@@ -923,11 +960,50 @@ export const OrganizerDashboard: React.FC = () => {
               </div>
             )}
 
+            {/* Bulk actions bar */}
+            {selectedRegIds.length > 0 && (
+              <div className="bg-[#e8f5e9]/70 border-y border-emerald-100 px-6 py-4 flex items-center justify-between animate-fadeIn">
+                <div className="text-xs text-[#004d40] font-bold">
+                  Đã chọn <span className="text-[#00796b] text-sm">{selectedRegIds.length}</span> đơn đăng ký
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleBulkApproveRegistrations}
+                    className="px-4 py-2 bg-[#006d37] text-white rounded-xl text-xs font-bold shadow hover:bg-[#005229] transition-colors cursor-pointer border-0"
+                  >
+                    Duyệt hàng loạt
+                  </button>
+                  <button
+                    onClick={handleBulkRejectRegistrations}
+                    className="px-4 py-2 bg-red-650 text-white rounded-xl text-xs font-bold shadow hover:bg-red-700 transition-colors cursor-pointer border-0"
+                  >
+                    Từ chối hàng loạt
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Table with Uppercase headers */}
             <div className="overflow-x-auto">
               <table className="w-full text-sm text-left border-collapse">
                 <thead>
                   <tr className="bg-slate-50/75 border-b border-slate-100 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                    {regSubTab === 'pending' && allOrgRegs.length > 0 && (
+                      <th className="px-6 py-4 w-12 text-center">
+                        <input
+                          type="checkbox"
+                          checked={allOrgRegs.length > 0 && allOrgRegs.every(r => selectedRegIds.includes(r._id))}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedRegIds(allOrgRegs.map(r => r._id));
+                            } else {
+                              setSelectedRegIds([]);
+                            }
+                          }}
+                          className="w-4 h-4 rounded text-[#006d37] border-slate-300 focus:ring-[#006d37] cursor-pointer"
+                        />
+                      </th>
+                    )}
                     <th className="px-6 py-4">TÌNH NGUYỆN VIÊN</th>
                     <th className="px-6 py-4">HOẠT ĐỘNG ĐĂNG KÝ</th>
                     <th className="px-6 py-4">KHU VỰC</th>
@@ -939,7 +1015,7 @@ export const OrganizerDashboard: React.FC = () => {
                 <tbody className="divide-y divide-slate-100 text-slate-750">
                   {allOrgRegs.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-6 py-12 text-center text-xs text-slate-400 font-semibold">
+                      <td colSpan={regSubTab === 'pending' ? 7 : 6} className="px-6 py-12 text-center text-xs text-slate-400 font-semibold">
                         Không có đơn đăng ký nào ở trạng thái này.
                       </td>
                     </tr>
@@ -948,6 +1024,22 @@ export const OrganizerDashboard: React.FC = () => {
                       const act = activities.find(a => a._id === reg.activity_id);
                       return (
                         <tr key={reg._id} className="hover:bg-slate-50/50 transition-colors animate-fadeIn">
+                          {regSubTab === 'pending' && (
+                            <td className="px-6 py-4 text-center">
+                              <input
+                                type="checkbox"
+                                checked={selectedRegIds.includes(reg._id)}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedRegIds(prev => [...prev, reg._id]);
+                                  } else {
+                                    setSelectedRegIds(prev => prev.filter(id => id !== reg._id));
+                                  }
+                                }}
+                                className="w-4 h-4 rounded text-[#006d37] border-slate-300 focus:ring-[#006d37] cursor-pointer"
+                              />
+                            </td>
+                          )}
                           <td className="px-6 py-4 font-bold text-slate-800">{reg.denormalized_volunteer.name}</td>
                           <td className="px-6 py-4 text-slate-500 font-medium max-w-[200px] truncate">{act?.title || '—'}</td>
                           <td className="px-6 py-4 text-slate-500 font-semibold">{act?.location?.province || '—'}</td>

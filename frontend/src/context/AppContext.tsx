@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import initialMockData from '../mocks/mockData.json';
 import {
   authService,
@@ -159,6 +159,7 @@ interface AppContextType {
   reviewActivity: (activityId: string, approve: boolean, feedback?: string) => Promise<{ success: boolean; error?: string }>;
   bulkReviewOrganizerRequests: (requestIds: string[], approve: boolean, feedback?: string) => Promise<{ success: boolean; error?: string }>;
   bulkReviewActivities: (activityIds: string[], approve: boolean, feedback?: string) => Promise<{ success: boolean; error?: string }>;
+  bulkReviewRegistrations: (registrationIds: string[], approve: boolean, feedback?: string) => Promise<{ success: boolean; error?: string }>;
   createPost: (title: string, content: string, images: string[], hashtags: string[]) => Promise<{ success: boolean; error?: string }>;
   editPost: (postId: string, title: string, content: string, images: string[], hashtags: string[]) => Promise<{ success: boolean; error?: string }>;
   likePost: (postId: string) => void;
@@ -188,6 +189,8 @@ const LOCAL_STORAGE_KEY = 'volunteer_connect_db';
 export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Main states
   const [currentUser, setCurrentUserInternal] = useState<User | null>(null);
+  const currentUserRef = useRef<User | null>(null);
+  currentUserRef.current = currentUser;
   const [users, setUsers] = useState<User[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [registrations, setRegistrations] = useState<Registration[]>([]);
@@ -281,7 +284,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const refreshAllData = useCallback(async () => {
     if (USE_REAL_BACKEND) {
       try {
-        let activeUser = currentUser;
+        let activeUser = currentUserRef.current;
         const token = localStorage.getItem('token');
         if (token && !activeUser) {
           try {
@@ -342,11 +345,12 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         let serverActs: Activity[] = [];
         try {
           if (activeUser && activeUser.role === 'Admin') {
-            const [allActs, adminActs, organizerReqsRes, adminUsersRes] = await Promise.allSettled([
+            const [allActs, adminActs, organizerReqsRes, adminUsersRes, adminRegsRes] = await Promise.allSettled([
               activityService.getAll(),
               adminService.getActivities(),
               adminService.getOrganizerRequests(),
-              adminService.getUsers()
+              adminService.getUsers(),
+              adminService.getAllRegistrations()
             ]);
             const mergedMap = new Map<string, Activity>();
             if (allActs.status === 'fulfilled') {
@@ -360,6 +364,9 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             }
             if (adminUsersRes.status === 'fulfilled') {
               setUsers(adminUsersRes.value);
+            }
+            if (adminRegsRes.status === 'fulfilled') {
+              setRegistrations(adminRegsRes.value);
             }
             serverActs = Array.from(mergedMap.values());
           } else if (activeUser && activeUser.role === 'Organizer') {
@@ -402,18 +409,6 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
               console.error("Lỗi lấy danh sách đăng ký cho Organizer:", err);
             }
           }
-          if (activeUser.role === 'Admin') {
-            try {
-              const [serverRequests, adminRegsRes] = await Promise.all([
-                adminService.getOrganizerRequests(),
-                adminService.getAllRegistrations().catch(() => [] as Registration[])
-              ]);
-              setOrganizerRequests(serverRequests);
-              setRegistrations(adminRegsRes);
-            } catch (err) {
-              console.error("Lỗi lấy dữ liệu Admin từ server:", err);
-            }
-          }
         }
 
         // 4. Load posts from backend
@@ -430,7 +425,21 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     } else {
       loadLocalStorageData();
     }
-  }, [currentUser?._id, currentUser?.role]);
+  }, []);
+
+  // Restore user session on mount once
+  useEffect(() => {
+    if (USE_REAL_BACKEND) {
+      const token = localStorage.getItem('token');
+      if (token) {
+        authService.getCurrentUser().then(user => {
+          setCurrentUserInternal(user);
+        }).catch(err => {
+          console.warn("Lỗi khôi phục phiên đăng nhập backend:", err);
+        });
+      }
+    }
+  }, []);
 
   // Load database from localStorage or initial mockData/Backend
   useEffect(() => {
@@ -1287,6 +1296,107 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     return { success: true };
   };
 
+  const bulkReviewRegistrations = async (registrationIds: string[], approve: boolean, feedback?: string): Promise<{ success: boolean; error?: string }> => {
+    if (USE_REAL_BACKEND) {
+      try {
+        const group: Record<string, string[]> = {};
+        registrationIds.forEach(id => {
+          const reg = registrations.find(r => r._id === id);
+          if (reg) {
+            if (!group[reg.activity_id]) {
+              group[reg.activity_id] = [];
+            }
+            group[reg.activity_id].push(id);
+          }
+        });
+
+        let totalProcessed = 0;
+        let totalSkipped = 0;
+        
+        await Promise.all(
+          Object.keys(group).map(async (activityId) => {
+            const rids = group[activityId];
+            if (approve) {
+              const res = await registrationService.bulkApprove(activityId, rids);
+              totalProcessed += res.processed || 0;
+              totalSkipped += res.skipped || 0;
+            } else {
+              const res = await registrationService.bulkReject(activityId, rids, feedback || '');
+              totalProcessed += res.processed || 0;
+              totalSkipped += res.skipped || 0;
+            }
+          })
+        );
+
+        const orgActs = await activityService.getOrganizerActivities();
+        const regsPromises = orgActs.map(a =>
+          registrationService.getActivityRegistrations(a._id).catch(() => [] as Registration[])
+        );
+        const regsLists = await Promise.all(regsPromises);
+        setRegistrations(regsLists.flat());
+        
+        const acts = await activityService.getAll();
+        setActivities(acts);
+
+        const summary = `Xử lý thành công: ${totalProcessed}, Bỏ qua: ${totalSkipped}`;
+        return { success: true, error: summary };
+      } catch (e: any) {
+        console.error(e);
+        let errorMsg = 'Không thể duyệt đơn đăng ký hàng loạt. Lỗi kết nối server.';
+        const detail = e.response?.data?.detail;
+        if (typeof detail === 'string') {
+          errorMsg = detail;
+        }
+        return { success: false, error: errorMsg };
+      }
+    }
+
+    const statusVal = approve ? 'Approved' : 'Rejected';
+    const updatedRegs = registrations.map(r => {
+      if (registrationIds.includes(r._id) && r.status === 'Pending') {
+        return {
+          ...r,
+          status: statusVal as any,
+          reject_reason: !approve ? feedback : undefined,
+          reviewed_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        } as Registration;
+      }
+      return r;
+    });
+
+    const updatedActivities = [...activities];
+    if (approve) {
+      const counts: Record<string, number> = {};
+      registrationIds.forEach(id => {
+        const reg = registrations.find(r => r._id === id);
+        if (reg && reg.status === 'Pending') {
+          counts[reg.activity_id] = (counts[reg.activity_id] || 0) + 1;
+        }
+      });
+
+      Object.keys(counts).forEach(activityId => {
+        const actIndex = updatedActivities.findIndex(a => a._id === activityId);
+        if (actIndex !== -1) {
+          const act = updatedActivities[actIndex];
+          const newCount = act.approved_volunteers_count + counts[activityId];
+          const newStatus = newCount >= act.limit_volunteers ? 'Full' : act.status;
+          updatedActivities[actIndex] = {
+            ...act,
+            approved_volunteers_count: newCount,
+            status: newStatus as any,
+            updated_at: new Date().toISOString()
+          };
+        }
+      });
+    }
+
+    setRegistrations(updatedRegs);
+    setActivities(updatedActivities);
+    syncToLocalStorage(users, updatedActivities, updatedRegs, organizerRequests, posts, currentUser);
+    return { success: true };
+  };
+
 
   // Create Community Post
   const createPost = async (title: string, content: string, images: string[], hashtags: string[]): Promise<{ success: boolean; error?: string }> => {
@@ -1700,6 +1810,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         reviewActivity,
         bulkReviewOrganizerRequests,
         bulkReviewActivities,
+        bulkReviewRegistrations,
         createPost,
         editPost,
         likePost,

@@ -52,7 +52,11 @@ class PostRepository:
 
             # Atomic update: add user_id to liked_by AND increment likes counter in one operation
             await post.update({"$addToSet": {"liked_by": user_id}, "$inc": {"likes": 1}})
-            return await Post.get(post_id)
+            
+            # Sync in-memory representation to save a DB read round-trip
+            post.liked_by.append(user_id)
+            post.likes = getattr(post, "likes", 0) + 1
+            return post
         except (InvalidId, ValidationError):
             return None
 
@@ -68,7 +72,10 @@ class PostRepository:
             
             # Atomic increment for shares
             await post.update(Inc({Post.shares: 1}))
-            return await Post.get(post_id)
+            
+            # Sync in-memory representation to save a DB read round-trip
+            post.shares = getattr(post, "shares", 0) + 1
+            return post
         except (InvalidId, ValueError, ValidationError):
             return None
 

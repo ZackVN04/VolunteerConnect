@@ -15,30 +15,50 @@ async def update_activity_statuses():
     now = datetime.now(timezone.utc)
     
     # 1. Chuyển sang ONGOING
-    ongoing_count = 0
     activities_to_ongoing = await Activity.find({
         "status": {"$in": [ActivityStatus.OPEN.value, ActivityStatus.FULL.value]},
         "start_date": {"$lte": now}
     }).to_list()
     
-    for activity in activities_to_ongoing:
-        activity.status = ActivityStatus.ONGOING.value
-        activity.updated_at = now
-        await activity.save()
-        ongoing_count += 1
+    ongoing_count = len(activities_to_ongoing)
+    if ongoing_count > 0:
+        ongoing_ids = [act.id for act in activities_to_ongoing]
+        await Activity.find({"_id": {"$in": ongoing_ids}}).update({
+            "$set": {
+                "status": ActivityStatus.ONGOING.value,
+                "updated_at": now
+            }
+        })
+        from app.features.registrations.models import Registration
+        await Registration.find({"activity_id": {"$in": ongoing_ids}}).update({
+            "$set": {
+                "denormalized_activity.status": ActivityStatus.ONGOING.value,
+                "updated_at": now
+            }
+        })
         
     # 2. Chuyển sang COMPLETED
-    completed_count = 0
     activities_to_completed = await Activity.find({
         "status": ActivityStatus.ONGOING.value,
         "end_date": {"$lte": now}
     }).to_list()
     
-    for activity in activities_to_completed:
-        activity.status = ActivityStatus.COMPLETED.value
-        activity.updated_at = now
-        await activity.save()
-        completed_count += 1
+    completed_count = len(activities_to_completed)
+    if completed_count > 0:
+        completed_ids = [act.id for act in activities_to_completed]
+        await Activity.find({"_id": {"$in": completed_ids}}).update({
+            "$set": {
+                "status": ActivityStatus.COMPLETED.value,
+                "updated_at": now
+            }
+        })
+        from app.features.registrations.models import Registration
+        await Registration.find({"activity_id": {"$in": completed_ids}}).update({
+            "$set": {
+                "denormalized_activity.status": ActivityStatus.COMPLETED.value,
+                "updated_at": now
+            }
+        })
 
     if ongoing_count > 0 or completed_count > 0:
         logger.info(

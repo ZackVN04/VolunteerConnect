@@ -162,6 +162,7 @@ class ActivityService:
                     {
                         "$set": {
                             "status": "cancelled",
+                            "denormalized_activity.status": "cancelled",
                             "updated_at": datetime.now(timezone.utc)
                         }
                     },

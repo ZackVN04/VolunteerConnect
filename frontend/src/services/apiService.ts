@@ -253,6 +253,21 @@ export const activityService = {
     const acts = res.data?.data?.activities || [];
     return acts.map(mapActivity);
   },
+  list: async (params: { search?: string; category?: string; province?: string; page?: number; limit?: number }): Promise<{ activities: Activity[]; total: number }> => {
+    const query = new URLSearchParams();
+    if (params.search) query.append('search', params.search);
+    if (params.category && params.category !== 'All') query.append('category', params.category);
+    if (params.province && params.province !== 'All') query.append('province', params.province);
+    if (params.page) query.append('page', String(params.page));
+    if (params.limit) query.append('limit', String(params.limit));
+    const res = await api.get(`/activities?${query.toString()}`);
+    const data = res.data?.data || {};
+    const acts = data.activities || [];
+    return {
+      activities: acts.map(mapActivity),
+      total: data.total || 0
+    };
+  },
   getById: async (id: string): Promise<Activity> => {
     const res = await api.get(`/activities/${id}`);
     return mapActivity(res.data?.data);
@@ -315,6 +330,19 @@ export const registrationService = {
   updateParticipation: async (registrationId: string, status: 'Completed' | 'Absent'): Promise<Registration> => {
     const res = await api.patch(`/registrations/${registrationId}/attendance`, { status: status.toLowerCase() });
     return mapRegistration(res.data?.data || res.data);
+  },
+  bulkApprove: async (activityId: string, registrationIds: string[]): Promise<any> => {
+    const res = await api.patch(`/activities/${activityId}/registrations/bulk-approve`, {
+      registration_ids: registrationIds
+    });
+    return res.data;
+  },
+  bulkReject: async (activityId: string, registrationIds: string[], reason: string): Promise<any> => {
+    const res = await api.patch(`/activities/${activityId}/registrations/bulk-reject`, {
+      registration_ids: registrationIds,
+      rejection_reason: reason
+    });
+    return res.data;
   }
 };
 
