@@ -34,6 +34,7 @@ class Activity(Document):
     class Settings:
         name = "activities"
         indexes = [
+            IndexModel([("organizer_id", ASCENDING)], name="idx_organizer_id"),
             IndexModel([("status", ASCENDING), ("start_date", DESCENDING)], name="idx_status_start_date"),
             IndexModel([("status", ASCENDING), ("start_date", ASCENDING), ("end_date", ASCENDING)], name="idx_cron_job_scheduler"),
             IndexModel([("title", TEXT), ("description", TEXT)], weights={"title": 10, "description": 2}, name="idx_text_search"),

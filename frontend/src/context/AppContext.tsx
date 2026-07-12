@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import initialMockData from '../mocks/mockData.json';
 import {
   authService,
@@ -143,6 +143,8 @@ interface AppContextType {
   organizerRequests: OrganizerRequest[];
   posts: Post[];
   setCurrentUser: (user: User | null) => void;
+  refreshAllData: () => Promise<void>;
+
   // Transactions & Actions
   loginAs: (userId: string) => void;
   registerForActivity: (activityId: string) => { success: boolean; error?: string };
@@ -155,6 +157,8 @@ interface AppContextType {
   createActivity: (activityData: Partial<Activity>, submitForReview: boolean) => Promise<{ success: boolean; error?: string }>;
   editActivity: (activityId: string, activityData: Partial<Activity>) => Promise<{ success: boolean; error?: string }>;
   reviewActivity: (activityId: string, approve: boolean, feedback?: string) => Promise<{ success: boolean; error?: string }>;
+  bulkReviewOrganizerRequests: (requestIds: string[], approve: boolean, feedback?: string) => Promise<{ success: boolean; error?: string }>;
+  bulkReviewActivities: (activityIds: string[], approve: boolean, feedback?: string) => Promise<{ success: boolean; error?: string }>;
   createPost: (title: string, content: string, images: string[], hashtags: string[]) => Promise<{ success: boolean; error?: string }>;
   editPost: (postId: string, title: string, content: string, images: string[], hashtags: string[]) => Promise<{ success: boolean; error?: string }>;
   likePost: (postId: string) => void;
@@ -274,167 +278,164 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     resetToInitial();
   };
 
-  // Load database from localStorage or initial mockData/Backend
-  useEffect(() => {
+  const refreshAllData = useCallback(async () => {
     if (USE_REAL_BACKEND) {
-      const loadBackendData = async () => {
-        try {
-          // 1. Load backend session details
-          let activeUser: User | null = null;
-          const token = localStorage.getItem('token');
-          if (token) {
-            try {
-              activeUser = await authService.getCurrentUser();
-
-              // Load organizer request status from backend if Volunteer
-              if (activeUser && activeUser.role === 'Volunteer') {
-                try {
-                  const req = await organizerService.getMyRequest();
-                  if (req) {
-                    const profileStatusMap: Record<string, 'None' | 'Pending' | 'Approved' | 'Rejected'> = {
-                      'pending': 'Pending',
-                      'approved': 'Approved',
-                      'rejected': 'Rejected'
-                    };
-                    const requestStatusMap: Record<string, 'Pending' | 'Approved' | 'Rejected'> = {
-                      'pending': 'Pending',
-                      'approved': 'Approved',
-                      'rejected': 'Rejected'
-                    };
-                    activeUser.profile.organizer_request_status = profileStatusMap[req.status] || 'None';
-                    const reqObj: OrganizerRequest = {
-                      _id: req.id || req._id,
-                      volunteer_id: activeUser._id,
-                      reason: req.organization_name,
-                      experience: req.documents?.[0] || '',
-                      contact_phone: req.documents?.[1] || '',
-                      status: requestStatusMap[req.status] || 'Pending',
-                      admin_feedback: null,
-                      created_at: req.requested_at,
-                      reviewed_at: null,
-                      reviewed_by: null,
-                      denormalized_volunteer: {
-                        name: activeUser.profile.full_name,
-                        email: activeUser.email || ''
-                      }
-                    };
-                    setOrganizerRequests([reqObj]);
-                  }
-                } catch (e) {
-                  activeUser.profile.organizer_request_status = 'None';
-                }
-
-                // Luôn fetch dữ liệu Registrations mới nhất từ backend, đè lên localStorage cũ
-                try {
-                  const volunteerRegs = await registrationService.getVolunteerRegistrations();
-                  setRegistrations(volunteerRegs);
-                } catch (e) {
-                  console.error("Lỗi lấy danh sách đăng ký từ server:", e);
-                }
-              }
-
-              setCurrentUserInternal(activeUser);
-            } catch (e) {
-              console.warn("Lỗi khôi phục phiên đăng nhập backend:", e);
-            }
-          }
-
-          // 2. Load activities from backend
-          let serverActs: Activity[] = [];
+      try {
+        let activeUser = currentUser;
+        const token = localStorage.getItem('token');
+        if (token && !activeUser) {
           try {
-            if (activeUser && activeUser.role === 'Admin') {
-              // Admin cần load tất cả activities kể cả Pending Review
-              const [allActs, adminActs, organizerReqsRes, adminUsersRes] = await Promise.allSettled([
-                activityService.getAll(),
-                adminService.getActivities(),
-                adminService.getOrganizerRequests(),
-                adminService.getUsers()
-              ]);
-              const mergedMap = new Map<string, Activity>();
-              if (allActs.status === 'fulfilled') {
-                allActs.value.forEach(a => mergedMap.set(a._id, a));
-              }
-              if (adminActs.status === 'fulfilled') {
-                adminActs.value.forEach(a => mergedMap.set(a._id, a));
-              }
-              if (organizerReqsRes.status === 'fulfilled') {
-                setOrganizerRequests(organizerReqsRes.value);
-              }
-              if (adminUsersRes.status === 'fulfilled') {
-                setUsers(adminUsersRes.value);
-              }
-              serverActs = Array.from(mergedMap.values());
-            } else if (activeUser && activeUser.role === 'Organizer') {
-              const [orgActs, allActs] = await Promise.all([
-                activityService.getOrganizerActivities(),
-                activityService.getAll()
-              ]);
-              const mergedMap = new Map<string, Activity>();
-              allActs.forEach(a => mergedMap.set(a._id, a));
-              orgActs.forEach(a => mergedMap.set(a._id, a));
-              serverActs = Array.from(mergedMap.values());
-            } else {
-              serverActs = await activityService.getAll();
-            }
-            setActivitiesWithLocalOverride(serverActs);
-          } catch (err) {
-            console.error("Lỗi lấy danh sách hoạt động từ server:", err);
+            activeUser = await authService.getCurrentUser();
+            setCurrentUserInternal(activeUser);
+          } catch (e) {
+            console.warn("Lỗi khôi phục phiên đăng nhập backend:", e);
           }
-
-          // 3. Load registrations from backend if user is logged in
-          if (activeUser) {
-            if (activeUser.role === 'Volunteer') {
-              try {
-                const serverRegs = await registrationService.getVolunteerRegistrations();
-                setRegistrations(serverRegs);
-              } catch (err) {
-                console.error("Lỗi lấy danh sách đăng ký từ server:", err);
-              }
-            }
-            if (activeUser.role === 'Organizer') {
-              try {
-                const orgActs = serverActs.filter((a: Activity) => a.organizer_id === activeUser._id);
-                const regsPromises = orgActs.map((act: Activity) =>
-                  registrationService.getActivityRegistrations(act._id).catch(() => [] as Registration[])
-                );
-                const regsLists = await Promise.all(regsPromises);
-                const allRegs = regsLists.flat();
-                setRegistrations(allRegs);
-              } catch (err) {
-                console.error("Lỗi lấy danh sách đăng ký cho Organizer:", err);
-              }
-            }
-            if (activeUser.role === 'Admin') {
-              try {
-                const [serverRequests, adminRegsRes] = await Promise.all([
-                  adminService.getOrganizerRequests(),
-                  adminService.getAllRegistrations().catch(() => [] as Registration[])
-                ]);
-                setOrganizerRequests(serverRequests);
-                setRegistrations(adminRegsRes);
-              } catch (err) {
-                console.error("Lỗi lấy dữ liệu Admin từ server:", err);
-              }
-            }
-          }
-
-          // 4. Load posts from backend
-          try {
-            const serverPosts = await postService.getAll();
-            const mappedPosts = injectLikedStatus(serverPosts, activeUser?._id);
-            setPosts(mappedPosts);
-          } catch (err) {
-            console.error("Lỗi lấy danh sách bài viết từ server:", err);
-          }
-        } catch (e) {
-          console.error('Lỗi khi tải dữ liệu từ Backend:', e);
         }
-      };
-      loadBackendData();
+
+        if (activeUser && activeUser.role === 'Volunteer') {
+          try {
+            const req = await organizerService.getMyRequest();
+            if (req) {
+              const profileStatusMap: Record<string, 'None' | 'Pending' | 'Approved' | 'Rejected'> = {
+                'pending': 'Pending',
+                'approved': 'Approved',
+                'rejected': 'Rejected'
+              };
+              const requestStatusMap: Record<string, 'Pending' | 'Approved' | 'Rejected'> = {
+                'pending': 'Pending',
+                'approved': 'Approved',
+                'rejected': 'Rejected'
+              };
+              activeUser.profile.organizer_request_status = profileStatusMap[req.status] || 'None';
+              const reqObj: OrganizerRequest = {
+                _id: req.id || req._id,
+                volunteer_id: activeUser._id,
+                reason: req.organization_name,
+                experience: req.documents?.[0] || '',
+                contact_phone: req.documents?.[1] || '',
+                status: requestStatusMap[req.status] || 'Pending',
+                admin_feedback: null,
+                created_at: req.requested_at,
+                reviewed_at: null,
+                reviewed_by: null,
+                denormalized_volunteer: {
+                  name: activeUser.profile.full_name,
+                  email: activeUser.email || ''
+                }
+              };
+              setOrganizerRequests([reqObj]);
+            }
+          } catch (e) {
+            activeUser.profile.organizer_request_status = 'None';
+          }
+
+          try {
+            const volunteerRegs = await registrationService.getVolunteerRegistrations();
+            setRegistrations(volunteerRegs);
+          } catch (e) {
+            console.error("Lỗi lấy danh sách đăng ký từ server:", e);
+          }
+        }
+
+        // 2. Load activities from backend
+        let serverActs: Activity[] = [];
+        try {
+          if (activeUser && activeUser.role === 'Admin') {
+            const [allActs, adminActs, organizerReqsRes, adminUsersRes] = await Promise.allSettled([
+              activityService.getAll(),
+              adminService.getActivities(),
+              adminService.getOrganizerRequests(),
+              adminService.getUsers()
+            ]);
+            const mergedMap = new Map<string, Activity>();
+            if (allActs.status === 'fulfilled') {
+              allActs.value.forEach(a => mergedMap.set(a._id, a));
+            }
+            if (adminActs.status === 'fulfilled') {
+              adminActs.value.forEach(a => mergedMap.set(a._id, a));
+            }
+            if (organizerReqsRes.status === 'fulfilled') {
+              setOrganizerRequests(organizerReqsRes.value);
+            }
+            if (adminUsersRes.status === 'fulfilled') {
+              setUsers(adminUsersRes.value);
+            }
+            serverActs = Array.from(mergedMap.values());
+          } else if (activeUser && activeUser.role === 'Organizer') {
+            const [orgActs, allActs] = await Promise.all([
+              activityService.getOrganizerActivities(),
+              activityService.getAll()
+            ]);
+            const mergedMap = new Map<string, Activity>();
+            allActs.forEach(a => mergedMap.set(a._id, a));
+            orgActs.forEach(a => mergedMap.set(a._id, a));
+            serverActs = Array.from(mergedMap.values());
+          } else {
+            serverActs = await activityService.getAll();
+          }
+          setActivitiesWithLocalOverride(serverActs);
+        } catch (err) {
+          console.error("Lỗi lấy danh sách hoạt động từ server:", err);
+        }
+
+        // 3. Load registrations from backend if user is logged in
+        if (activeUser) {
+          if (activeUser.role === 'Volunteer') {
+            try {
+              const serverRegs = await registrationService.getVolunteerRegistrations();
+              setRegistrations(serverRegs);
+            } catch (err) {
+              console.error("Lỗi lấy danh sách đăng ký từ server:", err);
+            }
+          }
+          if (activeUser.role === 'Organizer') {
+            try {
+              const orgActs = serverActs.filter((a: Activity) => a.organizer_id === activeUser!._id);
+              const regsPromises = orgActs.map((act: Activity) =>
+                registrationService.getActivityRegistrations(act._id).catch(() => [] as Registration[])
+              );
+              const regsLists = await Promise.all(regsPromises);
+              const allRegs = regsLists.flat();
+              setRegistrations(allRegs);
+            } catch (err) {
+              console.error("Lỗi lấy danh sách đăng ký cho Organizer:", err);
+            }
+          }
+          if (activeUser.role === 'Admin') {
+            try {
+              const [serverRequests, adminRegsRes] = await Promise.all([
+                adminService.getOrganizerRequests(),
+                adminService.getAllRegistrations().catch(() => [] as Registration[])
+              ]);
+              setOrganizerRequests(serverRequests);
+              setRegistrations(adminRegsRes);
+            } catch (err) {
+              console.error("Lỗi lấy dữ liệu Admin từ server:", err);
+            }
+          }
+        }
+
+        // 4. Load posts from backend
+        try {
+          const serverPosts = await postService.getAll();
+          const mappedPosts = injectLikedStatus(serverPosts, activeUser?._id);
+          setPosts(mappedPosts);
+        } catch (err) {
+          console.error("Lỗi lấy danh sách bài viết từ server:", err);
+        }
+      } catch (e) {
+        console.error('Lỗi khi tải dữ liệu từ Backend:', e);
+      }
     } else {
       loadLocalStorageData();
     }
   }, [currentUser?._id, currentUser?.role]);
+
+  // Load database from localStorage or initial mockData/Backend
+  useEffect(() => {
+    refreshAllData();
+  }, [refreshAllData]);
+
 
 
 
@@ -1176,6 +1177,116 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     return { success: true };
   };
 
+  const bulkReviewOrganizerRequests = async (requestIds: string[], approve: boolean, feedback?: string): Promise<{ success: boolean; error?: string }> => {
+    if (USE_REAL_BACKEND) {
+      try {
+        const res = await adminService.bulkReviewOrganizerRequests(requestIds, approve, feedback);
+        const reqs = await adminService.getOrganizerRequests();
+        setOrganizerRequests(reqs);
+        const adminUsers = await adminService.getUsers();
+        setUsers(adminUsers);
+        if (currentUser) {
+          const user = await authService.getCurrentUser();
+          setCurrentUserInternal(user);
+        }
+        const summary = `Xử lý thành công: ${res.data?.processed || 0}, Bỏ qua: ${res.data?.skipped || 0}${res.data?.errors?.length ? `, Lỗi: ${res.data.errors.length}` : ''}`;
+        return { success: true, error: summary };
+      } catch (e: any) {
+        console.error(e);
+        let errorMsg = 'Không thể phê duyệt yêu cầu nâng cấp hàng loạt. Lỗi kết nối server.';
+        const detail = e.response?.data?.detail;
+        if (typeof detail === 'string') {
+          errorMsg = detail;
+        }
+        return { success: false, error: errorMsg };
+      }
+    }
+
+    const statusVal = approve ? 'Approved' : 'Rejected';
+    const updatedReqs = organizerRequests.map(r => {
+      if (requestIds.includes(r._id) && r.status === 'Pending') {
+        return {
+          ...r,
+          status: statusVal as any,
+          admin_feedback: feedback || null,
+          reviewed_at: new Date().toISOString()
+        } as OrganizerRequest;
+      }
+      return r;
+    });
+    
+    const updatedUsers = [...users];
+    if (approve) {
+      requestIds.forEach(id => {
+        const req = organizerRequests.find(r => r._id === id);
+        if (req && req.status === 'Pending') {
+          const uIdx = updatedUsers.findIndex(u => u._id === req.volunteer_id);
+          if (uIdx !== -1) {
+            updatedUsers[uIdx] = {
+              ...updatedUsers[uIdx],
+              role: 'Organizer',
+              updated_at: new Date().toISOString()
+            };
+          }
+        }
+      });
+    }
+
+    setOrganizerRequests(updatedReqs);
+    setUsers(updatedUsers);
+    syncToLocalStorage(updatedUsers, activities, registrations, updatedReqs, posts, currentUser);
+    return { success: true };
+  };
+
+  const bulkReviewActivities = async (activityIds: string[], approve: boolean, feedback?: string): Promise<{ success: boolean; error?: string }> => {
+    if (USE_REAL_BACKEND) {
+      try {
+        const res = await adminService.bulkReviewActivities(activityIds, approve, feedback);
+        const [allActs, adminActs] = await Promise.allSettled([
+          activityService.getAll(),
+          adminService.getActivities()
+        ]);
+        const mergedMap = new Map<string, Activity>();
+        if (allActs.status === 'fulfilled') {
+          allActs.value.forEach(a => mergedMap.set(a._id, a));
+        }
+        if (adminActs.status === 'fulfilled') {
+          adminActs.value.forEach(a => mergedMap.set(a._id, a));
+        }
+        if (mergedMap.size > 0) {
+          setActivitiesWithLocalOverride(Array.from(mergedMap.values()));
+        }
+        const summary = `Xử lý thành công: ${res.data?.processed || 0}, Bỏ qua: ${res.data?.skipped || 0}${res.data?.errors?.length ? `, Lỗi: ${res.data.errors.length}` : ''}`;
+        return { success: true, error: summary };
+      } catch (e: any) {
+        console.error(e);
+        let errorMsg = 'Không thể phê duyệt hoạt động hàng loạt. Lỗi kết nối server.';
+        const detail = e.response?.data?.detail;
+        if (typeof detail === 'string') {
+          errorMsg = detail;
+        }
+        return { success: false, error: errorMsg };
+      }
+    }
+
+    const statusVal = approve ? 'Open' : 'Rejected';
+    const updatedActs = activities.map(a => {
+      if (activityIds.includes(a._id) && a.status === 'Pending Review') {
+        return {
+          ...a,
+          status: statusVal as any,
+          updated_at: new Date().toISOString()
+        };
+      }
+      return a;
+    });
+
+    setActivities(updatedActs);
+    syncToLocalStorage(users, updatedActs, registrations, organizerRequests, posts, currentUser);
+    return { success: true };
+  };
+
+
   // Create Community Post
   const createPost = async (title: string, content: string, images: string[], hashtags: string[]): Promise<{ success: boolean; error?: string }> => {
     if (USE_REAL_BACKEND) {
@@ -1574,6 +1685,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         organizerRequests,
         posts,
         setCurrentUser,
+        refreshAllData,
         loginAs,
         registerForActivity,
         cancelOrRejectRegistration,
@@ -1585,6 +1697,8 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         createActivity,
         editActivity,
         reviewActivity,
+        bulkReviewOrganizerRequests,
+        bulkReviewActivities,
         createPost,
         editPost,
         likePost,

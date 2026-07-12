@@ -451,6 +451,22 @@ export const adminService = {
     const res = await rootApi.get('/admin/users?limit=100');
     const users = res.data?.data?.users || [];
     return users.map(mapBackendUserToFrontend);
+  },
+  bulkReviewOrganizerRequests: async (requestIds: string[], approve: boolean, feedback?: string): Promise<any> => {
+    const res = await rootApi.patch('/admin/requests/bulk-review', {
+      request_ids: requestIds,
+      is_approved: approve,
+      reason: feedback
+    });
+    return res.data;
+  },
+  bulkReviewActivities: async (activityIds: string[], approve: boolean, feedback?: string): Promise<any> => {
+    const res = await rootApi.patch('/admin/activities/bulk-review', {
+      activity_ids: activityIds,
+      is_approved: approve,
+      reason: feedback
+    });
+    return res.data;
   }
 };
 
