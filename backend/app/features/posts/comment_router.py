@@ -20,7 +20,8 @@ async def create_comment(
     comment = await CommentService.create_comment(
         post_id=post_id,
         author_id=str(current_user.id),
-        author_name=current_user.full_name,
+        author_name=current_user.full_name or "Thành viên",
+        author_avatar=current_user.avatar_url,
         data=comment_data
     )
     if not comment:

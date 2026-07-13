@@ -264,3 +264,53 @@ async def test_submit_and_cancel_activity(async_client, org_headers, organizer_u
     cancel_resp = await async_client.post(f"/api/v1/activities/{str(activity.id)}/cancel", headers=org_headers)
     assert cancel_resp.status_code == 200
     assert cancel_resp.json()["data"]["status"] == ActivityStatus.CANCELLED
+
+@pytest.mark.asyncio
+async def test_register_ended_activity_fails(async_client, vol_headers, organizer_user):
+    """Negative Case: Đăng ký tham gia hoạt động đã kết thúc (Expects 400)."""
+    activity = Activity(
+        organizer_id=organizer_user.id,
+        title="test_QA_EndedActivity",
+        description="Hoạt động này đã diễn ra trong quá khứ.",
+        categories=["Môi trường"],
+        location={
+            "province": "Hà Nội",
+            "district": "Long Biên",
+            "address_detail": "Chân cầu Long Biên"
+        },
+        start_date=datetime.now(timezone.utc) - timedelta(days=2),
+        end_date=datetime.now(timezone.utc) - timedelta(days=1),
+        limit_volunteers=50,
+        status=ActivityStatus.OPEN,
+        denormalized_organizer={"name": "QA Organizer"}
+    )
+    await activity.insert()
+
+    response = await async_client.post(f"/api/v1/activities/{str(activity.id)}/registrations", headers=vol_headers)
+    assert response.status_code == 400
+    assert "đã kết thúc" in response.json()["detail"]
+
+@pytest.mark.asyncio
+async def test_register_active_activity_success(async_client, vol_headers, organizer_user):
+    """Happy Path: Đăng ký tham gia hoạt động đang mở thành công."""
+    activity = Activity(
+        organizer_id=organizer_user.id,
+        title="test_QA_ActiveActivity",
+        description="Hoạt động đang mở nhận đăng ký.",
+        categories=["Môi trường"],
+        location={
+            "province": "Hà Nội",
+            "district": "Long Biên",
+            "address_detail": "Chân cầu Long Biên"
+        },
+        start_date=datetime.now(timezone.utc) + timedelta(days=5),
+        end_date=datetime.now(timezone.utc) + timedelta(days=5, hours=4),
+        limit_volunteers=50,
+        status=ActivityStatus.OPEN,
+        denormalized_organizer={"name": "QA Organizer"}
+    )
+    await activity.insert()
+
+    response = await async_client.post(f"/api/v1/activities/{str(activity.id)}/registrations", headers=vol_headers)
+    assert response.status_code == 201
+    assert response.json()["data"]["status"] == "Pending"

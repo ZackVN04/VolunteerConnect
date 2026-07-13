@@ -49,19 +49,27 @@ const formatDateTimeToISO = (dateStr: string, defaultTime: string): string => {
     normalized = `${normalized}T${defaultTime}`;
   }
   
-  const parts = normalized.split('T');
-  const datePart = parts[0];
-  let timePart = parts[1];
+  const [datePart, timePart] = normalized.split('T');
+  const [year, month, day] = datePart.split('-').map(Number);
+  const [hours, minutes] = timePart.split(':').map(Number);
   
-  const timeSubparts = timePart.split(':');
-  if (timeSubparts.length === 2) {
-    timePart = `${timePart}:00`;
-  }
+  const localDate = new Date(year, month - 1, day, hours, minutes);
+  return localDate.toISOString();
+};
+
+const formatISOToLocalInput = (isoStr: string): string => {
+  if (!isoStr) return '';
+  const date = new Date(isoStr);
+  if (isNaN(date.getTime())) return '';
   
-  const secondsParts = timePart.split('.');
-  timePart = secondsParts[0];
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  const year = date.getFullYear();
+  const month = pad(date.getMonth() + 1);
+  const day = pad(date.getDate());
+  const hours = pad(date.getHours());
+  const minutes = pad(date.getMinutes());
   
-  return `${datePart}T${timePart}.000Z`;
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
 };
 
 export const OrganizerDashboard: React.FC = () => {
@@ -269,8 +277,8 @@ export const OrganizerDashboard: React.FC = () => {
     setProvince(act.location?.province || 'Hồ Chí Minh');
     setDistrict(act.location?.district || 'Quận 1');
     setAddressDetail(act.location?.address_detail || '');
-    setStartDate(act.start_date.substring(0, 16));
-    setEndDate(act.end_date.substring(0, 16));
+    setStartDate(formatISOToLocalInput(act.start_date));
+    setEndDate(formatISOToLocalInput(act.end_date));
     setLimitVolunteers(act.limit_volunteers);
     setRequirements(act.requirements || '');
     setImageUrl(act.image_url || '');
