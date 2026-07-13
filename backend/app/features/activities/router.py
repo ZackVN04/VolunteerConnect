@@ -24,6 +24,7 @@ async def get_open_activities(
     search: Optional[str] = Query(None, description="Tìm kiếm theo tiêu đề hoặc mô tả"),
     category: Optional[str] = Query(None, description="Lọc theo thể loại"),
     province: Optional[str] = Query(None, description="Lọc theo tỉnh/thành phố"),
+    status: Optional[str] = Query(None, description="Lọc theo trạng thái hoạt động"),
     page: int = Query(1, ge=1, description="Trang số"),
     limit: int = Query(10, ge=1, le=100, description="Số lượng hoạt động mỗi trang")
 ):
@@ -32,6 +33,7 @@ async def get_open_activities(
         search=search,
         category=category,
         province=province,
+        status=status,
         skip=skip,
         limit=limit
     )

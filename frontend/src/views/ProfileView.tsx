@@ -50,7 +50,7 @@ const InfoItem: React.FC<{
 );
 
 export const ProfileView: React.FC = () => {
-  const { currentUser, users, activities, registrations, organizerRequests, updateProfile, showNotification, changePassword } = useApp();
+  const { currentUser, users, activities, registrations, organizerRequests, updateProfile, showNotification, changePassword, refreshAllData } = useApp();
 
   // View mode state: 'details' (default), 'edit', 'upgrade', 'password', 'participated', 'org_management'
   const [viewMode, setViewMode] = useState<'details' | 'edit' | 'upgrade' | 'password' | 'participated' | 'org_management'>('details');
@@ -135,7 +135,14 @@ export const ProfileView: React.FC = () => {
     }
   }, [viewedUserId, isOwnProfile, users]);
 
-  const displayUser = isOwnProfile ? currentUser : fetchedUser;
+  // Refetch user profile on mount to get latest statistics (e.g. joined_activity_count) (Group 4)
+  useEffect(() => {
+    if (isOwnProfile && USE_REAL_BACKEND) {
+      refreshAllData().catch(err => console.error("Error refreshing profile stats:", err));
+    }
+  }, [isOwnProfile, refreshAllData]);
+
+  const displayUser = isOwnProfile ? currentUser : viewedUserId ? fetchedUser : null;
 
   const myRegs = registrations.filter(r => r.volunteer_id === displayUser?._id);
   const orgActs = activities.filter(a => a.organizer_id === displayUser?._id);

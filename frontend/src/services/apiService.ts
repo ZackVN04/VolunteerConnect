@@ -229,6 +229,7 @@ const mapPost = (post: any): Post => ({
   author_id: post.author_id,
   content: post.content,
   images: post.images || [],
+  video_url: fixImageUrl(post.video_url),
   visibility: 'Public',
   status: 'Active',
   hashtags: post.hashtags || [],
@@ -253,11 +254,12 @@ export const activityService = {
     const acts = res.data?.data?.activities || [];
     return acts.map(mapActivity);
   },
-  list: async (params: { search?: string; category?: string; province?: string; page?: number; limit?: number }): Promise<{ activities: Activity[]; total: number }> => {
+  list: async (params: { search?: string; category?: string; province?: string; status?: string; page?: number; limit?: number }): Promise<{ activities: Activity[]; total: number }> => {
     const query = new URLSearchParams();
     if (params.search) query.append('search', params.search);
     if (params.category && params.category !== 'All') query.append('category', params.category);
     if (params.province && params.province !== 'All') query.append('province', params.province);
+    if (params.status) query.append('status', params.status);
     if (params.page) query.append('page', String(params.page));
     if (params.limit) query.append('limit', String(params.limit));
     const res = await api.get(`/activities?${query.toString()}`);
@@ -378,8 +380,8 @@ export const postService = {
     const posts = res.data?.items || [];
     return posts.map(mapPost);
   },
-  create: async (title: string, content: string, images: string[], hashtags: string[]): Promise<Post> => {
-    const res = await rootApi.post('/posts/', { title, content, images, hashtags });
+  create: async (title: string, content: string, images: string[], video_url: string | null, hashtags: string[]): Promise<Post> => {
+    const res = await rootApi.post('/posts/', { title, content, images, video_url, hashtags });
     return mapPost(res.data);
   },
   update: async (postId: string, title: string, content: string, images: string[], hashtags: string[]): Promise<Post> => {

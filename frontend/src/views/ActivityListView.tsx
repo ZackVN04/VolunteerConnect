@@ -45,18 +45,11 @@ export const ActivityListView: React.FC = () => {
       activityService.list({
         search: searchQuery,
         category: selectedCategory,
+        status: statusFilter,
         page: currentPage,
         limit: itemsPerPage
       }).then(res => {
-        let list = res.activities;
-        if (statusFilter === 'Open') {
-          list = list.filter(a => a.status === 'Open');
-        } else if (statusFilter === 'Full') {
-          list = list.filter(a => a.status === 'Full');
-        } else if (statusFilter === 'Completed') {
-          list = list.filter(a => a.status === 'Completed');
-        }
-        setServerActivities(list);
+        setServerActivities(res.activities);
         setTotalServerCount(res.total);
         setLoading(false);
       }).catch(err => {
@@ -240,6 +233,10 @@ export const ActivityListView: React.FC = () => {
                         <span className="line-clamp-1">
                           {act.location?.address_detail || 'Chưa cập nhật'}, {act.location?.district || ''}, {act.location?.province || ''}
                         </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-[#006d37] text-lg font-bold">group</span>
+                        <span>{act.approved_volunteers_count || 0}/{act.limit_volunteers} đã duyệt</span>
                       </div>
                     </div>
 

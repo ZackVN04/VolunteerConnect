@@ -119,6 +119,7 @@ export interface Post {
   title?: string;
   content: string;
   images: string[];
+  video_url?: string | null;
   visibility: 'Public' | 'Organization' | 'Private';
   status: 'Active' | 'Deleted' | 'Flagged';
   hashtags: string[];
@@ -144,7 +145,7 @@ interface AppContextType {
   organizerRequests: OrganizerRequest[];
   posts: Post[];
   setCurrentUser: (user: User | null) => void;
-  refreshAllData: () => Promise<void>;
+  refreshAllData: (options?: { silent?: boolean }) => Promise<void>;
 
   // Transactions & Actions
   loginAs: (userId: string) => void;
@@ -161,7 +162,7 @@ interface AppContextType {
   bulkReviewOrganizerRequests: (requestIds: string[], approve: boolean, feedback?: string) => Promise<{ success: boolean; error?: string }>;
   bulkReviewActivities: (activityIds: string[], approve: boolean, feedback?: string) => Promise<{ success: boolean; error?: string }>;
   bulkReviewRegistrations: (registrationIds: string[], approve: boolean, feedback?: string) => Promise<{ success: boolean; error?: string }>;
-  createPost: (title: string, content: string, images: string[], hashtags: string[]) => Promise<{ success: boolean; error?: string }>;
+  createPost: (title: string, content: string, images: string[], videoUrl: string | null, hashtags: string[]) => Promise<{ success: boolean; error?: string }>;
   editPost: (postId: string, title: string, content: string, images: string[], hashtags: string[]) => Promise<{ success: boolean; error?: string }>;
   likePost: (postId: string) => void;
   sharePost: (postId: string) => void;
@@ -204,6 +205,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   });
   const currentUserRef = useRef<User | null>(null);
   currentUserRef.current = currentUser;
+  const pollingRefreshInFlightRef = useRef(false);
   const [users, setUsers] = useState<User[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [registrations, setRegistrations] = useState<Registration[]>([]);
@@ -311,10 +313,13 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     resetToInitial();
   };
 
-  const refreshAllData = useCallback(async () => {
+  const refreshAllData = useCallback(async (options: { silent?: boolean } = {}) => {
+    const isSilent = options.silent === true;
     if (USE_REAL_BACKEND) {
       try {
-        setIsDataLoading(true);
+        if (!isSilent) {
+          setIsDataLoading(true);
+        }
         let activeUser = currentUserRef.current;
         const token = localStorage.getItem('token');
         if (token) {
@@ -415,7 +420,25 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           } else {
             serverActs = await activityService.getAll();
           }
-          setActivitiesWithLocalOverride(serverActs);
+
+          // Normalize activity status to match Frontend UI logic (Title Case)
+          const activityStatusMap: Record<string, Activity['status']> = {
+            'draft': 'Draft',
+            'pending_review': 'Pending Review',
+            'open': 'Open',
+            'full': 'Full',
+            'ongoing': 'Ongoing',
+            'completed': 'Completed',
+            'rejected': 'Rejected',
+            'cancelled': 'Cancelled'
+          };
+
+          const normalizedActs = serverActs.map((act: Activity) => ({
+            ...act,
+            status: activityStatusMap[String(act.status).toLowerCase()] || act.status
+          }));
+
+          setActivitiesWithLocalOverride(normalizedActs);
         } catch (err) {
           console.error("Lỗi lấy danh sách hoạt động từ server:", err);
         }
@@ -465,12 +488,16 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         console.error('Lỗi khi tải dữ liệu từ Backend:', e);
       } finally {
         setIsAuthLoading(false);
-        setIsDataLoading(false);
+        if (!isSilent) {
+          setIsDataLoading(false);
+        }
       }
     } else {
       loadLocalStorageData();
       setIsAuthLoading(false);
-      setIsDataLoading(false);
+      if (!isSilent) {
+        setIsDataLoading(false);
+      }
     }
   }, []);
 
@@ -492,6 +519,23 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   useEffect(() => {
     refreshAllData();
   }, [refreshAllData]);
+
+  const currentUserId = currentUser?._id;
+
+  // Auto-polling effect for live updates (e.g. attendance, statistics, statuses) (Group 4)
+  useEffect(() => {
+    if (!USE_REAL_BACKEND || !currentUserId) return;
+    const intervalId = setInterval(() => {
+      if (document.visibilityState !== 'visible' || pollingRefreshInFlightRef.current) return;
+      pollingRefreshInFlightRef.current = true;
+      refreshAllData({ silent: true })
+        .catch(err => console.error("Lỗi tự động cập nhật (auto-polling):", err))
+        .finally(() => {
+          pollingRefreshInFlightRef.current = false;
+        });
+    }, 30000);
+    return () => clearInterval(intervalId);
+  }, [refreshAllData, currentUserId]);
 
 
 
@@ -1448,10 +1492,10 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
 
   // Create Community Post
-  const createPost = async (title: string, content: string, images: string[], hashtags: string[]): Promise<{ success: boolean; error?: string }> => {
+  const createPost = async (title: string, content: string, images: string[], videoUrl: string | null, hashtags: string[]): Promise<{ success: boolean; error?: string }> => {
     if (USE_REAL_BACKEND) {
       try {
-        await postService.create(title, content, images, hashtags);
+        await postService.create(title, content, images, videoUrl, hashtags);
         const pts = await postService.getAll();
         setPosts(injectLikedStatus(pts, currentUser?._id));
         return { success: true };
@@ -1479,6 +1523,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       title,
       content: title ? `${title}\n${content}` : content,
       images,
+      video_url: videoUrl,
       visibility: 'Public',
       status: 'Active',
       hashtags,

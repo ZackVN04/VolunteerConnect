@@ -1,10 +1,34 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from beanie import PydanticObjectId
 from app.features.users.models import User
 from app.features.users.schemas import UserProfileResponse, UserUpdate
 from app.features.auth.dependencies import get_current_user
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/api/v1/users", tags=["Users"])
+
+
+async def _sync_denormalized_user_name(user_id: PydanticObjectId, new_name: str) -> None:
+    try:
+        from app.features.activities.models import Activity
+        from app.features.registrations.models import Registration
+        from app.features.organizer_requests.models import OrganizerRequest
+
+        await Activity.find(Activity.organizer_id == user_id).update(
+            {"$set": {"denormalized_organizer.name": new_name}}
+        )
+        await Registration.find(Registration.volunteer_id == user_id).update(
+            {"$set": {"denormalized_volunteer.name": new_name}}
+        )
+        await OrganizerRequest.find(OrganizerRequest.volunteer_id == user_id).update(
+            {"$set": {"denormalized_volunteer.name": new_name}}
+        )
+    except Exception:
+        logger.exception("Failed to synchronize denormalized user name", extra={"user_id": str(user_id)})
+
 
 @router.get("/me", response_model=UserProfileResponse)
 async def get_my_profile(current_user: User = Depends(get_current_user)):
@@ -29,10 +53,17 @@ async def update_my_profile(
                 detail="Phone number already in use by another account"
             )
 
+    old_name = current_user.full_name
+    new_name = update_dict.get("full_name")
+
     for field, value in update_dict.items():
         setattr(current_user, field, value)
 
     await current_user.save()
+
+    if new_name and new_name != old_name:
+        await _sync_denormalized_user_name(current_user.id, new_name)
+
     return current_user
 
 @router.get("/{user_id}")

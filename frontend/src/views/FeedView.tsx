@@ -24,6 +24,51 @@ const PostAvatar: React.FC<{ name: string; src?: string | null; size?: number }>
   );
 };
 
+// Smart Video Player Component that uses IntersectionObserver to control preload
+const SmartVideoPlayer: React.FC<{ src: string }> = ({ src }) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [preloadState, setPreloadState] = useState<'none' | 'metadata'>('none');
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setPreloadState('metadata');
+          } else {
+            setPreloadState('none');
+            if (videoRef.current) {
+              videoRef.current.pause();
+            }
+          }
+        });
+      },
+      {
+        rootMargin: '200px 0px',
+        threshold: 0.1,
+      }
+    );
+
+    if (videoRef.current) {
+      observer.observe(videoRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [src]);
+
+  return (
+    <div className="rounded-xl overflow-hidden border border-slate-200/85 max-h-[360px] bg-black flex items-center justify-center shadow-inner relative group w-full">
+      <video
+        ref={videoRef}
+        src={src}
+        preload={preloadState}
+        controls
+        className="w-full max-h-[360px] object-contain"
+      />
+    </div>
+  );
+};
+
 // Create Post Modal Component
 const CreatePostModal: React.FC<{ onClose: () => void; onSubmit: (title: string, content: string, images: string[], videoUrl: string, hashtags: string[]) => Promise<void> }> = ({ onClose, onSubmit }) => {
   const { showNotification } = useApp();
@@ -95,14 +140,23 @@ const CreatePostModal: React.FC<{ onClose: () => void; onSubmit: (title: string,
 
     try {
       let imageUrls: string[] = [];
+      let videoUrl: string = '';
+
       if (imageFile) {
         // Upload image to backend first
         const uploadRes = await mediaService.upload(imageFile);
         imageUrls.push(uploadRes.url);
       }
+
+      if (videoFile) {
+        // Upload video to backend
+        const uploadRes = await mediaService.upload(videoFile);
+        videoUrl = uploadRes.url;
+      }
+
       const tags = hashtagsStr.split(',').map(t => t.trim().replace(/^#/, '')).filter(Boolean);
       // Wait for onSubmit to complete
-      await onSubmit(title, content, imageUrls, videoFile ? videoFile.name : '', tags);
+      await onSubmit(title, content, imageUrls, videoUrl, tags);
     } catch (err: any) {
       console.error(err);
       const msg = err.response?.data?.detail || err.message || 'Không thể đăng bài viết. Vui lòng kiểm tra lại.';
@@ -607,9 +661,9 @@ export const FeedView: React.FC = () => {
     return new Date(cleanDateStr).toLocaleDateString('vi-VN');
   };
 
-  const handleCreatePost = async (title: string, content: string, images: string[], _videoUrl: string, hashtags: string[]) => {
+  const handleCreatePost = async (title: string, content: string, images: string[], videoUrl: string | null, hashtags: string[]) => {
     if (!currentUser) return;
-    const res = await createPost(title, content, images, hashtags);
+    const res = await createPost(title, content, images, videoUrl, hashtags);
     if (res.success) {
       setShowCreateModal(false);
       showNotification('Đã đăng bài viết thành công!', 'success');
@@ -1053,6 +1107,11 @@ export const FeedView: React.FC = () => {
 
                       {/* Post Body */}
                       <p className="text-slate-700 text-sm leading-relaxed whitespace-pre-line font-medium">{displayBody}</p>
+
+                      {/* Post video */}
+                      {post.video_url && (
+                        <SmartVideoPlayer src={post.video_url} />
+                      )}
 
                       {/* Post images */}
                       {post.images && post.images.length > 0 && (

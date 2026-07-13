@@ -255,7 +255,7 @@ export const ActivityDetailView: React.FC<ActivityDetailViewProps> = ({ activity
                   <div className="flex flex-col">
                     <span className="text-xs font-semibold text-on-surface-variant">Số lượng tuyển</span>
                     <span className="text-sm font-bold text-on-surface mt-0.5">
-                      {activity.limit_volunteers} Tình nguyện viên
+                      {activity.approved_volunteers_count || 0}/{activity.limit_volunteers} Tình nguyện viên (đã duyệt)
                     </span>
                   </div>
                 </div>
