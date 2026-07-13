@@ -119,6 +119,7 @@ export interface Post {
   title?: string;
   content: string;
   images: string[];
+  video_url?: string | null;
   visibility: 'Public' | 'Organization' | 'Private';
   status: 'Active' | 'Deleted' | 'Flagged';
   hashtags: string[];
@@ -161,7 +162,7 @@ interface AppContextType {
   bulkReviewOrganizerRequests: (requestIds: string[], approve: boolean, feedback?: string) => Promise<{ success: boolean; error?: string }>;
   bulkReviewActivities: (activityIds: string[], approve: boolean, feedback?: string) => Promise<{ success: boolean; error?: string }>;
   bulkReviewRegistrations: (registrationIds: string[], approve: boolean, feedback?: string) => Promise<{ success: boolean; error?: string }>;
-  createPost: (title: string, content: string, images: string[], hashtags: string[]) => Promise<{ success: boolean; error?: string }>;
+  createPost: (title: string, content: string, images: string[], videoUrl: string | null, hashtags: string[]) => Promise<{ success: boolean; error?: string }>;
   editPost: (postId: string, title: string, content: string, images: string[], hashtags: string[]) => Promise<{ success: boolean; error?: string }>;
   likePost: (postId: string) => void;
   sharePost: (postId: string) => void;
@@ -1466,10 +1467,10 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
 
   // Create Community Post
-  const createPost = async (title: string, content: string, images: string[], hashtags: string[]): Promise<{ success: boolean; error?: string }> => {
+  const createPost = async (title: string, content: string, images: string[], videoUrl: string | null, hashtags: string[]): Promise<{ success: boolean; error?: string }> => {
     if (USE_REAL_BACKEND) {
       try {
-        await postService.create(title, content, images, hashtags);
+        await postService.create(title, content, images, videoUrl, hashtags);
         const pts = await postService.getAll();
         setPosts(injectLikedStatus(pts, currentUser?._id));
         return { success: true };
@@ -1497,6 +1498,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       title,
       content: title ? `${title}\n${content}` : content,
       images,
+      video_url: videoUrl,
       visibility: 'Public',
       status: 'Active',
       hashtags,
