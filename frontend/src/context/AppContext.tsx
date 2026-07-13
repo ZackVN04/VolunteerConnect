@@ -199,7 +199,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         const db = JSON.parse(savedDb);
         return db.currentUser || null;
       }
-    } catch (e) {}
+    } catch (e) { }
     return null;
   });
   const currentUserRef = useRef<User | null>(null);
@@ -209,14 +209,13 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [organizerRequests, setOrganizerRequests] = useState<OrganizerRequest[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
-  const [deletingActivityId, setDeletingActivityId] = useState<string | null>(null);
 
   const [globalStats, setGlobalStats] = useState<{ totalCampaigns: number, totalVolunteers: number, totalOrganizers: number, totalCompleted: number } | null>(null);
 
   const [isAuthLoading, setIsAuthLoading] = useState<boolean>(() => {
     return !!localStorage.getItem('token');
   });
-  
+
   // Track initial data loading state for skeleton screens
   const [isDataLoading, setIsDataLoading] = useState<boolean>(true);
 
@@ -1352,7 +1351,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
         let totalProcessed = 0;
         let totalSkipped = 0;
-        
+
         await Promise.all(
           Object.keys(group).map(async (activityId) => {
             const rids = group[activityId];
@@ -1374,7 +1373,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         );
         const regsLists = await Promise.all(regsPromises);
         setRegistrations(regsLists.flat());
-        
+
         const acts = await activityService.getAll();
         setActivities(acts);
 
