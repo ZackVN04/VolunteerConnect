@@ -17,9 +17,21 @@ async def _sync_denormalized_user_name(user_id: PydanticObjectId, new_name: str)
         from app.features.registrations.models import Registration
         from app.features.organizer_requests.models import OrganizerRequest
 
+        organizer_activities = await Activity.find(Activity.organizer_id == user_id).to_list()
+        organizer_activity_ids = [activity.id for activity in organizer_activities]
+
         await Activity.find(Activity.organizer_id == user_id).update(
             {"$set": {"denormalized_organizer.name": new_name}}
         )
+        if organizer_activity_ids:
+            await Registration.find({"activity_id": {"$in": organizer_activity_ids}}).update(
+                {
+                    "$set": {
+                        "denormalized_activity.organizer_id": user_id,
+                        "denormalized_activity.organizer_name": new_name,
+                    }
+                }
+            )
         await Registration.find(Registration.volunteer_id == user_id).update(
             {"$set": {"denormalized_volunteer.name": new_name}}
         )
