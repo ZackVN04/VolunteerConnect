@@ -26,21 +26,27 @@ async def upload_file(
     folder: str = "general",
     current_user: User = Depends(get_current_user)
 ):
-    # 1. Kiểm tra định dạng file (Chỉ cho phép file ảnh)
-    allowed_types = ["image/jpeg", "image/png", "image/gif", "image/webp"]
-    if file.content_type not in allowed_types:
+    # 1. Kiểm tra định dạng file (Cho phép ảnh và video)
+    allowed_image_types = ["image/jpeg", "image/png", "image/gif", "image/webp"]
+    allowed_video_types = ["video/mp4", "video/quicktime", "video/x-msvideo", "video/webm", "video/ogg"]
+    
+    is_image = file.content_type in allowed_image_types
+    is_video = file.content_type in allowed_video_types
+    
+    if not is_image and not is_video:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Chỉ cho phép tải lên file ảnh (JPEG, PNG, GIF, WEBP)."
+            detail="Chỉ cho phép tải lên file ảnh (JPEG, PNG, GIF, WEBP) hoặc video (MP4, MOV, AVI, WebM)."
         )
 
-    # 2. Kiểm tra dung lượng file (Giới hạn 2MB)
-    MAX_FILE_SIZE = 2 * 1024 * 1024  # 2MB
+    # 2. Kiểm tra dung lượng file (Ảnh tối đa 2MB, Video tối đa 50MB)
+    max_size = 50 * 1024 * 1024 if is_video else 2 * 1024 * 1024
     contents = await file.read()
-    if len(contents) > MAX_FILE_SIZE:
+    if len(contents) > max_size:
+        size_label = "50MB" if is_video else "2MB"
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Dung lượng ảnh quá lớn. Vui lòng tải ảnh dưới 2MB."
+            detail=f"Dung lượng tệp quá lớn. Vui lòng tải dưới {size_label}."
         )
     # Reset file pointer sau khi đọc
     await file.seek(0)
