@@ -805,7 +805,6 @@ export const OrganizerDashboard: React.FC = () => {
                 <div className="divide-y divide-slate-100">
                   {filteredCampaigns.map(act => {
                     const isCompleted = act.status === 'Completed';
-                    const isOpen = act.status === 'Open' || act.status === 'Full' || act.status === 'Ongoing';
                     const isPending = act.status === 'Pending Review';
                     const approvedCount = registrations.filter(r => r.activity_id === act._id && (r.status === 'Approved' || r.status === 'Completed')).length;
 
