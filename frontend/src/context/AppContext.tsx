@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import initialMockData from '../mocks/mockData.json';
 import {
   authService,
@@ -150,7 +150,7 @@ interface AppContextType {
   loginAs: (userId: string) => void;
   registerForActivity: (activityId: string) => { success: boolean; error?: string };
   cancelOrRejectRegistration: (registrationId: string, rejectReason?: string) => any;
-  approveRegistration: (registrationId: string) => void;
+  approveRegistration: (registrationId: string) => Promise<{ success: boolean; error?: string }>;
   updateParticipation: (registrationId: string, status: 'Completed' | 'Absent') => { success: boolean; error?: string };
   cancelActivity: (activityId: string) => void;
   submitOrganizerRequest: (reason: string, experience: string, contactPhone: string) => { success: boolean; error?: string };
@@ -224,10 +224,18 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [confirmDialog, setConfirmDialog] = useState<{ message: string; title?: string; onConfirm: () => void } | null>(null);
   const [promptDialog, setPromptDialog] = useState<{ message: string; title?: string; placeholder?: string; onConfirm: (val: string) => void } | null>(null);
 
-  const showNotification = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
+  const notificationTimeoutRef = useRef<any>(null);
+
+  const showNotification = useCallback((message: string, type: 'success' | 'error' | 'info' = 'success') => {
+    if (notificationTimeoutRef.current) {
+      clearTimeout(notificationTimeoutRef.current);
+    }
     setNotification({ message, type });
-    setTimeout(() => setNotification(null), 3000);
-  };
+    notificationTimeoutRef.current = setTimeout(() => {
+      setNotification(null);
+      notificationTimeoutRef.current = null;
+    }, 3000);
+  }, []);
 
   const showConfirm = (message: string, onConfirm: () => void, title?: string) => {
     setConfirmDialog({ message, title, onConfirm });
@@ -704,37 +712,38 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   // Helper: Approve a registration
-  const approveRegistration = (registrationId: string) => {
+  const approveRegistration = async (registrationId: string): Promise<{ success: boolean; error?: string }> => {
     if (USE_REAL_BACKEND) {
-      (async () => {
-        try {
-          await registrationService.approve(registrationId);
-          const orgActs = await activityService.getOrganizerActivities();
-          const regsPromises = orgActs.map(a =>
-            registrationService.getActivityRegistrations(a._id).catch(() => [] as Registration[])
-          );
-          const regsLists = await Promise.all(regsPromises);
-          setRegistrations(regsLists.flat());
-          const acts = await activityService.getAll();
-          setActivities(acts);
-        } catch (e) {
-          console.error(e);
-        }
-      })();
-      return;
+      try {
+        await registrationService.approve(registrationId);
+        const orgActs = await activityService.getOrganizerActivities();
+        const regsPromises = orgActs.map(a =>
+          registrationService.getActivityRegistrations(a._id).catch(() => [] as Registration[])
+        );
+        const regsLists = await Promise.all(regsPromises);
+        setRegistrations(regsLists.flat());
+        const acts = await activityService.getAll();
+        setActivities(acts);
+        return { success: true };
+      } catch (e: any) {
+        console.error(e);
+        return { success: false, error: e.response?.data?.detail || 'Có lỗi xảy ra khi duyệt đăng ký.' };
+      }
     }
 
     const regIndex = registrations.findIndex(r => r._id === registrationId);
-    if (regIndex === -1) return;
+    if (regIndex === -1) return { success: false, error: 'Không tìm thấy đăng ký.' };
 
     const reg = registrations[regIndex];
-    if (reg.status !== 'Pending') return; // Only pending can be approved
+    if (reg.status !== 'Pending') return { success: false, error: 'Đăng ký không ở trạng thái chờ duyệt.' };
 
     const actIndex = activities.findIndex(a => a._id === reg.activity_id);
-    if (actIndex === -1) return;
+    if (actIndex === -1) return { success: false, error: 'Không tìm thấy hoạt động.' };
 
     const act = activities[actIndex];
-    if (act.approved_volunteers_count >= act.limit_volunteers) return; // Cannot approve if already full
+    if (act.approved_volunteers_count >= act.limit_volunteers) {
+      return { success: false, error: 'Hoạt động đã đầy chỗ.' };
+    }
 
     const newCount = act.approved_volunteers_count + 1;
     const newStatus = newCount >= act.limit_volunteers ? 'Full' : act.status;
@@ -763,6 +772,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setRegistrations(updatedRegs);
     setActivities(updatedActivities);
     syncToLocalStorage(users, updatedActivities, updatedRegs, organizerRequests, posts, currentUser);
+    return { success: true };
   };
 
   // Transaction 8.3: Điểm danh hoàn thành hoạt động (Increment counter in profile once only)
@@ -1825,15 +1835,63 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     resetToInitial();
   };
 
+  const displayActivities = useMemo(() => {
+    if (!currentUser) return activities;
+    return activities.map(act => {
+      if (act.organizer_id === currentUser._id) {
+        return {
+          ...act,
+          denormalized_organizer: {
+            ...act.denormalized_organizer,
+            name: currentUser.profile.full_name
+          }
+        };
+      }
+      return act;
+    });
+  }, [activities, currentUser]);
+
+  const displayRegistrations = useMemo(() => {
+    if (!currentUser) return registrations;
+    return registrations.map(reg => {
+      let updated = { ...reg };
+      if (reg.volunteer_id === currentUser._id) {
+        updated.denormalized_volunteer = {
+          ...reg.denormalized_volunteer,
+          name: currentUser.profile.full_name,
+          phone: currentUser.phone,
+          email: currentUser.email || ''
+        };
+      }
+      return updated;
+    });
+  }, [registrations, currentUser]);
+
+  const displayPosts = useMemo(() => {
+    if (!currentUser) return posts;
+    return posts.map(p => {
+      if (p.author_id === currentUser._id) {
+        return {
+          ...p,
+          denormalized_author: {
+            ...p.denormalized_author,
+            name: currentUser.profile.full_name
+          }
+        };
+      }
+      return p;
+    });
+  }, [posts, currentUser]);
+
   return (
     <AppContext.Provider
       value={{
         currentUser,
         users,
-        activities,
-        registrations,
+        activities: displayActivities,
+        registrations: displayRegistrations,
         organizerRequests,
-        posts,
+        posts: displayPosts,
         setCurrentUser,
         refreshAllData,
         isAuthLoading,
