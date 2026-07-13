@@ -92,6 +92,8 @@ export interface Registration {
     status: string;
     start_date: string;
     end_date: string;
+    organizer_id?: string | null;
+    organizer_name?: string | null;
   };
   reject_reason?: string; // custom field to show in registration management
 }

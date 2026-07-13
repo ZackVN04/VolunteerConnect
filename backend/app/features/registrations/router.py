@@ -5,6 +5,8 @@ from app.features.registrations.services import RegistrationService
 from app.features.registrations.dependencies import get_registration_service
 from app.features.auth.dependencies import get_current_user
 from app.features.activities.dependencies import require_organizer
+from app.features.activities.models import Activity
+from app.features.registrations.models import Registration
 from app.features.users.models import User
 from app.features.registrations.schemas import (
     RegistrationListResponse,
@@ -25,6 +27,31 @@ from app.features.registrations.schemas import (
 # router — prefix: /api/v1/activities
 # ============================================================
 router = APIRouter(prefix="/api/v1/activities", tags=["registrations"])
+
+
+def _activity_snippet(registration: Registration, activity: Activity | None = None) -> ActivitySnippet | None:
+    if not registration.denormalized_activity:
+        return None
+
+    organizer_id = None
+    organizer_name = None
+    if activity:
+        organizer_id = str(activity.organizer_id)
+        organizer_name = activity.denormalized_organizer.name if activity.denormalized_organizer else None
+    else:
+        denorm_organizer_id = getattr(registration.denormalized_activity, "organizer_id", None)
+        if denorm_organizer_id:
+            organizer_id = str(denorm_organizer_id)
+        organizer_name = getattr(registration.denormalized_activity, "organizer_name", None)
+
+    return ActivitySnippet(
+        title=registration.denormalized_activity.title,
+        status=registration.denormalized_activity.status,
+        start_date=registration.denormalized_activity.start_date,
+        end_date=registration.denormalized_activity.end_date,
+        organizer_id=organizer_id,
+        organizer_name=organizer_name
+    )
 
 @router.post("/{activity_id}/registrations", response_model=RegistrationCreateResponse, status_code=status.HTTP_201_CREATED)
 async def register_activity(
@@ -102,12 +129,7 @@ async def get_activity_registrations(
                 phone=reg.denormalized_volunteer.phone,
                 email=reg.denormalized_volunteer.email
             ) if reg.denormalized_volunteer else None,
-            activity=ActivitySnippet(
-                title=reg.denormalized_activity.title,
-                status=reg.denormalized_activity.status,
-                start_date=reg.denormalized_activity.start_date,
-                end_date=reg.denormalized_activity.end_date
-            ) if reg.denormalized_activity else None
+            activity=_activity_snippet(reg)
         ))
     return RegistrationListResponse(
         message="Lấy danh sách ứng viên thành công",
@@ -217,6 +239,7 @@ async def get_registration_detail(
             location_province=activity.location.province,
             location_district=activity.location.district,
             location_address_detail=activity.location.address_detail,
+            organizer_id=str(activity.organizer_id),
             organizer_name=activity.denormalized_organizer.name
         )
     )
@@ -245,6 +268,7 @@ async def get_my_registrations(
     )
     response_list = []
     for reg in registrations:
+        activity = await Activity.get(reg.activity_id)
         response_list.append(RegistrationResponse(
             id=str(reg.id),
             volunteer_id=str(reg.volunteer_id),
@@ -253,12 +277,7 @@ async def get_my_registrations(
             created_at=reg.created_at,
             updated_at=reg.updated_at,
             rejection_reason=reg.rejection_reason,
-            activity=ActivitySnippet(
-                title=reg.denormalized_activity.title,
-                status=reg.denormalized_activity.status,
-                start_date=reg.denormalized_activity.start_date,
-                end_date=reg.denormalized_activity.end_date
-            ) if reg.denormalized_activity else None
+            activity=_activity_snippet(reg, activity)
         ))
     return RegistrationListResponse(
         message="Lấy danh sách lịch sử đăng ký thành công",

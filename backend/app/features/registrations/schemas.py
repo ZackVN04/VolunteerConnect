@@ -8,6 +8,8 @@ class ActivitySnippet(BaseModel):
     status: str
     start_date: datetime
     end_date: datetime
+    organizer_id: Optional[str] = None
+    organizer_name: Optional[str] = None
 
 class VolunteerSnippet(BaseModel):
     name: str
@@ -57,6 +59,7 @@ class ActivityDetailInRegistration(BaseModel):
     location_province: str
     location_district: str
     location_address_detail: str
+    organizer_id: str
     organizer_name: str
 
 class RegistrationDetailResponse(BaseModel):

@@ -1,18 +1,23 @@
 import math
-from typing import Optional, Union, Dict, Any
-from fastapi import HTTPException, status
+from datetime import datetime, timezone
+from typing import Any, Dict, Optional, Union
+
 from bson.errors import InvalidId
+from fastapi import HTTPException, status
 from pydantic import ValidationError
+
+from .models import DenormalizedAuthor as ModelAuthor
 from .models import Post
 from .repositories import PostRepository
-from .schemas import PostCreate, PostResponse, PostPaginationResponse
+from .schemas import PostCreate, PostPaginationResponse, PostResponse, PostUpdate
+
 
 class PostService:
     """
     Business logic layer for handling Posts operations.
     Maps between Pydantic Schemas (DTOs) and Database Models.
     """
-    
+
     @staticmethod
     def _map_to_response(post: Union[Post, Dict[str, Any]]) -> PostResponse:
         """
@@ -32,9 +37,20 @@ class PostService:
                 hashtags=post.get("hashtags", []),
                 created_at=post.get("created_at"),
                 updated_at=post.get("updated_at"),
-                denormalized_author=post.get("denormalized_author")
+                denormalized_author=post.get("denormalized_author"),
             )
-        
+
+        author_data = None
+        if post.denormalized_author:
+            from .schemas import DenormalizedAuthor as SchemaAuthor
+
+            author_data = SchemaAuthor(
+                name=post.denormalized_author.name,
+                avatar_url=post.denormalized_author.avatar_url,
+                role=post.denormalized_author.role,
+                organization_name=post.denormalized_author.organization_name,
+            )
+
         return PostResponse(
             id=str(post.id),
             title=post.title,
@@ -47,7 +63,8 @@ class PostService:
             comment_count=post.comment_count,
             hashtags=post.hashtags,
             created_at=post.created_at,
-            updated_at=post.updated_at
+            updated_at=post.updated_at,
+            denormalized_author=author_data,
         )
 
     @staticmethod
@@ -55,13 +72,39 @@ class PostService:
         """
         Creates a new post after applying business rules.
         """
+        from app.features.users.models import User
+        from beanie import PydanticObjectId
+
+        user = await User.get(PydanticObjectId(author_id))
+        author_name = "Member"
+        author_role = "Volunteer"
+        avatar_url = None
+        org_name = None
+
+        if user:
+            author_name = user.full_name or user.email
+            avatar_url = user.avatar_url
+            user_role = user.role.value if hasattr(user.role, "value") else str(user.role)
+            role_map = {"admin": "Admin", "organizer": "Organizer", "volunteer": "Volunteer"}
+            author_role = role_map.get(user_role.lower(), "Volunteer")
+            if author_role == "Organizer":
+                org_name = "Independent organizer"
+
+        author_info = ModelAuthor(
+            name=author_name,
+            avatar_url=avatar_url,
+            role=author_role,
+            organization_name=org_name,
+        )
+
         post = Post(
             title=data.title,
             content=data.content,
             images=[str(img) for img in data.images] if data.images else [],
             video_url=str(data.video_url) if data.video_url else None,
             author_id=author_id,
-            hashtags=data.hashtags
+            hashtags=data.hashtags,
+            denormalized_author=author_info,
         )
         created_post = await PostRepository.create_post(post)
         return PostService._map_to_response(created_post)
@@ -73,7 +116,7 @@ class PostService:
         """
         skip = (page - 1) * size
         posts, total_items = await PostRepository.get_paginated_posts(skip, size, hashtag)
-        
+
         total_pages = math.ceil(total_items / size) if size > 0 else 0
         has_next = page < total_pages
 
@@ -85,14 +128,14 @@ class PostService:
             page_size=size,
             total_items=total_items,
             total_pages=total_pages,
-            has_next=has_next
+            has_next=has_next,
         )
 
     @staticmethod
     async def like_post(post_id: str, user_id: str) -> Optional[PostResponse]:
         """
         Increments the like counter of a post atomically with deduplication.
-        Raises ValueError if the user has already liked this post (caller handles → 409).
+        Raises ValueError if the user has already liked this post (caller handles -> 409).
         """
         post = await PostRepository.increment_likes(post_id, user_id)
         if post:
@@ -118,14 +161,48 @@ class PostService:
             post = await Post.get(post_id)
         except (InvalidId, ValueError, ValidationError):
             return False
-            
+
         if not post:
             return False
-            
+
         if post.author_id != current_user_id:
             raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN, 
-                detail="Not authorized to delete this post"
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not authorized to delete this post",
             )
-            
+
         return await PostRepository.delete_post(post_id)
+
+    @staticmethod
+    async def update_post(post_id: str, current_user_id: str, data: PostUpdate) -> PostResponse:
+        """
+        Updates an existing post after verifying ownership.
+        """
+        try:
+            post = await Post.get(post_id)
+        except (InvalidId, ValueError, ValidationError):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Post not found or invalid ID",
+            ) from None
+
+        if not post:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Post not found or invalid ID",
+            )
+
+        if post.author_id != current_user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not authorized to edit this post",
+            )
+
+        post.title = data.title
+        post.content = data.content
+        post.images = [str(img) for img in data.images] if data.images else []
+        post.hashtags = data.hashtags
+        post.updated_at = datetime.now(timezone.utc)
+
+        await post.save()
+        return PostService._map_to_response(post)

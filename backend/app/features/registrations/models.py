@@ -15,6 +15,8 @@ class DenormalizedActivity(BaseModel):
     status: str
     start_date: datetime
     end_date: datetime
+    organizer_id: Optional[PydanticObjectId] = None
+    organizer_name: Optional[str] = None
 
 class Registration(Document):
     volunteer_id: PydanticObjectId
