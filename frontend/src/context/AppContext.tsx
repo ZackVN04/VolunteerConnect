@@ -211,10 +211,29 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [users, setUsers] = useState<User[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [registrations, setRegistrations] = useState<Registration[]>([]);
-  const [organizerRequests, setOrganizerRequests] = useState<OrganizerRequest[]>([]);
+  const [organizerRequests, setOrganizerRequests] = useState<OrganizerRequest[]>(() => {
+    try {
+      const savedDb = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (savedDb) {
+        const db = JSON.parse(savedDb);
+        return db.organizerRequests || [];
+      }
+    } catch (e) { }
+    return [];
+  });
   const [posts, setPosts] = useState<Post[]>([]);
 
   const [globalStats, setGlobalStats] = useState<{ totalCampaigns: number, totalVolunteers: number, totalOrganizers: number, totalCompleted: number } | null>(null);
+
+  // Sync organizerRequests to localStorage whenever it changes
+  useEffect(() => {
+    try {
+      const savedDbStr = localStorage.getItem(LOCAL_STORAGE_KEY);
+      const db = savedDbStr ? JSON.parse(savedDbStr) : {};
+      db.organizerRequests = organizerRequests;
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(db));
+    } catch (e) {}
+  }, [organizerRequests]);
 
   const [isAuthLoading, setIsAuthLoading] = useState<boolean>(() => {
     return !!localStorage.getItem('token');
@@ -369,9 +388,12 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                 }
               };
               setOrganizerRequests([reqObj]);
+            } else {
+              setOrganizerRequests([]);
             }
           } catch (e) {
             activeUser.profile.organizer_request_status = 'None';
+            setOrganizerRequests([]);
           }
 
           try {
@@ -475,7 +497,6 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           const serverPosts = await postService.getAll();
           const mappedPosts = injectLikedStatus(serverPosts, activeUser?._id);
           setPosts(mappedPosts);
-          console.log("mappedPosts", mappedPosts);
         } catch (err) {
           console.error("Lỗi lấy danh sách bài viết từ server:", err);
         }

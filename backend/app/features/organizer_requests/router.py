@@ -37,15 +37,18 @@ async def request_upgrade(
 
         # Guard 3: Cooldown — prevent re-submission too soon after a rejection
         now = datetime.now(timezone.utc)
-        cooldown_period = timedelta(days=7)
-        time_since_last_request = now - latest_request.created_at
+        cooldown_period = timedelta(days=1)
+        last_req_time = latest_request.created_at
+        if last_req_time.tzinfo is None:
+            last_req_time = last_req_time.replace(tzinfo=timezone.utc)
+        time_since_last_request = now - last_req_time
 
         if time_since_last_request < cooldown_period:
             remaining_time = cooldown_period - time_since_last_request
-            days_left = remaining_time.days + 1
+            hours_left = int(remaining_time.total_seconds() // 3600) + 1
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Please wait {days_left} days before sending another request"
+                detail=f"Vui lòng chờ thêm {hours_left} giờ nữa trước khi gửi lại yêu cầu"
             )
 
     new_request = OrganizerRequest(
