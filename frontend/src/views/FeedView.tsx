@@ -1027,8 +1027,8 @@ export const FeedView: React.FC = () => {
               ) : (
                 paginatedPosts.map(post => {
                   const authorUser = users.find(u => u._id === post.author_id);
-                  const authorName = authorUser?.profile.full_name || post.denormalized_author?.name || 'Thành viên';
-                  const avatarUrl = authorUser?.profile.avatar_url;
+                  const authorName = post.denormalized_author?.name || authorUser?.profile.full_name || 'Thành viên';
+                  const avatarUrl = post.denormalized_author?.avatar_url || authorUser?.profile.avatar_url;
                   const isLiked = currentUser && post.likedByUserIds?.includes(currentUser._id);
                   const authorRole = post.denormalized_author?.role === 'Organizer' ? 'Ban tổ chức' : (post.denormalized_author?.role === 'Admin' ? 'Quản trị viên' : 'Tình nguyện viên');
                   const canDelete = currentUser && (post.author_id === currentUser._id || currentUser.role === 'Admin');

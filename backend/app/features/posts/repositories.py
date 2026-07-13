@@ -1,4 +1,4 @@
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Dict, Any
 from beanie.odm.operators.update.general import Inc
 from bson.errors import InvalidId
 from pydantic import ValidationError
@@ -10,15 +10,48 @@ class PostRepository:
     """
     
     @staticmethod
-    async def get_paginated_posts(skip: int, limit: int, hashtag: Optional[str] = None) -> Tuple[List[Post], int]:
+    async def get_paginated_posts(skip: int, limit: int, hashtag: Optional[str] = None) -> Tuple[List[Dict[str, Any]], int]:
         """
         Fetches posts with offset-based pagination, sorting by created_at descending.
         Optionally filters by a specific hashtag.
+        Uses aggregation to join with the users collection to get author information.
         """
-        query = Post.find({"hashtags": hashtag}) if hashtag else Post.find_all()
+        match_stage = {"hashtags": hashtag} if hashtag else {}
+        query = Post.find(match_stage) if hashtag else Post.find_all()
         total = await query.count()
-        # Uses the created_at descending index for fast sorting
-        posts = await query.sort("-created_at").skip(skip).limit(limit).to_list()
+        
+        pipeline = []
+        if match_stage:
+            pipeline.append({"$match": match_stage})
+            
+        pipeline.extend([
+            {"$sort": {"created_at": -1}},
+            {"$skip": skip},
+            {"$limit": limit},
+            {"$addFields": {"author_obj_id": {"$toObjectId": "$author_id"}}},
+            {
+                "$lookup": {
+                    "from": "users",
+                    "localField": "author_obj_id",
+                    "foreignField": "_id",
+                    "as": "author_docs"
+                }
+            },
+            {"$unwind": {"path": "$author_docs", "preserveNullAndEmptyArrays": True}},
+            {
+                "$addFields": {
+                    "denormalized_author": {
+                        "name": "$author_docs.full_name",
+                        "avatar_url": "$author_docs.avatar_url",
+                        "role": "$author_docs.role"
+                    }
+                }
+            },
+            {"$project": {"author_docs": 0, "author_obj_id": 0}}
+        ])
+
+        # aggregate() without projection_model returns dicts
+        posts = await Post.aggregate(pipeline).to_list()
         return posts, total
 
     @staticmethod

@@ -129,10 +129,10 @@ export interface Post {
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
-  denormalized_author: {
+  denormalized_author?: {
     name: string;
     role: string;
-    organization_name: string | null;
+    avatar_url?: string | null;
   };
   likedByUserIds?: string[]; // track who liked to simulate toggle
 }
@@ -473,6 +473,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           const serverPosts = await postService.getAll();
           const mappedPosts = injectLikedStatus(serverPosts, activeUser?._id);
           setPosts(mappedPosts);
+          console.log("mappedPosts", mappedPosts);
         } catch (err) {
           console.error("Lỗi lấy danh sách bài viết từ server:", err);
         }
@@ -1541,7 +1542,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       denormalized_author: {
         name: currentUser.profile.full_name,
         role: currentUser.role,
-        organization_name: currentUser.role === 'Organizer' ? 'Nhà tổ chức độc lập' : null
+        avatar_url: currentUser.profile.avatar_url
       },
       likedByUserIds: []
     };
