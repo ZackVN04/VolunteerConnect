@@ -17,10 +17,22 @@ const NavAvatar: React.FC<{ name: string; src?: string | null }> = ({ name, src 
 };
 
 export const Navbar: React.FC = () => {
-  const { currentUser, setCurrentUser } = useApp();
+  const { currentUser, setCurrentUser, organizerRequests } = useApp();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const currentHash = window.location.hash || '#/feed';
+
+  const userRequest = currentUser ? organizerRequests.find(r => r.volunteer_id === currentUser._id) : undefined;
+  const isPending = userRequest?.status === 'Pending';
+  const isRejected = userRequest?.status === 'Rejected';
+
+  let inCooldown = false;
+  if (isRejected && userRequest) {
+    const diffHours = (new Date().getTime() - new Date(userRequest.created_at).getTime()) / (1000 * 60 * 60);
+    if (diffHours < 24) {
+      inCooldown = true;
+    }
+  }
 
   const isActive = (hash: string) => currentHash.startsWith(hash);
 
@@ -56,7 +68,7 @@ export const Navbar: React.FC = () => {
           {currentUser ? (
             <>
               {/* Action button based on role */}
-              {currentUser.role === 'Volunteer' && (
+              {currentUser.role === 'Volunteer' && !isPending && !inCooldown && (
                 <a 
                   href="#/request-organizer"
                   className="border border-[#006d37] text-[#006d37] hover:bg-[#e8f5e9] px-4 py-1.5 rounded-full text-xs font-semibold transition-all active:scale-95 shadow-sm"
@@ -239,11 +251,11 @@ export const Navbar: React.FC = () => {
                 Đổi mật khẩu
               </a>
               <hr className="border-surface-variant my-2" />
-              {currentUser.role === 'Volunteer' && (
+              {currentUser.role === 'Volunteer' && !isPending && !inCooldown && (
                 <a 
                   onClick={() => setMobileMenuOpen(false)}
-                  className="block text-center border border-[#006d37] text-[#006d37] py-2 rounded-lg text-sm font-semibold hover:bg-emerald-50"
                   href="#/request-organizer"
+                  className="block px-4 py-2 text-sm font-semibold text-[#006d37] hover:bg-[#e8f5e9] rounded-lg transition-colors border border-[#006d37] text-center mt-2"
                 >
                   Xin quyền Tổ chức
                 </a>

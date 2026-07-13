@@ -188,6 +188,16 @@ export const ProfileView: React.FC = () => {
   const isApproved = userRequest?.status === 'Approved';
   const isRejected = userRequest?.status === 'Rejected';
 
+  let inCooldown = false;
+  let cooldownHoursRemaining = 0;
+  if (isRejected && userRequest) {
+    const diffHours = (new Date().getTime() - new Date(userRequest.created_at).getTime()) / (1000 * 60 * 60);
+    if (diffHours < 24) {
+      inCooldown = true;
+      cooldownHoursRemaining = Math.ceil(24 - diffHours);
+    }
+  }
+
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
     if (!fullName.trim()) {
@@ -485,13 +495,15 @@ export const ProfileView: React.FC = () => {
                               isApproved ? 'Đã duyệt thành công' : 'Bị từ chối'
                           }
                         </div>
-                        <p className="mt-1 text-xs opacity-90">Gửi ngày: {new Date(userRequest.created_at).toLocaleDateString('vi-VN')}</p>
+                        <p className="mt-[5px] ml-[5px] text-xs opacity-90">
+                          Gửi ngày: {new Date(userRequest.created_at).toLocaleDateString('vi-VN')}
+                        </p>
                         {userRequest.admin_feedback && (
                           <p className="mt-2.5 p-3 bg-white/60 border border-current/20 rounded-lg text-xs font-semibold leading-relaxed">
                             <strong>Phản hồi từ Admin:</strong> {userRequest.admin_feedback}
                           </p>
                         )}
-                        {isRejected && (
+                        {isRejected && !inCooldown && (
                           <button
                             onClick={() => {
                               setViewMode('upgrade');

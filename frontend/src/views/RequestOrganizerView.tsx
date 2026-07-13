@@ -2,7 +2,21 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 
 export const RequestOrganizerView: React.FC = () => {
-  const { currentUser, submitOrganizerRequest, showNotification } = useApp();
+  const { currentUser, submitOrganizerRequest, showNotification, organizerRequests } = useApp();
+
+  const userRequest = currentUser ? organizerRequests.find(r => r.volunteer_id === currentUser._id) : undefined;
+  const isPending = userRequest?.status === 'Pending';
+  const isRejected = userRequest?.status === 'Rejected';
+
+  let inCooldown = false;
+  let cooldownHoursRemaining = 0;
+  if (isRejected && userRequest) {
+    const diffHours = (new Date().getTime() - new Date(userRequest.created_at).getTime()) / (1000 * 60 * 60);
+    if (diffHours < 24) {
+      inCooldown = true;
+      cooldownHoursRemaining = Math.ceil(24 - diffHours);
+    }
+  }
 
   const [requestContact, setRequestContact] = useState(currentUser?.phone || '');
   const [requestOrgName, setRequestOrgName] = useState('');
@@ -65,9 +79,27 @@ export const RequestOrganizerView: React.FC = () => {
             </p>
           </div>
 
-          <form onSubmit={handleSendRequest} className="space-y-6 pt-2">
+          {(isPending || inCooldown) ? (
+            <div className={`p-5 rounded-2xl border ${isPending ? 'bg-[#fef7e0] border-[#b06000]/30 text-[#b06000]' : 'bg-red-50 border-red-200 text-red-700'} font-semibold text-sm`}>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="material-symbols-outlined">{isPending ? 'hourglass_empty' : 'cancel'}</span>
+                <h3 className="text-base font-bold">{isPending ? 'Đơn đăng ký đang được xử lý' : 'Bạn đang trong thời gian chờ (Cooldown)'}</h3>
+              </div>
+              <p>
+                {isPending 
+                  ? 'Bạn đã gửi một đơn xin cấp quyền và đang chờ Ban quản trị phê duyệt. Vui lòng kiểm tra lại sau.'
+                  : `Yêu cầu trước đó của bạn đã bị từ chối. Vui lòng chờ thêm ${cooldownHoursRemaining} giờ nữa để có thể gửi lại yêu cầu mới.`}
+              </p>
+              <div className="mt-4 text-center md:text-left">
+                <a href="#/profile" className="inline-block bg-[#006d37] hover:bg-emerald-800 text-white font-bold py-2 px-6 rounded-xl transition-all shadow-sm">
+                  Quay về Hồ sơ
+                </a>
+              </div>
+            </div>
+          ) : (
+            <form onSubmit={handleSendRequest} className="space-y-6 pt-2">
 
-            {/* Field 1: SĐT */}
+              {/* Field 1: SĐT */}
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Số điện thoại liên hệ khẩn cấp</label>
               <input
@@ -128,7 +160,8 @@ export const RequestOrganizerView: React.FC = () => {
               </button>
             </div>
 
-          </form>
+            </form>
+          )}
         </div>
 
       </div>
