@@ -37,14 +37,85 @@ const ExpandableText: React.FC<{ text: string; limit?: number }> = ({ text, limi
   );
 };
 
+const Pagination: React.FC<{
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+}> = ({ currentPage, totalPages, onPageChange }) => {
+  if (totalPages <= 1) return null;
+
+  return (
+    <div className="flex items-center justify-between border-t border-slate-100 px-4 py-4 sm:px-6 mt-4">
+      <div className="flex flex-1 justify-between sm:hidden">
+        <button
+          onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+          disabled={currentPage === 1}
+          className="relative inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+        >
+          Trước
+        </button>
+        <button
+          onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
+          disabled={currentPage === totalPages}
+          className="relative ml-3 inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+        >
+          Sau
+        </button>
+      </div>
+      <div className="hidden sm:flex sm:flex-grow sm:items-center sm:justify-between w-full">
+        <div>
+          <p className="text-xs text-slate-500 font-semibold">
+            Hiển thị trang <span className="font-extrabold text-slate-800">{currentPage}</span> / <span className="font-extrabold text-slate-800">{totalPages}</span>
+          </p>
+        </div>
+        <div>
+          <nav className="isolate inline-flex -space-x-px rounded-xl shadow-sm gap-1" aria-label="Pagination">
+            <button
+              onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+              disabled={currentPage === 1}
+              className="relative inline-flex items-center rounded-lg border border-slate-200 bg-white p-2 text-xs font-bold text-slate-500 hover:bg-slate-50 disabled:opacity-50 cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-[16px]">chevron_left</span>
+            </button>
+            
+            {Array.from({ length: totalPages }).map((_, i) => {
+              const p = i + 1;
+              const isCurrent = p === currentPage;
+              return (
+                <button
+                  key={p}
+                  onClick={() => onPageChange(p)}
+                  className={`relative inline-flex items-center rounded-lg px-3.5 py-1.5 text-xs font-extrabold cursor-pointer transition-all ${
+                    isCurrent
+                      ? 'bg-[#006d37] text-white shadow-sm'
+                      : 'border border-slate-200 bg-white text-slate-650 hover:bg-slate-50'
+                  }`}
+                >
+                  {p}
+                </button>
+              );
+            })}
+
+            <button
+              onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
+              disabled={currentPage === totalPages}
+              className="relative inline-flex items-center rounded-lg border border-slate-200 bg-white p-2 text-xs font-bold text-slate-500 hover:bg-slate-50 disabled:opacity-50 cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-[16px]">chevron_right</span>
+            </button>
+          </nav>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export const AdminDashboard: React.FC = () => {
   const {
     currentUser, users, activities, registrations, organizerRequests,
     reviewOrganizerRequest, reviewActivity, bulkReviewOrganizerRequests, bulkReviewActivities,
     setCurrentUser, showNotification, showPrompt
   } = useApp();
-
-  // Note: Local auto-polling removed in favor of global auto-polling in AppContext.tsx (Group 4)
 
   const [activeTab, setActiveTab] = useState<'overview' | 'organizers' | 'activities' | 'users' | 'stats' | 'history'>('overview');
   const [historySubTab, setHistorySubTab] = useState<'organizers' | 'activities'>('organizers');
@@ -73,6 +144,36 @@ export const AdminDashboard: React.FC = () => {
 
   const [selectedRequestIds, setSelectedRequestIds] = useState<string[]>([]);
   const [selectedActivityIds, setSelectedActivityIds] = useState<string[]>([]);
+
+  // Pagination states
+  const [usersPage, setUsersPage] = useState(1);
+  const [statsPage, setStatsPage] = useState(1);
+  const [historyOrgPage, setHistoryOrgPage] = useState(1);
+  const [historyActPage, setHistoryActPage] = useState(1);
+  const [orgsPage, setOrgsPage] = useState(1);
+  const [actsPage, setActsPage] = useState(1);
+  const itemsPerPage = 10;
+
+  useEffect(() => {
+    setUsersPage(1);
+  }, [userSearch, userRoleFilter]);
+
+  useEffect(() => {
+    setStatsPage(1);
+  }, [statsSearch, statsStatusFilter]);
+
+  useEffect(() => {
+    setHistoryOrgPage(1);
+    setHistoryActPage(1);
+  }, [historySearch, historyStatusFilter, historyDateFilter, historySubTab]);
+
+  useEffect(() => {
+    setOrgsPage(1);
+  }, [orgSearch, orgDateFilter]);
+
+  useEffect(() => {
+    setActsPage(1);
+  }, [actSearch, actCategoryFilter]);
 
   useEffect(() => {
     setSelectedRequestIds([]);
@@ -943,79 +1044,95 @@ export const AdminDashboard: React.FC = () => {
                     <span className="material-symbols-outlined text-outline text-5xl">verified</span>
                     <p className="text-sm text-on-surface-variant italic">Không có yêu cầu nâng cấp nào đang chờ duyệt.</p>
                   </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full border-collapse text-left text-sm">
-                      <thead>
-                        <tr className="bg-[#f8f9fa] border-b border-surface-variant/40 text-on-surface-variant font-bold text-xs uppercase tracking-wider">
-                          <th className="px-6 py-4 w-12 text-center">
-                            <input
-                              type="checkbox"
-                              checked={pendingRequests.length > 0 && selectedRequestIds.length === pendingRequests.length}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setSelectedRequestIds(pendingRequests.map(r => r._id));
-                                } else {
-                                  setSelectedRequestIds([]);
-                                }
-                              }}
-                              className="rounded border-slate-300 text-[#006d37] focus:ring-[#006d37] cursor-pointer"
-                            />
-                          </th>
-                          <th className="px-6 py-4">Tên tài khoản</th>
-                          <th className="px-6 py-4">Đơn vị đại diện</th>
-                          <th className="px-6 py-4">Mô tả hoạt động</th>
-                          <th className="px-6 py-4">Hành động</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-surface-variant/30 text-on-surface">
-                        {pendingRequests.map(req => (
-                          <tr key={req._id} className="hover:bg-slate-50 transition-colors">
-                            <td className="px-6 py-5 w-12 text-center">
-                              <input
-                                type="checkbox"
-                                checked={selectedRequestIds.includes(req._id)}
-                                onChange={(e) => {
-                                  if (e.target.checked) {
-                                    setSelectedRequestIds(prev => [...prev, req._id]);
-                                  } else {
-                                    setSelectedRequestIds(prev => prev.filter(id => id !== req._id));
-                                  }
-                                }}
-                                className="rounded border-slate-300 text-[#006d37] focus:ring-[#006d37] cursor-pointer"
-                              />
-                            </td>
-                            <td className="px-6 py-5 font-bold">{req.denormalized_volunteer.name}</td>
-                            <td className="px-6 py-5 text-on-surface-variant font-semibold">
-                              {req.experience}
-                            </td>
-                            <td className="px-6 py-5 text-on-surface-variant">
-                              <p className="line-clamp-2 max-w-[300px]" title={req.reason}>
-                                {req.reason}
-                              </p>
-                            </td>
-                            <td className="px-6 py-5 whitespace-nowrap">
-                              <div className="flex gap-3">
-                                <button
-                                  onClick={() => handleApproveOrganizer(req._id)}
-                                  className="text-[#006d37] hover:underline font-bold"
-                                >
-                                  Duyệt nâng cấp
-                                </button>
-                                <button
-                                  onClick={() => handleRejectOrganizer(req._id)}
-                                  className="text-red-600 hover:underline font-bold"
-                                >
-                                  Từ chối
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+                ) : (() => {
+                  const totalOrgsPages = Math.ceil(pendingRequests.length / itemsPerPage);
+                  const paginatedOrgs = pendingRequests.slice(
+                    (orgsPage - 1) * itemsPerPage,
+                    orgsPage * itemsPerPage
+                  );
+                  return (
+                    <>
+                      <div className="overflow-x-auto">
+                        <table className="w-full border-collapse text-left text-sm">
+                          <thead>
+                            <tr className="bg-[#f8f9fa] border-b border-surface-variant/40 text-on-surface-variant font-bold text-xs uppercase tracking-wider">
+                              <th className="px-6 py-4 w-12 text-center">
+                                <input
+                                  type="checkbox"
+                                  checked={paginatedOrgs.length > 0 && paginatedOrgs.every(r => selectedRequestIds.includes(r._id))}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setSelectedRequestIds(prev => {
+                                        const next = [...prev];
+                                        paginatedOrgs.forEach(r => {
+                                          if (!next.includes(r._id)) next.push(r._id);
+                                        });
+                                        return next;
+                                      });
+                                    } else {
+                                      setSelectedRequestIds(prev => prev.filter(id => !paginatedOrgs.some(r => r._id === id)));
+                                    }
+                                  }}
+                                  className="rounded border-slate-300 text-[#006d37] focus:ring-[#006d37] cursor-pointer"
+                                />
+                              </th>
+                              <th className="px-6 py-4">Tên tài khoản</th>
+                              <th className="px-6 py-4">Đơn vị đại diện</th>
+                              <th className="px-6 py-4">Mô tả hoạt động</th>
+                              <th className="px-6 py-4">Hành động</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-surface-variant/30 text-on-surface">
+                            {paginatedOrgs.map(req => (
+                              <tr key={req._id} className="hover:bg-slate-50 transition-colors">
+                                <td className="px-6 py-5 w-12 text-center">
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedRequestIds.includes(req._id)}
+                                    onChange={(e) => {
+                                      if (e.target.checked) {
+                                        setSelectedRequestIds(prev => [...prev, req._id]);
+                                      } else {
+                                        setSelectedRequestIds(prev => prev.filter(id => id !== req._id));
+                                      }
+                                    }}
+                                    className="rounded border-slate-300 text-[#006d37] focus:ring-[#006d37] cursor-pointer"
+                                  />
+                                </td>
+                                <td className="px-6 py-5 font-bold">{req.denormalized_volunteer.name}</td>
+                                <td className="px-6 py-5 text-on-surface-variant font-semibold">
+                                  {req.experience}
+                                </td>
+                                <td className="px-6 py-5 text-on-surface-variant">
+                                  <p className="line-clamp-2 max-w-[300px]" title={req.reason}>
+                                    {req.reason}
+                                  </p>
+                                </td>
+                                <td className="px-6 py-5 whitespace-nowrap">
+                                  <div className="flex gap-3">
+                                    <button
+                                      onClick={() => handleApproveOrganizer(req._id)}
+                                      className="text-[#006d37] hover:underline font-bold"
+                                    >
+                                      Duyệt nâng cấp
+                                    </button>
+                                    <button
+                                      onClick={() => handleRejectOrganizer(req._id)}
+                                      className="text-red-600 hover:underline font-bold"
+                                    >
+                                      Từ chối
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      <Pagination currentPage={orgsPage} totalPages={totalOrgsPages} onPageChange={setOrgsPage} />
+                    </>
+                  );
+                })()}
               </div>
             </div>
           )}
@@ -1103,90 +1220,106 @@ export const AdminDashboard: React.FC = () => {
                     <span className="material-symbols-outlined text-outline text-5xl">fact_check</span>
                     <p className="text-sm text-on-surface-variant italic">Không có hoạt động nào đang chờ duyệt.</p>
                   </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full border-collapse text-left text-sm">
-                      <thead>
-                        <tr className="bg-[#f8f9fa] border-b border-surface-variant/40 text-on-surface-variant font-bold text-xs uppercase tracking-wider">
-                          <th className="px-6 py-4 w-12 text-center">
-                            <input
-                              type="checkbox"
-                              checked={pendingActivities.length > 0 && selectedActivityIds.length === pendingActivities.length}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setSelectedActivityIds(pendingActivities.map(a => a._id));
-                                } else {
-                                  setSelectedActivityIds([]);
-                                }
-                              }}
-                              className="rounded border-slate-300 text-[#006d37] focus:ring-[#006d37] cursor-pointer"
-                            />
-                          </th>
-                          <th className="px-6 py-4">Tên hoạt động</th>
-                          <th className="px-6 py-4">Lĩnh vực</th>
-                          <th className="px-6 py-4">Ngày tạo</th>
-                          <th className="px-6 py-4">Ban tổ chức</th>
-                          <th className="px-6 py-4">Hành động</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-surface-variant/30 text-on-surface">
-                        {pendingActivities.map(act => (
-                          <tr key={act._id} className="hover:bg-slate-50 transition-colors">
-                            <td className="px-6 py-5 w-12 text-center">
-                              <input
-                                type="checkbox"
-                                checked={selectedActivityIds.includes(act._id)}
-                                onChange={(e) => {
-                                  if (e.target.checked) {
-                                    setSelectedActivityIds(prev => [...prev, act._id]);
-                                  } else {
-                                    setSelectedActivityIds(prev => prev.filter(id => id !== act._id));
-                                  }
-                                }}
-                                className="rounded border-slate-300 text-[#006d37] focus:ring-[#006d37] cursor-pointer"
-                              />
-                            </td>
-                            <td className="px-6 py-5 font-bold">
-                              <a
-                                href={`#/activity/${act._id}`}
-                                className="hover:text-[#006d37] hover:underline"
-                                target="_blank"
-                                rel="noreferrer"
-                              >
-                                {act.title}
-                              </a>
-                            </td>
-                            <td className="px-6 py-5 text-on-surface-variant">
-                              {act.categories[0] || 'Tình nguyện'}
-                            </td>
-                            <td className="px-6 py-5 whitespace-nowrap text-on-surface-variant">
-                              {new Date(act.created_at).toLocaleDateString('vi-VN')}
-                            </td>
-                            <td className="px-6 py-5 text-on-surface-variant">
-                              {act.denormalized_organizer?.name || 'Ban tổ chức'}
-                            </td>
-                            <td className="px-6 py-5 whitespace-nowrap">
-                              <div className="flex gap-3">
-                                <button
-                                  onClick={() => handleApproveActivity(act._id)}
-                                  className="text-[#006d37] hover:underline font-bold"
-                                >
-                                  Duyệt hoạt động
-                                </button>
-                                <button
-                                  onClick={() => handleRejectActivity(act._id)}
-                                  className="text-red-600 hover:underline font-bold"
-                                >
-                                  Từ chối
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+                ) : (() => {
+                  const totalActsPages = Math.ceil(pendingActivities.length / itemsPerPage);
+                  const paginatedActs = pendingActivities.slice(
+                    (actsPage - 1) * itemsPerPage,
+                    actsPage * itemsPerPage
+                  );
+                  return (
+                    <>
+                      <div className="overflow-x-auto">
+                        <table className="w-full border-collapse text-left text-sm">
+                          <thead>
+                            <tr className="bg-[#f8f9fa] border-b border-surface-variant/40 text-on-surface-variant font-bold text-xs uppercase tracking-wider">
+                              <th className="px-6 py-4 w-12 text-center">
+                                <input
+                                  type="checkbox"
+                                  checked={paginatedActs.length > 0 && paginatedActs.every(a => selectedActivityIds.includes(a._id))}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setSelectedActivityIds(prev => {
+                                        const next = [...prev];
+                                        paginatedActs.forEach(a => {
+                                          if (!next.includes(a._id)) next.push(a._id);
+                                        });
+                                        return next;
+                                      });
+                                    } else {
+                                      setSelectedActivityIds(prev => prev.filter(id => !paginatedActs.some(a => a._id === id)));
+                                    }
+                                  }}
+                                  className="rounded border-slate-300 text-[#006d37] focus:ring-[#006d37] cursor-pointer"
+                                />
+                              </th>
+                              <th className="px-6 py-4">Tên hoạt động</th>
+                              <th className="px-6 py-4">Lĩnh vực</th>
+                              <th className="px-6 py-4">Ngày tạo</th>
+                              <th className="px-6 py-4">Ban tổ chức</th>
+                              <th className="px-6 py-4">Hành động</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-surface-variant/30 text-on-surface">
+                            {paginatedActs.map(act => (
+                              <tr key={act._id} className="hover:bg-slate-50 transition-colors">
+                                <td className="px-6 py-5 w-12 text-center">
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedActivityIds.includes(act._id)}
+                                    onChange={(e) => {
+                                      if (e.target.checked) {
+                                        setSelectedActivityIds(prev => [...prev, act._id]);
+                                      } else {
+                                        setSelectedActivityIds(prev => prev.filter(id => id !== act._id));
+                                      }
+                                    }}
+                                    className="rounded border-slate-300 text-[#006d37] focus:ring-[#006d37] cursor-pointer"
+                                  />
+                                </td>
+                                <td className="px-6 py-5 font-bold">
+                                  <a
+                                    href={`#/activity/${act._id}`}
+                                    className="hover:text-[#006d37] hover:underline"
+                                    target="_blank"
+                                    rel="noreferrer"
+                                  >
+                                    {act.title}
+                                  </a>
+                                </td>
+                                <td className="px-6 py-5 text-on-surface-variant">
+                                  {act.categories[0] || 'Tình nguyện'}
+                                </td>
+                                <td className="px-6 py-5 whitespace-nowrap text-on-surface-variant">
+                                  {new Date(act.created_at).toLocaleDateString('vi-VN')}
+                                </td>
+                                <td className="px-6 py-5 text-on-surface-variant">
+                                  {act.denormalized_organizer?.name || 'Ban tổ chức'}
+                                </td>
+                                <td className="px-6 py-5 whitespace-nowrap">
+                                  <div className="flex gap-3">
+                                    <button
+                                      onClick={() => handleApproveActivity(act._id)}
+                                      className="text-[#006d37] hover:underline font-bold"
+                                    >
+                                      Duyệt hoạt động
+                                    </button>
+                                    <button
+                                      onClick={() => handleRejectActivity(act._id)}
+                                      className="text-red-600 hover:underline font-bold"
+                                    >
+                                      Từ chối
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      <Pagination currentPage={actsPage} totalPages={totalActsPages} onPageChange={setActsPage} />
+                    </>
+                  );
+                })()}
               </div>
             </div>
           )}
@@ -1267,38 +1400,48 @@ export const AdminDashboard: React.FC = () => {
                       <span className="material-symbols-outlined text-outline text-5xl">group</span>
                       <p className="text-sm text-on-surface-variant italic">Không tìm thấy người dùng phù hợp.</p>
                     </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full border-collapse text-left text-sm">
-                        <thead>
-                          <tr className="bg-[#f8f9fa] border-b border-surface-variant/40 text-on-surface-variant font-bold text-xs uppercase tracking-wider">
-                            <th className="px-4 py-3 whitespace-nowrap">Tên người dùng</th>
-                            <th className="px-4 py-3 whitespace-nowrap">Số điện thoại</th>
-                            <th className="px-4 py-3 whitespace-nowrap">Email</th>
-                            <th className="px-4 py-3 whitespace-nowrap">Vai trò</th>
-                            <th className="px-4 py-3 whitespace-nowrap">Trạng thái hoạt động</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-surface-variant/30 text-on-surface">
-                          {filteredUsers.map(u => (
-                            <tr key={u._id} className="hover:bg-slate-50 transition-colors">
-                              <td className="px-4 py-3.5 font-bold whitespace-nowrap">{u.profile.full_name}</td>
-                              <td className="px-4 py-3.5 text-on-surface-variant whitespace-nowrap">{u.phone}</td>
-                              <td className="px-4 py-3.5 text-on-surface-variant max-w-[200px] truncate" title={u.email || 'Chưa cập nhật'}>
-                                {u.email || 'Chưa cập nhật'}
-                              </td>
-                              <td className="px-4 py-3.5 whitespace-nowrap">
-                                {getRoleBadge(u.role)}
-                              </td>
-                              <td className="px-4 py-3.5 whitespace-nowrap">
-                                {getLoginStatusBadge(u)}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
+                  ) : (() => {
+                    const totalUsersPages = Math.ceil(filteredUsers.length / itemsPerPage);
+                    const paginatedUsers = filteredUsers.slice(
+                      (usersPage - 1) * itemsPerPage,
+                      usersPage * itemsPerPage
+                    );
+                    return (
+                      <>
+                        <div className="overflow-x-auto">
+                          <table className="w-full border-collapse text-left text-sm">
+                            <thead>
+                              <tr className="bg-[#f8f9fa] border-b border-surface-variant/40 text-on-surface-variant font-bold text-xs uppercase tracking-wider">
+                                <th className="px-4 py-3 whitespace-nowrap">Tên người dùng</th>
+                                <th className="px-4 py-3 whitespace-nowrap">Số điện thoại</th>
+                                <th className="px-4 py-3 whitespace-nowrap">Email</th>
+                                <th className="px-4 py-3 whitespace-nowrap">Vai trò</th>
+                                <th className="px-4 py-3 whitespace-nowrap">Trạng thái hoạt động</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-surface-variant/30 text-on-surface">
+                              {paginatedUsers.map(u => (
+                                <tr key={u._id} className="hover:bg-slate-50 transition-colors">
+                                  <td className="px-4 py-3.5 font-bold whitespace-nowrap">{u.profile.full_name}</td>
+                                  <td className="px-4 py-3.5 text-on-surface-variant whitespace-nowrap">{u.phone}</td>
+                                  <td className="px-4 py-3.5 text-on-surface-variant max-w-[200px] truncate" title={u.email || 'Chưa cập nhật'}>
+                                    {u.email || 'Chưa cập nhật'}
+                                  </td>
+                                  <td className="px-4 py-3.5 whitespace-nowrap">
+                                    {getRoleBadge(u.role)}
+                                  </td>
+                                  <td className="px-4 py-3.5 whitespace-nowrap">
+                                    {getLoginStatusBadge(u)}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                        <Pagination currentPage={usersPage} totalPages={totalUsersPages} onPageChange={setUsersPage} />
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
             );
@@ -1387,43 +1530,53 @@ export const AdminDashboard: React.FC = () => {
                       <span className="material-symbols-outlined text-outline text-5xl">analytics</span>
                       <p className="text-sm text-on-surface-variant italic">Không tìm thấy kết quả thống kê tham gia phù hợp.</p>
                     </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full border-collapse text-left text-sm">
-                        <thead>
-                          <tr className="bg-[#f8f9fa] border-b border-surface-variant/40 text-on-surface-variant font-bold text-xs uppercase tracking-wider">
-                            <th className="px-6 py-4">Tình nguyện viên</th>
-                            <th className="px-6 py-4">Tên hoạt động</th>
-                            <th className="px-6 py-4">Ban tổ chức</th>
-                            <th className="px-6 py-4">Ngày đăng ký</th>
-                            <th className="px-6 py-4">Điểm danh</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-surface-variant/30 text-on-surface">
-                          {filteredRegs.map(reg => {
-                            const actDetails = activities.find(a => a._id === reg.activity_id);
-                            return (
-                              <tr key={reg._id} className="hover:bg-slate-50 transition-colors">
-                                <td className="px-6 py-5 font-bold">{reg.denormalized_volunteer.name}</td>
-                                <td className="px-6 py-5 text-on-surface font-semibold">
-                                  {reg.denormalized_activity.title}
-                                </td>
-                                <td className="px-6 py-5 text-on-surface-variant">
-                                  {actDetails?.denormalized_organizer?.name || 'Ban tổ chức'}
-                                </td>
-                                <td className="px-6 py-5 whitespace-nowrap text-on-surface-variant">
-                                  {new Date(reg.created_at).toLocaleDateString('vi-VN')}
-                                </td>
-                                <td className="px-6 py-5">
-                                  {getStatusBadge(reg.status)}
-                                </td>
+                  ) : (() => {
+                    const totalStatsPages = Math.ceil(filteredRegs.length / itemsPerPage);
+                    const paginatedStats = filteredRegs.slice(
+                      (statsPage - 1) * itemsPerPage,
+                      statsPage * itemsPerPage
+                    );
+                    return (
+                      <>
+                        <div className="overflow-x-auto">
+                          <table className="w-full border-collapse text-left text-sm">
+                            <thead>
+                              <tr className="bg-[#f8f9fa] border-b border-surface-variant/40 text-on-surface-variant font-bold text-xs uppercase tracking-wider">
+                                <th className="px-6 py-4">Tình nguyện viên</th>
+                                <th className="px-6 py-4">Tên hoạt động</th>
+                                <th className="px-6 py-4">Ban tổ chức</th>
+                                <th className="px-6 py-4">Ngày đăng ký</th>
+                                <th className="px-6 py-4">Điểm danh</th>
                               </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
+                            </thead>
+                            <tbody className="divide-y divide-surface-variant/30 text-on-surface">
+                              {paginatedStats.map(reg => {
+                                const actDetails = activities.find(a => a._id === reg.activity_id);
+                                return (
+                                  <tr key={reg._id} className="hover:bg-slate-50 transition-colors">
+                                    <td className="px-6 py-5 font-bold">{reg.denormalized_volunteer.name}</td>
+                                    <td className="px-6 py-5 text-on-surface font-semibold">
+                                      {reg.denormalized_activity.title}
+                                    </td>
+                                    <td className="px-6 py-5 text-on-surface-variant">
+                                      {actDetails?.denormalized_organizer?.name || 'Ban tổ chức'}
+                                    </td>
+                                    <td className="px-6 py-5 whitespace-nowrap text-on-surface-variant">
+                                      {new Date(reg.created_at).toLocaleDateString('vi-VN')}
+                                    </td>
+                                    <td className="px-6 py-5">
+                                      {getStatusBadge(reg.status)}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                        <Pagination currentPage={statsPage} totalPages={totalStatsPages} onPageChange={setStatsPage} />
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
             );
@@ -1588,60 +1741,70 @@ export const AdminDashboard: React.FC = () => {
                         <span className="material-symbols-outlined text-outline text-5xl">history</span>
                         <p className="text-sm text-on-surface-variant italic">Không tìm thấy lịch sử phê duyệt Ban tổ chức phù hợp.</p>
                       </div>
-                    ) : (
-                      <div className="overflow-x-auto">
-                        <table className="w-full border-collapse text-left text-sm">
-                          <thead>
-                            <tr className="bg-[#f8f9fa] border-b border-surface-variant/40 text-on-surface-variant font-bold text-xs uppercase tracking-wider">
-                              <th className="px-4 py-3 whitespace-nowrap">Người yêu cầu</th>
-                              <th className="px-4 py-3">Lý do xin nâng quyền</th>
-                              <th className="px-4 py-3 whitespace-nowrap">Thời gian duyệt</th>
-                              <th className="px-4 py-3 whitespace-nowrap">Trạng thái</th>
-                              <th className="px-4 py-3">Phản hồi của Admin</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-surface-variant/30 text-on-surface">
-                            {filteredRequests.map(req => {
-                              const requesterUser = users.find(u => u._id === req.volunteer_id);
-                              return (
-                                <tr key={req._id} className="hover:bg-slate-50 transition-colors">
-                                  <td className="px-4 py-3.5 whitespace-nowrap font-semibold">
-                                    <div>{req.denormalized_volunteer?.name || 'Tài Khoản'}</div>
-                                    <div className="text-[10px] text-on-surface-variant font-normal">
-                                      {requesterUser?.email || req.denormalized_volunteer?.email || 'Chưa cập nhật'}
-                                    </div>
-                                  </td>
-                                  <td className="px-4 py-3.5 text-xs text-on-surface-variant max-w-[250px] break-words">
-                                    {req.reason}
-                                  </td>
-                                  <td className="px-4 py-3.5 whitespace-nowrap text-xs text-on-surface-variant">
-                                    {req.reviewed_at ? new Date(req.reviewed_at).toLocaleString('vi-VN') : 'Chưa cập nhật'}
-                                  </td>
-                                  <td className="px-4 py-3.5 whitespace-nowrap">
-                                    {req.status === 'Approved' ? (
-                                      <span className="bg-[#e8f5e9] text-[#006d37] font-bold text-[10px] px-2.5 py-1 rounded-full border border-[#006d37]/20 shadow-sm shrink-0">
-                                        Đã duyệt
-                                      </span>
-                                    ) : (
-                                      <span className="bg-red-50 text-red-700 font-bold text-[10px] px-2.5 py-1 rounded-full border border-red-200 shadow-sm shrink-0">
-                                        Từ chối
-                                      </span>
-                                    )}
-                                  </td>
-                                  <td className="px-4 py-3.5 text-xs text-on-surface-variant max-w-[200px] break-words">
-                                    {req.admin_feedback ? (
-                                      <ExpandableText text={req.admin_feedback} limit={50} />
-                                    ) : (
-                                      <span className="italic text-slate-400">Không có</span>
-                                    )}
-                                  </td>
+                    ) : (() => {
+                      const totalHistoryOrgPages = Math.ceil(filteredRequests.length / itemsPerPage);
+                      const paginatedHistoryOrgs = filteredRequests.slice(
+                        (historyOrgPage - 1) * itemsPerPage,
+                        historyOrgPage * itemsPerPage
+                      );
+                      return (
+                        <>
+                          <div className="overflow-x-auto">
+                            <table className="w-full border-collapse text-left text-sm">
+                              <thead>
+                                <tr className="bg-[#f8f9fa] border-b border-surface-variant/40 text-on-surface-variant font-bold text-xs uppercase tracking-wider">
+                                  <th className="px-4 py-3 whitespace-nowrap">Người yêu cầu</th>
+                                  <th className="px-4 py-3">Lý do xin nâng quyền</th>
+                                  <th className="px-4 py-3 whitespace-nowrap">Thời gian duyệt</th>
+                                  <th className="px-4 py-3 whitespace-nowrap">Trạng thái</th>
+                                  <th className="px-4 py-3">Phản hồi của Admin</th>
                                 </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
+                              </thead>
+                              <tbody className="divide-y divide-surface-variant/30 text-on-surface">
+                                {paginatedHistoryOrgs.map(req => {
+                                  const requesterUser = users.find(u => u._id === req.volunteer_id);
+                                  return (
+                                    <tr key={req._id} className="hover:bg-slate-50 transition-colors">
+                                      <td className="px-4 py-3.5 whitespace-nowrap font-semibold">
+                                        <div>{req.denormalized_volunteer?.name || 'Tài Khoản'}</div>
+                                        <div className="text-[10px] text-on-surface-variant font-normal">
+                                          {requesterUser?.email || req.denormalized_volunteer?.email || 'Chưa cập nhật'}
+                                        </div>
+                                      </td>
+                                      <td className="px-4 py-3.5 text-xs text-on-surface-variant max-w-[250px] break-words">
+                                        {req.reason}
+                                      </td>
+                                      <td className="px-4 py-3.5 whitespace-nowrap text-xs text-on-surface-variant">
+                                        {req.reviewed_at ? new Date(req.reviewed_at).toLocaleString('vi-VN') : 'Chưa cập nhật'}
+                                      </td>
+                                      <td className="px-4 py-3.5 whitespace-nowrap">
+                                        {req.status === 'Approved' ? (
+                                          <span className="bg-[#e8f5e9] text-[#006d37] font-bold text-[10px] px-2.5 py-1 rounded-full border border-[#006d37]/20 shadow-sm shrink-0">
+                                            Đã duyệt
+                                          </span>
+                                        ) : (
+                                          <span className="bg-red-50 text-red-700 font-bold text-[10px] px-2.5 py-1 rounded-full border border-red-200 shadow-sm shrink-0">
+                                            Từ chối
+                                          </span>
+                                        )}
+                                      </td>
+                                      <td className="px-4 py-3.5 text-xs text-on-surface-variant max-w-[200px] break-words">
+                                        {req.admin_feedback ? (
+                                          <ExpandableText text={req.admin_feedback} limit={50} />
+                                        ) : (
+                                          <span className="italic text-slate-400">Không có</span>
+                                        )}
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                          <Pagination currentPage={historyOrgPage} totalPages={totalHistoryOrgPages} onPageChange={setHistoryOrgPage} />
+                        </>
+                      );
+                    })()}
                   </div>
                 ) : (
                   <div className="bg-white border border-surface-variant/40 rounded-2xl shadow-sm overflow-hidden">
@@ -1650,54 +1813,64 @@ export const AdminDashboard: React.FC = () => {
                         <span className="material-symbols-outlined text-outline text-5xl">history</span>
                         <p className="text-sm text-on-surface-variant italic">Không tìm thấy lịch sử phê duyệt hoạt động phù hợp.</p>
                       </div>
-                    ) : (
-                      <div className="overflow-x-auto">
-                        <table className="w-full border-collapse text-left text-sm">
-                          <thead>
-                            <tr className="bg-[#f8f9fa] border-b border-surface-variant/40 text-on-surface-variant font-bold text-xs uppercase tracking-wider">
-                              <th className="px-4 py-3 whitespace-nowrap">Tên hoạt động</th>
-                              <th className="px-4 py-3 whitespace-nowrap">Ban tổ chức</th>
-                              <th className="px-4 py-3 whitespace-nowrap">Lĩnh vực</th>
-                              <th className="px-4 py-3 whitespace-nowrap">Thời gian diễn ra</th>
-                              <th className="px-4 py-3 whitespace-nowrap">Trạng thái</th>
-                              <th className="px-4 py-3 whitespace-nowrap">Ngày duyệt</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-surface-variant/30 text-on-surface">
-                            {filteredActs.map(act => (
-                              <tr key={act._id} className="hover:bg-slate-50 transition-colors">
-                                <td className="px-4 py-3.5 max-w-[200px] truncate font-bold text-primary hover:underline">
-                                  <a href={`#/activity/${act._id}`}>{act.title}</a>
-                                </td>
-                                <td className="px-4 py-3.5 whitespace-nowrap text-on-surface font-semibold">
-                                  {act.denormalized_organizer?.name || 'Ban tổ chức'}
-                                </td>
-                                <td className="px-4 py-3.5 whitespace-nowrap text-xs text-on-surface-variant">
-                                  {act.categories?.join(', ') || 'Chưa cập nhật'}
-                                </td>
-                                <td className="px-4 py-3.5 whitespace-nowrap text-xs text-on-surface-variant">
-                                  {new Date(act.start_date).toLocaleDateString('vi-VN')} - {new Date(act.end_date).toLocaleDateString('vi-VN')}
-                                </td>
-                                <td className="px-4 py-3.5 whitespace-nowrap">
-                                  {act.status === 'Open' ? (
-                                    <span className="bg-[#e8f5e9] text-[#006d37] font-bold text-[10px] px-2.5 py-1 rounded-full border border-[#006d37]/20 shadow-sm shrink-0">
-                                      Đã duyệt
-                                    </span>
-                                  ) : (
-                                    <span className="bg-red-50 text-red-700 font-bold text-[10px] px-2.5 py-1 rounded-full border border-red-200 shadow-sm shrink-0">
-                                      Từ chối
-                                    </span>
-                                  )}
-                                </td>
-                                <td className="px-4 py-3.5 whitespace-nowrap text-xs text-on-surface-variant">
-                                  {new Date(act.updated_at).toLocaleDateString('vi-VN')}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
+                    ) : (() => {
+                      const totalHistoryActPages = Math.ceil(filteredActs.length / itemsPerPage);
+                      const paginatedHistoryActs = filteredActs.slice(
+                        (historyActPage - 1) * itemsPerPage,
+                        historyActPage * itemsPerPage
+                      );
+                      return (
+                        <>
+                          <div className="overflow-x-auto">
+                            <table className="w-full border-collapse text-left text-sm">
+                              <thead>
+                                <tr className="bg-[#f8f9fa] border-b border-surface-variant/40 text-on-surface-variant font-bold text-xs uppercase tracking-wider">
+                                  <th className="px-4 py-3 whitespace-nowrap">Tên hoạt động</th>
+                                  <th className="px-4 py-3 whitespace-nowrap">Ban tổ chức</th>
+                                  <th className="px-4 py-3 whitespace-nowrap">Lĩnh vực</th>
+                                  <th className="px-4 py-3 whitespace-nowrap">Thời gian diễn ra</th>
+                                  <th className="px-4 py-3 whitespace-nowrap">Trạng thái</th>
+                                  <th className="px-4 py-3 whitespace-nowrap">Ngày duyệt</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-surface-variant/30 text-on-surface">
+                                {paginatedHistoryActs.map(act => (
+                                  <tr key={act._id} className="hover:bg-slate-50 transition-colors">
+                                    <td className="px-4 py-3.5 max-w-[200px] truncate font-bold text-primary hover:underline">
+                                      <a href={`#/activity/${act._id}`}>{act.title}</a>
+                                    </td>
+                                    <td className="px-4 py-3.5 whitespace-nowrap text-on-surface font-semibold">
+                                      {act.denormalized_organizer?.name || 'Ban tổ chức'}
+                                    </td>
+                                    <td className="px-4 py-3.5 whitespace-nowrap text-xs text-on-surface-variant">
+                                      {act.categories?.join(', ') || 'Chưa cập nhật'}
+                                    </td>
+                                    <td className="px-4 py-3.5 whitespace-nowrap text-xs text-on-surface-variant">
+                                      {new Date(act.start_date).toLocaleDateString('vi-VN')} - {new Date(act.end_date).toLocaleDateString('vi-VN')}
+                                    </td>
+                                    <td className="px-4 py-3.5 whitespace-nowrap">
+                                      {act.status === 'Open' ? (
+                                        <span className="bg-[#e8f5e9] text-[#006d37] font-bold text-[10px] px-2.5 py-1 rounded-full border border-[#006d37]/20 shadow-sm shrink-0">
+                                          Đã duyệt
+                                        </span>
+                                      ) : (
+                                        <span className="bg-red-50 text-red-700 font-bold text-[10px] px-2.5 py-1 rounded-full border border-red-200 shadow-sm shrink-0">
+                                          Từ chối
+                                        </span>
+                                      )}
+                                    </td>
+                                    <td className="px-4 py-3.5 whitespace-nowrap text-xs text-on-surface-variant">
+                                      {new Date(act.updated_at).toLocaleDateString('vi-VN')}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                          <Pagination currentPage={historyActPage} totalPages={totalHistoryActPages} onPageChange={setHistoryActPage} />
+                        </>
+                      );
+                    })()}
                   </div>
                 )}
               </div>
