@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import type { Activity } from '../context/AppContext';
 import { activityService } from '../services/apiService';
@@ -94,9 +94,17 @@ export const ActivityListView: React.FC = () => {
     ? Math.ceil(totalServerCount / itemsPerPage)
     : Math.ceil(filteredActivities.length / itemsPerPage);
 
+  const sortedActivities = useMemo(() => {
+    return [...filteredActivities].sort((a, b) => {
+      const timeA = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const timeB = b.created_at ? new Date(b.created_at).getTime() : 0;
+      return timeB - timeA;
+    });
+  }, [filteredActivities]);
+
   const paginatedActivities = USE_REAL_BACKEND
     ? serverActivities
-    : filteredActivities.slice(
+    : sortedActivities.slice(
       (currentPage - 1) * itemsPerPage,
       currentPage * itemsPerPage
     );

@@ -323,7 +323,7 @@ const AppContent: React.FC = () => {
 
         {/* Footer (Matching design mockup styles) */}
         <footer className="bg-slate-900 text-slate-300 border-t border-slate-800 w-full mt-auto py-12">
-          <div className="max-w-[1280px] mx-auto px-4 md:px-8 grid grid-cols-1 md:grid-cols-4 gap-8 text-left">
+          <div className="max-w-[1280px] mx-auto px-4 md:px-8 grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
             
             {/* Column 1: Brand & Info */}
             <div className="space-y-4 md:col-span-1">
@@ -375,28 +375,6 @@ const AppContent: React.FC = () => {
                   <span>+84 (28) 3835 4409</span>
                 </li>
               </ul>
-            </div>
-
-            {/* Column 4: Newsletter */}
-            <div className="space-y-4">
-              <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-200">Bản Tin</h4>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Đăng ký nhận thông tin về các hoạt động tình nguyện mới nhất trực tiếp qua Email của bạn.
-              </p>
-              <div className="flex gap-2 pt-1">
-                <input 
-                  type="email" 
-                  placeholder="Email của bạn..." 
-                  className="px-3.5 py-2 border border-slate-700 bg-slate-800 text-white rounded-xl text-xs w-full focus:outline-none focus:border-[#10b981] focus:ring-1 focus:ring-[#10b981] placeholder-slate-500 font-semibold"
-                />
-                <button 
-                  type="button" 
-                  onClick={() => alert("Cảm ơn bạn đã đăng ký nhận bản tin!")}
-                  className="bg-[#10b981] hover:bg-[#059669] text-white px-3.5 py-2 rounded-xl text-xs font-bold transition-colors shadow cursor-pointer"
-                >
-                  Gửi
-                </button>
-              </div>
             </div>
 
           </div>
