@@ -42,9 +42,9 @@ const InfoItem: React.FC<{
     <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${bgClass} shrink-0`}>
       <span className={`material-symbols-outlined text-lg ${iconColorClass}`}>{icon}</span>
     </div>
-    <div className="space-y-0.5 text-left">
-      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">{label}</span>
-      <span className="text-slate-800 text-sm font-semibold block">{value}</span>
+    <div className="space-y-0.5 text-left min-w-0 flex-1">
+      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block truncate">{label}</span>
+      <span className="text-slate-800 text-sm font-semibold block break-all">{value}</span>
     </div>
   </div>
 );
