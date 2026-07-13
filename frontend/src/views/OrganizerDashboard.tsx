@@ -43,16 +43,16 @@ const ActivityStatusBadge: React.FC<{ status: string }> = ({ status }) => {
 const formatDateTimeToISO = (dateStr: string, defaultTime: string): string => {
   if (!dateStr) return '';
   if (dateStr.endsWith('Z') || dateStr.includes('+')) return dateStr;
-  
+
   let normalized = dateStr.replace(' ', 'T');
   if (!normalized.includes('T')) {
     normalized = `${normalized}T${defaultTime}`;
   }
-  
+
   const [datePart, timePart] = normalized.split('T');
   const [year, month, day] = datePart.split('-').map(Number);
   const [hours, minutes] = timePart.split(':').map(Number);
-  
+
   const localDate = new Date(year, month - 1, day, hours, minutes);
   return localDate.toISOString();
 };
@@ -61,14 +61,14 @@ const formatISOToLocalInput = (isoStr: string): string => {
   if (!isoStr) return '';
   const date = new Date(isoStr);
   if (isNaN(date.getTime())) return '';
-  
+
   const pad = (n: number) => n.toString().padStart(2, '0');
   const year = date.getFullYear();
   const month = pad(date.getMonth() + 1);
   const day = pad(date.getDate());
   const hours = pad(date.getHours());
   const minutes = pad(date.getMinutes());
-  
+
   return `${year}-${month}-${day}T${hours}:${minutes}`;
 };
 
@@ -120,7 +120,7 @@ export const OrganizerDashboard: React.FC = () => {
   const [endDate, setEndDate] = useState('');
   const [limitVolunteers, setLimitVolunteers] = useState<number | string>(10);
   const [requirements, setRequirements] = useState('');
-   const [imageUrl, setImageUrl] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -132,7 +132,7 @@ export const OrganizerDashboard: React.FC = () => {
       showNotification('Dung lượng hình ảnh phải nhỏ hơn 2MB để upload!', 'error');
       return;
     }
-    
+
     setIsUploadingImage(true);
     try {
       const res = await mediaService.upload(file);
@@ -572,7 +572,7 @@ export const OrganizerDashboard: React.FC = () => {
               <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/45 backdrop-blur-sm p-4 overflow-y-auto animate-fadeIn">
                 <div className="bg-white border border-slate-200/80 rounded-3xl p-6 md:p-8 w-full max-w-[800px] shadow-2xl relative my-8 max-h-[90vh] overflow-y-auto animate-scaleUp text-left">
                   {/* Close button */}
-                  <button 
+                  <button
                     type="button"
                     onClick={() => { resetForm(); setShowForm(false); }}
                     className="absolute top-4 right-5 text-slate-400 hover:text-slate-650 text-2xl font-bold transition-colors cursor-pointer border-none bg-transparent"
@@ -584,287 +584,277 @@ export const OrganizerDashboard: React.FC = () => {
                   </h2>
 
                   <form onSubmit={handleSubmitActivity} className="space-y-5" noValidate>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">Tên hoạt động *</label>
-                    <input
-                      type="text" value={title} onChange={e => setTitle(e.target.value)} required
-                      placeholder="Ví dụ: Chiến dịch dọn rác bờ biển Cần Giờ 2026..."
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/20 text-sm font-semibold"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">Lĩnh vực *</label>
-                      <select value={category} onChange={e => setCategory(e.target.value)}
-                        className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:border-[#006d37] text-sm font-semibold bg-white cursor-pointer">
-                        <option value="Môi trường">Môi trường</option>
-                        <option value="Giáo dục">Giáo dục</option>
-                        <option value="Y tế">Y tế</option>
-                        <option value="Từ thiện">Từ thiện</option>
-                        <option value="Gây quỹ">Gây quỹ</option>
-                      </select>
+                      <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">Tên hoạt động *</label>
+                      <input
+                        type="text" value={title} onChange={e => setTitle(e.target.value)} required
+                        placeholder="Ví dụ: Chiến dịch dọn rác bờ biển Cần Giờ 2026..."
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/20 text-sm font-semibold"
+                      />
                     </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">Lĩnh vực *</label>
+                        <select value={category} onChange={e => setCategory(e.target.value)}
+                          className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:border-[#006d37] text-sm font-semibold bg-white cursor-pointer">
+                          <option value="Môi trường">Môi trường</option>
+                          <option value="Giáo dục">Giáo dục</option>
+                          <option value="Y tế">Y tế</option>
+                          <option value="Từ thiện">Từ thiện</option>
+                          <option value="Gây quỹ">Gây quỹ</option>
+                        </select>
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">Số lượng tình nguyện viên *</label>
+                        <input type="number" value={limitVolunteers}
+                          onChange={e => setLimitVolunteers(e.target.value === '' ? '' : Number(e.target.value))}
+                          required min={1}
+                          className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/20 text-sm font-semibold" />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">Thời gian bắt đầu *</label>
+                        <input type="datetime-local" value={startDate} onChange={e => setStartDate(e.target.value)} required
+                          className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/20 text-sm font-semibold cursor-pointer" />
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">Thời gian kết thúc *</label>
+                        <input type="datetime-local" value={endDate} onChange={e => setEndDate(e.target.value)} required
+                          className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/20 text-sm font-semibold cursor-pointer" />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">Tỉnh / Thành phố *</label>
+                        <select value={province} onChange={e => { const p = e.target.value; setProvince(p); setDistrict(LOCATION_DATA[p]?.[0] || ''); }} required
+                          className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:border-[#006d37] text-sm font-semibold bg-white cursor-pointer">
+                          {Object.keys(LOCATION_DATA).map(p => <option key={p} value={p}>{p}</option>)}
+                        </select>
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">Quận / Huyện *</label>
+                        <select value={district} onChange={e => setDistrict(e.target.value)} required
+                          className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:border-[#006d37] text-sm font-semibold bg-white cursor-pointer">
+                          {(LOCATION_DATA[province] || []).map(d => <option key={d} value={d}>{d}</option>)}
+                        </select>
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">Địa chỉ chi tiết *</label>
+                        <input type="text" value={addressDetail} onChange={e => setAddressDetail(e.target.value)} required
+                          placeholder="Ví dụ: Bãi biển 30/4"
+                          className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/20 text-sm font-semibold" />
+                      </div>
+                    </div>
+
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">Số lượng tình nguyện viên *</label>
-                      <input type="number" value={limitVolunteers}
-                        onChange={e => setLimitVolunteers(e.target.value === '' ? '' : Number(e.target.value))}
-                        required min={1}
+                      <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">Mô tả chi tiết *</label>
+                      <textarea rows={5} value={description} onChange={e => setDescription(e.target.value)} required
+                        placeholder="Mô tả nội dung, hành trình, lợi ích và đóng góp..."
                         className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/20 text-sm font-semibold" />
                     </div>
-                  </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">Thời gian bắt đầu *</label>
-                      <input type="datetime-local" value={startDate} onChange={e => setStartDate(e.target.value)} required
-                        className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/20 text-sm font-semibold cursor-pointer" />
-                    </div>
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">Thời gian kết thúc *</label>
-                      <input type="datetime-local" value={endDate} onChange={e => setEndDate(e.target.value)} required
-                        className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/20 text-sm font-semibold cursor-pointer" />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">Tỉnh / Thành phố *</label>
-                      <select value={province} onChange={e => { const p = e.target.value; setProvince(p); setDistrict(LOCATION_DATA[p]?.[0] || ''); }} required
-                        className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:border-[#006d37] text-sm font-semibold bg-white cursor-pointer">
-                        {Object.keys(LOCATION_DATA).map(p => <option key={p} value={p}>{p}</option>)}
-                      </select>
-                    </div>
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">Quận / Huyện *</label>
-                      <select value={district} onChange={e => setDistrict(e.target.value)} required
-                        className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:border-[#006d37] text-sm font-semibold bg-white cursor-pointer">
-                        {(LOCATION_DATA[province] || []).map(d => <option key={d} value={d}>{d}</option>)}
-                      </select>
-                    </div>
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">Địa chỉ chi tiết *</label>
-                      <input type="text" value={addressDetail} onChange={e => setAddressDetail(e.target.value)} required
-                        placeholder="Ví dụ: Bãi biển 30/4"
+                      <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">Yêu cầu & Ghi chú</label>
+                      <textarea rows={3} value={requirements} onChange={e => setRequirements(e.target.value)}
+                        placeholder="Độ tuổi tối thiểu, trang phục yêu cầu, sức khỏe..."
                         className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/20 text-sm font-semibold" />
                     </div>
-                  </div>
 
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">Mô tả chi tiết *</label>
-                    <textarea rows={5} value={description} onChange={e => setDescription(e.target.value)} required
-                      placeholder="Mô tả nội dung, hành trình, lợi ích và đóng góp..."
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/20 text-sm font-semibold" />
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">Yêu cầu & Ghi chú</label>
-                    <textarea rows={3} value={requirements} onChange={e => setRequirements(e.target.value)}
-                      placeholder="Độ tuổi tối thiểu, trang phục yêu cầu, sức khỏe..."
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/20 text-sm font-semibold" />
-                  </div>
-
-                  <div className="flex flex-col gap-2 text-left">
-                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">Hình ảnh minh họa</label>
-                    <div className="flex items-center gap-4 pt-1">
-                      {imageUrl ? (
-                        <div className="relative w-36 h-24 rounded-xl overflow-hidden border border-gray-200 shrink-0 shadow-sm">
-                          <img src={imageUrl} alt="preview" className="w-full h-full object-cover" />
-                          <button type="button" onClick={() => setImageUrl('')}
-                            className="absolute top-1.5 right-1.5 bg-red-600 hover:bg-red-700 text-white rounded-full p-0.5 shadow transition-all cursor-pointer">
-                            <span className="material-symbols-outlined text-[13px]">close</span>
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="w-36 h-24 rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400 shrink-0 text-xs font-semibold">
-                          <span className="material-symbols-outlined text-xl mb-1">image</span>
-                          Chưa chọn ảnh
-                        </div>
-                      )}
-                      {isUploadingImage ? (
-                        <div className="inline-flex items-center gap-1.5 px-4 py-2 border border-slate-200 text-slate-400 rounded-xl text-xs font-bold bg-slate-50">
-                          <span className="animate-spin text-sm">⌛</span>
-                          Đang tải lên...
-                        </div>
-                      ) : (
-                        <label className="inline-flex items-center gap-1.5 px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold cursor-pointer transition-all shadow-sm">
-                          <span className="material-symbols-outlined text-sm text-slate-500">upload</span>
-                          Tải ảnh lên
-                          <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
-                        </label>
-                      )}
+                    <div className="flex flex-col gap-2 text-left">
+                      <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">Hình ảnh minh họa</label>
+                      <div className="flex items-center gap-4 pt-1">
+                        {imageUrl ? (
+                          <div className="relative w-36 h-24 rounded-xl overflow-hidden border border-gray-200 shrink-0 shadow-sm">
+                            <img src={imageUrl} alt="preview" className="w-full h-full object-cover" />
+                            <button type="button" onClick={() => setImageUrl('')}
+                              className="absolute top-1.5 right-1.5 bg-red-600 hover:bg-red-700 text-white rounded-full p-0.5 shadow transition-all cursor-pointer">
+                              <span className="material-symbols-outlined text-[13px]">close</span>
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="w-36 h-24 rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400 shrink-0 text-xs font-semibold">
+                            <span className="material-symbols-outlined text-xl mb-1">image</span>
+                            Chưa chọn ảnh
+                          </div>
+                        )}
+                        {isUploadingImage ? (
+                          <div className="inline-flex items-center gap-1.5 px-4 py-2 border border-slate-200 text-slate-400 rounded-xl text-xs font-bold bg-slate-50">
+                            <span className="animate-spin text-sm">⌛</span>
+                            Đang tải lên...
+                          </div>
+                        ) : (
+                          <label className="inline-flex items-center gap-1.5 px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold cursor-pointer transition-all shadow-sm">
+                            <span className="material-symbols-outlined text-sm text-slate-500">upload</span>
+                            Tải ảnh lên
+                            <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                          </label>
+                        )}
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="flex justify-end gap-3 border-t border-gray-100 pt-5">
-                    <button type="button" onClick={() => { resetForm(); setShowForm(false); }}
-                      className="px-5 py-2.5 border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 text-sm font-bold cursor-pointer transition-all">
-                      Hủy
-                    </button>
-                    <button type="submit" disabled={isSubmitting}
-                      className={`px-5 py-2.5 rounded-xl text-sm font-bold shadow-sm transition-all ${
-                        isSubmitting 
-                          ? 'bg-gray-400 text-gray-200 cursor-not-allowed' 
+                    <div className="flex justify-end gap-3 border-t border-gray-100 pt-5">
+                      <button type="button" onClick={() => { resetForm(); setShowForm(false); }}
+                        className="px-5 py-2.5 border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 text-sm font-bold cursor-pointer transition-all">
+                        Hủy
+                      </button>
+                      <button type="submit" disabled={isSubmitting}
+                        className={`px-5 py-2.5 rounded-xl text-sm font-bold shadow-sm transition-all ${isSubmitting
+                          ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
                           : 'bg-[#006d37] hover:bg-[#005027] text-white cursor-pointer'
-                      }`}>
-                      {isSubmitting ? 'Đang gửi...' : (editMode ? 'Cập nhật hoạt động' : 'Tạo hoạt động mới')}
-                    </button>
+                          }`}>
+                        {isSubmitting ? 'Đang gửi...' : (editMode ? 'Cập nhật hoạt động' : 'Tạo hoạt động mới')}
+                      </button>
 
-                  </div>
-                </form>
+                    </div>
+                  </form>
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
             {/* Activity List matching mockup */}
             <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm">
-                {/* List header */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between p-5 border-b border-slate-100 gap-3">
-                  <h3 className="font-bold text-gray-900 text-sm font-headline-md">Danh sách hoạt động đã tạo</h3>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="text"
-                      value={activitySearch}
-                      onChange={e => setActivitySearch(e.target.value)}
-                      placeholder="Tìm tên hoạt động..."
-                      className="border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-semibold focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/10 w-48 shadow-sm transition-all"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowActivityFilters(!showActivityFilters)}
-                      className={`flex items-center gap-1.5 border rounded-xl px-4 py-2 text-xs font-bold cursor-pointer shadow-sm transition-all ${
-                        showActivityFilters
-                          ? 'border-[#006d37] bg-[#006d37] text-white'
-                          : 'border-[#006d37] text-[#006d37] hover:bg-emerald-50'
+              {/* List header */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between p-5 border-b border-slate-100 gap-3">
+                <h3 className="font-bold text-gray-900 text-sm font-headline-md">Danh sách hoạt động đã tạo</h3>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="text"
+                    value={activitySearch}
+                    onChange={e => setActivitySearch(e.target.value)}
+                    placeholder="Tìm tên hoạt động..."
+                    className="border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-semibold focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/10 w-48 shadow-sm transition-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowActivityFilters(!showActivityFilters)}
+                    className={`flex items-center gap-1.5 border rounded-xl px-4 py-2 text-xs font-bold cursor-pointer shadow-sm transition-all ${showActivityFilters
+                      ? 'border-[#006d37] bg-[#006d37] text-white'
+                      : 'border-[#006d37] text-[#006d37] hover:bg-emerald-50'
                       }`}
-                    >
-                      <span className="material-symbols-outlined text-[15px] font-bold">filter_list</span>
-                      Bộ lọc
-                      {(activityStatusFilter !== 'All' || activityCategoryFilter !== 'All') && (
-                        <span className={`w-1.5 h-1.5 rounded-full ${showActivityFilters ? 'bg-white' : 'bg-[#006d37]'}`} />
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Collapsible Filters Panel */}
-                {showActivityFilters && (
-                  <div className="flex flex-wrap items-center gap-4 px-5 py-4 bg-slate-50/50 border-b border-slate-100 animate-slideDown">
-                    <div className="flex flex-col gap-1 text-left">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Trạng thái</label>
-                      <select
-                        value={activityStatusFilter}
-                        onChange={e => setActivityStatusFilter(e.target.value)}
-                        className="border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-[#006d37] bg-white cursor-pointer shadow-sm text-slate-700 min-w-[150px]"
-                      >
-                        <option value="All">Tất cả trạng thái</option>
-                        <option value="Draft">Bản nháp</option>
-                        <option value="Pending Review">Chờ duyệt</option>
-                        <option value="Open">Đang tuyển/diễn ra</option>
-                        <option value="Completed">Đã kết thúc</option>
-                        <option value="Rejected">Bị từ chối</option>
-                      </select>
-                    </div>
-                    <div className="flex flex-col gap-1 text-left">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Lĩnh vực</label>
-                      <select
-                        value={activityCategoryFilter}
-                        onChange={e => setActivityCategoryFilter(e.target.value)}
-                        className="border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-[#006d37] bg-white cursor-pointer shadow-sm text-slate-700 min-w-[150px]"
-                      >
-                        <option value="All">Tất cả lĩnh vực</option>
-                        <option value="Môi trường">Môi trường</option>
-                        <option value="Giáo dục">Giáo dục</option>
-                        <option value="Y tế">Y tế</option>
-                        <option value="Từ thiện">Từ thiện</option>
-                        <option value="Gây quỹ">Gây quỹ</option>
-                      </select>
-                    </div>
-                    {(activitySearch || activityStatusFilter !== 'All' || activityCategoryFilter !== 'All') && (
-                      <button
-                        onClick={() => {
-                          setActivitySearch('');
-                          setActivityStatusFilter('All');
-                          setActivityCategoryFilter('All');
-                        }}
-                        className="self-end mb-1 text-red-650 hover:text-red-700 font-bold text-xs flex items-center gap-0.5 cursor-pointer h-8"
-                      >
-                        <span className="material-symbols-outlined text-sm">clear</span>
-                        Xóa lọc
-                      </button>
+                  >
+                    <span className="material-symbols-outlined text-[15px] font-bold">filter_list</span>
+                    Bộ lọc
+                    {(activityStatusFilter !== 'All' || activityCategoryFilter !== 'All') && (
+                      <span className={`w-1.5 h-1.5 rounded-full ${showActivityFilters ? 'bg-white' : 'bg-[#006d37]'}`} />
                     )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Collapsible Filters Panel */}
+              {showActivityFilters && (
+                <div className="flex flex-wrap items-center gap-4 px-5 py-4 bg-slate-50/50 border-b border-slate-100 animate-slideDown">
+                  <div className="flex flex-col gap-1 text-left">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Trạng thái</label>
+                    <select
+                      value={activityStatusFilter}
+                      onChange={e => setActivityStatusFilter(e.target.value)}
+                      className="border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-[#006d37] bg-white cursor-pointer shadow-sm text-slate-700 min-w-[150px]"
+                    >
+                      <option value="All">Tất cả trạng thái</option>
+                      <option value="Draft">Bản nháp</option>
+                      <option value="Pending Review">Chờ duyệt</option>
+                      <option value="Open">Đang tuyển/diễn ra</option>
+                      <option value="Completed">Đã kết thúc</option>
+                      <option value="Rejected">Bị từ chối</option>
+                    </select>
                   </div>
-                )}
-
-                {filteredCampaigns.length === 0 ? (
-                  <div className="p-16 text-center">
-                    <span className="material-symbols-outlined text-gray-300 text-5xl">campaign</span>
-                    <p className="text-xs text-gray-400 italic mt-3 font-semibold">
-                      {activitySearch ? 'Không tìm thấy hoạt động nào.' : 'Bạn chưa tạo hoạt động nào.'}
-                    </p>
+                  <div className="flex flex-col gap-1 text-left">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Lĩnh vực</label>
+                    <select
+                      value={activityCategoryFilter}
+                      onChange={e => setActivityCategoryFilter(e.target.value)}
+                      className="border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-[#006d37] bg-white cursor-pointer shadow-sm text-slate-700 min-w-[150px]"
+                    >
+                      <option value="All">Tất cả lĩnh vực</option>
+                      <option value="Môi trường">Môi trường</option>
+                      <option value="Giáo dục">Giáo dục</option>
+                      <option value="Y tế">Y tế</option>
+                      <option value="Từ thiện">Từ thiện</option>
+                      <option value="Gây quỹ">Gây quỹ</option>
+                    </select>
                   </div>
-                ) : (
-                  <div className="divide-y divide-slate-100">
-                    {filteredCampaigns.map(act => {
-                      const isCompleted = act.status === 'Completed';
-                      const isOpen = act.status === 'Open' || act.status === 'Full' || act.status === 'Ongoing';
-                      const isPending = act.status === 'Pending Review';
-                      const approvedCount = registrations.filter(r => r.activity_id === act._id && (r.status === 'Approved' || r.status === 'Completed')).length;
+                  {(activitySearch || activityStatusFilter !== 'All' || activityCategoryFilter !== 'All') && (
+                    <button
+                      onClick={() => {
+                        setActivitySearch('');
+                        setActivityStatusFilter('All');
+                        setActivityCategoryFilter('All');
+                      }}
+                      className="self-end mb-1 text-red-650 hover:text-red-700 font-bold text-xs flex items-center gap-0.5 cursor-pointer h-8"
+                    >
+                      <span className="material-symbols-outlined text-sm">clear</span>
+                      Xóa lọc
+                    </button>
+                  )}
+                </div>
+              )}
 
-                      // Format date
-                      const dateObj = new Date(act.start_date);
-                      const formattedDate = `${dateObj.getDate()}/${dateObj.getMonth() + 1}/${dateObj.getFullYear()}`;
+              {filteredCampaigns.length === 0 ? (
+                <div className="p-16 text-center">
+                  <span className="material-symbols-outlined text-gray-300 text-5xl">campaign</span>
+                  <p className="text-xs text-gray-400 italic mt-3 font-semibold">
+                    {activitySearch ? 'Không tìm thấy hoạt động nào.' : 'Bạn chưa tạo hoạt động nào.'}
+                  </p>
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-100">
+                  {filteredCampaigns.map(act => {
+                    const isCompleted = act.status === 'Completed';
+                    const isPending = act.status === 'Pending Review';
+                    const approvedCount = registrations.filter(r => r.activity_id === act._id && (r.status === 'Approved' || r.status === 'Completed')).length;
 
-                      return (
-                        <div key={act._id} className="flex flex-col sm:flex-row sm:items-center justify-between px-5 py-5 gap-3 hover:bg-slate-50/50 transition-colors animate-fadeIn">
-                          <div className="space-y-1.5 flex-1 min-w-0">
-                            <div className="flex items-center gap-2.5 flex-wrap">
-                              <a href={`#/activity/${act._id}`}
-                                className="font-bold text-sm text-[#006d37] hover:underline truncate max-w-[420px]">
-                                {act.title}
-                              </a>
-                              <ActivityStatusBadge status={act.status} />
-                            </div>
-                            <div className="flex items-center gap-4 text-xs text-slate-500 font-semibold">
-                              <span className="flex items-center gap-1.5">
-                                <span className="material-symbols-outlined text-sm text-slate-400">calendar_month</span>
-                                <span>{formattedDate}</span>
-                              </span>
-                              <span className="flex items-center gap-1.5">
-                                <span className="material-symbols-outlined text-sm text-slate-400">group</span>
-                                <span>{approvedCount}/{act.limit_volunteers}</span>
-                              </span>
-                            </div>
+                    // Format date
+                    const dateObj = new Date(act.start_date);
+                    const formattedDate = `${dateObj.getDate()}/${dateObj.getMonth() + 1}/${dateObj.getFullYear()}`;
+
+                    return (
+                      <div key={act._id} className="flex flex-col sm:flex-row sm:items-center justify-between px-5 py-5 gap-3 hover:bg-slate-50/50 transition-colors animate-fadeIn">
+                        <div className="space-y-1.5 flex-1 min-w-0">
+                          <div className="flex items-center gap-2.5 flex-wrap">
+                            <a href={`#/activity/${act._id}`}
+                              className="font-bold text-sm text-[#006d37] hover:underline truncate max-w-[420px]">
+                              {act.title}
+                            </a>
+                            <ActivityStatusBadge status={act.status} />
                           </div>
-
-                          {/* Action buttons per status matching mockup designs */}
-                          <div className="flex items-center gap-2 shrink-0">
-                            {isPending && (
-                              <button onClick={() => handleEditCampaignClick(act)}
-                                className="border border-slate-200 text-slate-700 hover:bg-slate-50 px-4 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer">
-                                Sửa
-                              </button>
-                            )}
-                            {isOpen && (
-                              <button
-                                onClick={() => { setActiveTab('registrations'); setRegSubTab('pending'); }}
-                                className="bg-[#006d37] hover:bg-[#005027] text-white px-4 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer">
-                                Duyệt đơn
-                              </button>
-                            )}
-                            {isCompleted && (
-                              <button
-                                onClick={() => { setActiveTab('attendance'); setSelectedActivityId(act._id); }}
-                                className="bg-[#006d37] hover:bg-[#005027] text-white px-4 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer">
-                                Điểm danh
-                              </button>
-                            )}
+                          <div className="flex items-center gap-4 text-xs text-slate-500 font-semibold">
+                            <span className="flex items-center gap-1.5">
+                              <span className="material-symbols-outlined text-sm text-slate-400">calendar_month</span>
+                              <span>{formattedDate}</span>
+                            </span>
+                            <span className="flex items-center gap-1.5">
+                              <span className="material-symbols-outlined text-sm text-slate-400">group</span>
+                              <span>{approvedCount}/{act.limit_volunteers}</span>
+                            </span>
                           </div>
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
+
+                        {/* Action buttons per status matching mockup designs */}
+                        <div className="flex items-center gap-2 shrink-0">
+                          {isPending && (
+                            <button onClick={() => handleEditCampaignClick(act)}
+                              className="border border-slate-200 text-slate-700 hover:bg-slate-50 px-4 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer">
+                              Sửa
+                            </button>
+                          )}
+                          {isCompleted && (
+                            <button
+                              onClick={() => { setActiveTab('attendance'); setSelectedActivityId(act._id); }}
+                              className="bg-[#006d37] hover:bg-[#005027] text-white px-4 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer">
+                              Điểm danh
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -880,8 +870,8 @@ export const OrganizerDashboard: React.FC = () => {
                 <button
                   onClick={() => setRegSubTab('pending')}
                   className={`px-5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${regSubTab === 'pending'
-                      ? 'bg-white text-[#006d37] shadow-sm'
-                      : 'text-slate-500 hover:text-slate-700'
+                    ? 'bg-white text-[#006d37] shadow-sm'
+                    : 'text-slate-500 hover:text-slate-700'
                     }`}
                 >
                   Chờ duyệt ({pendingCount})
@@ -889,8 +879,8 @@ export const OrganizerDashboard: React.FC = () => {
                 <button
                   onClick={() => setRegSubTab('approved')}
                   className={`px-5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${regSubTab === 'approved'
-                      ? 'bg-white text-[#006d37] shadow-sm'
-                      : 'text-slate-500 hover:text-slate-700'
+                    ? 'bg-white text-[#006d37] shadow-sm'
+                    : 'text-slate-500 hover:text-slate-700'
                     }`}
                 >
                   Đã chấp nhận ({approvedCount})
@@ -898,8 +888,8 @@ export const OrganizerDashboard: React.FC = () => {
                 <button
                   onClick={() => setRegSubTab('rejected')}
                   className={`px-5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${regSubTab === 'rejected'
-                      ? 'bg-white text-[#006d37] shadow-sm'
-                      : 'text-slate-500 hover:text-slate-700'
+                    ? 'bg-white text-[#006d37] shadow-sm'
+                    : 'text-slate-500 hover:text-slate-700'
                     }`}
                 >
                   Từ chối ({rejectedCount})
@@ -917,11 +907,10 @@ export const OrganizerDashboard: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowRegFilters(!showRegFilters)}
-                  className={`flex items-center gap-1.5 border rounded-xl px-4 py-2 text-xs font-bold cursor-pointer shadow-sm transition-all ${
-                    showRegFilters
-                      ? 'border-[#006d37] bg-[#006d37] text-white'
-                      : 'border-[#006d37] text-[#006d37] hover:bg-emerald-50'
-                  }`}
+                  className={`flex items-center gap-1.5 border rounded-xl px-4 py-2 text-xs font-bold cursor-pointer shadow-sm transition-all ${showRegFilters
+                    ? 'border-[#006d37] bg-[#006d37] text-white'
+                    : 'border-[#006d37] text-[#006d37] hover:bg-emerald-50'
+                    }`}
                 >
                   <span className="material-symbols-outlined text-[15px] font-bold">filter_list</span>
                   Bộ lọc
@@ -1247,8 +1236,8 @@ export const OrganizerDashboard: React.FC = () => {
                             <td className="px-6 py-4 text-slate-500 font-semibold">{reg.denormalized_volunteer.phone || '—'}</td>
                             <td className="px-6 py-4">
                               <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border ${reg.status === 'Approved' ? 'bg-[#e8f5e9] text-[#006d37] border-emerald-100/50' :
-                                  reg.status === 'Completed' ? 'bg-blue-50 text-blue-800 border-blue-100/50' :
-                                    'bg-red-50 text-red-750 border-red-100/50'
+                                reg.status === 'Completed' ? 'bg-blue-50 text-blue-800 border-blue-100/50' :
+                                  'bg-red-50 text-red-750 border-red-100/50'
                                 }`}>
                                 {reg.status === 'Approved' ? 'Đã duyệt' : reg.status === 'Completed' ? 'Đã tham gia' : 'Vắng mặt'}
                               </span>

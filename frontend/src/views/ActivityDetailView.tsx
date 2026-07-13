@@ -1,5 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
+import { activityService } from '../services/apiService';
+import { USE_REAL_BACKEND } from '../config/backend';
+import type { Activity } from '../context/AppContext';
 
 interface ActivityDetailViewProps {
   activityId: string;
@@ -23,14 +26,53 @@ const ContactAvatar: React.FC<{ name: string; src?: string | null }> = ({ name, 
 export const ActivityDetailView: React.FC<ActivityDetailViewProps> = ({ activityId }) => {
   const { currentUser, users, activities, registrations, registerForActivity, cancelOrRejectRegistration, showNotification, showConfirm } = useApp();
 
-  const activity = activities.find(a => a._id === activityId);
-  const organizerUser = users.find(u => u._id === activity?.organizer_id);
+  const [activity, setActivity] = useState<Activity | null>(
+    activities.find(a => a._id === activityId) || null
+  );
+  const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    let active = true;
+    if (USE_REAL_BACKEND && activityId) {
+      setLoading(true);
+      activityService.getById(activityId)
+        .then(act => {
+          if (active) {
+            setActivity(act);
+            setLoading(false);
+          }
+        })
+        .catch(err => {
+          console.error("Lỗi lấy chi tiết hoạt động từ server:", err);
+          if (active) {
+            setLoading(false);
+          }
+        });
+    } else {
+      const act = activities.find(a => a._id === activityId);
+      setActivity(act || null);
+      setLoading(false);
+    }
+    return () => {
+      active = false;
+    };
+  }, [activityId, activities]);
+
+  const organizerUser = users.find(u => u._id === activity?.organizer_id);
 
   // Check if current user is registered for this activity
   const userRegistration = registrations.find(
     r => r.volunteer_id === currentUser?._id && r.activity_id === activityId
   );
+
+  if (loading) {
+    return (
+      <div className="py-20 text-center space-y-4 max-w-md mx-auto">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#006d37] mx-auto"></div>
+        <p className="text-sm text-on-surface-variant font-medium">Đang tải thông tin hoạt động...</p>
+      </div>
+    );
+  }
 
   if (!activity) {
     return (
