@@ -24,6 +24,7 @@ from app.features.posts.comment_router import router as comment_router
 from app.features.admin.router import router as admin_router
 from app.features.attendance.router import activities_attendance_router, registrations_attendance_router
 from app.features.media.router import router as media_router
+from app.features.stats.router import router as stats_router
 from fastapi.staticfiles import StaticFiles
 from app.features.auth.dependencies import require_admin
 import os
@@ -165,6 +166,7 @@ app.include_router(admin_router)
 app.include_router(activities_attendance_router)
 app.include_router(registrations_attendance_router)
 app.include_router(media_router)
+app.include_router(stats_router)
 
 # =============================================================================
 # 6. ROOT ENDPOINT (Health Check)

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useApp } from '../context/AppContext';
 
 interface ActivityDetailViewProps {
@@ -22,8 +22,6 @@ const ContactAvatar: React.FC<{ name: string; src?: string | null }> = ({ name, 
 
 export const ActivityDetailView: React.FC<ActivityDetailViewProps> = ({ activityId }) => {
   const { currentUser, users, activities, registrations, registerForActivity, cancelOrRejectRegistration, showNotification, showConfirm } = useApp();
-  const [showSuccessToast, setShowSuccessToast] = useState(false);
-  const [toastMessage, setToastMessage] = useState('');
 
   const activity = activities.find(a => a._id === activityId);
   const organizerUser = users.find(u => u._id === activity?.organizer_id);
@@ -33,15 +31,6 @@ export const ActivityDetailView: React.FC<ActivityDetailViewProps> = ({ activity
   const userRegistration = registrations.find(
     r => r.volunteer_id === currentUser?._id && r.activity_id === activityId
   );
-
-  useEffect(() => {
-    // If user just registered, show success toast automatically
-    if (userRegistration && userRegistration.status === 'Pending' && !localStorage.getItem(`toast_shown_${userRegistration._id}`)) {
-      setShowSuccessToast(true);
-      setToastMessage('Yêu cầu tham gia của bạn đã được gửi. Vui lòng chờ Ban tổ chức duyệt.');
-      localStorage.setItem(`toast_shown_${userRegistration._id}`, 'true');
-    }
-  }, [userRegistration]);
 
   if (!activity) {
     return (
@@ -99,10 +88,16 @@ export const ActivityDetailView: React.FC<ActivityDetailViewProps> = ({ activity
       statusClass = 'bg-[#fef7e0] text-[#b06000]';
     } else if (userRegistration.status === 'Rejected') {
       statusText = 'Bị từ chối';
-      statusClass = 'bg-red-50 text-red-600';
+      statusClass = 'bg-red-50 text-red-650';
     } else if (userRegistration.status === 'Cancelled') {
       statusText = 'Đã hủy đăng ký';
       statusClass = 'bg-slate-100 text-slate-500';
+    } else if (userRegistration.status === 'Completed') {
+      statusText = 'Đã hoàn thành';
+      statusClass = 'bg-emerald-50 text-[#006d37]';
+    } else if (userRegistration.status === 'Absent') {
+      statusText = 'Vắng mặt';
+      statusClass = 'bg-red-50 text-red-600';
     }
   }
 
@@ -121,27 +116,6 @@ export const ActivityDetailView: React.FC<ActivityDetailViewProps> = ({ activity
 
   return (
     <div className="w-full bg-[#f8f9fa] min-h-screen pb-16">
-      {/* Toast alert overlay if showSuccessToast is true */}
-      {showSuccessToast && (
-        <div className="fixed top-20 right-4 z-[100] w-full max-w-[400px] animate-slideIn">
-          <div className="bg-white border border-[#006d37] rounded-xl shadow-xl p-4 flex items-start gap-3 text-left">
-            <div className="bg-[#e8f5e9] p-2 rounded-full shrink-0">
-              <span className="material-symbols-outlined text-[#006d37]" data-weight="fill">check_circle</span>
-            </div>
-            <div className="flex-grow">
-              <h4 className="font-bold text-sm text-on-surface">Đăng ký thành công!</h4>
-              <p className="text-xs text-on-surface-variant mt-1">{toastMessage}</p>
-            </div>
-            <button
-              onClick={() => setShowSuccessToast(false)}
-              className="text-on-surface-variant hover:text-on-surface transition-colors p-1"
-            >
-              <span className="material-symbols-outlined text-[20px]">close</span>
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Container */}
       <div className="max-w-[1280px] mx-auto px-4 md:px-8 py-8 text-left">
 
@@ -234,6 +208,14 @@ export const ActivityDetailView: React.FC<ActivityDetailViewProps> = ({ activity
                 <span className={`px-4 py-2.5 rounded-xl text-xs font-bold text-center border border-surface-variant/30 ${statusClass}`}>
                   {statusText}
                 </span>
+                {userRegistration && userRegistration.status === 'Rejected' && (userRegistration.reject_reason || (userRegistration as any).rejection_reason) && (
+                  <div className="mt-2 p-3 bg-red-50 border border-red-100 rounded-xl text-xs text-red-650 font-semibold leading-relaxed flex items-start gap-2 animate-fadeIn text-left">
+                    <span className="material-symbols-outlined text-[16px] shrink-0 text-red-600 mt-0.5 font-bold">info</span>
+                    <span>
+                      <strong>Lý do từ chối:</strong> {userRegistration.reject_reason || (userRegistration as any).rejection_reason}
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Info Items */}
@@ -297,12 +279,47 @@ export const ActivityDetailView: React.FC<ActivityDetailViewProps> = ({ activity
                   >
                     Chỉ dành cho Tình nguyện viên
                   </button>
-                ) : userRegistration && userRegistration.status !== 'Cancelled' ? (
+                ) : userRegistration && ['Approved', 'Pending'].includes(userRegistration.status) ? (
                   <button
                     onClick={handleCancelRegistration}
                     className="w-full bg-white hover:bg-red-50 border border-red-200 text-red-600 py-3.5 rounded-xl text-sm font-bold transition-all"
                   >
                     Hủy đăng ký tham gia
+                  </button>
+                ) : userRegistration && userRegistration.status === 'Rejected' ? (
+                  <button
+                    disabled
+                    className="w-full bg-red-50 text-red-500 border border-red-100 py-3.5 rounded-xl text-sm font-bold cursor-not-allowed"
+                  >
+                    Đã bị từ chối tham gia
+                  </button>
+                ) : userRegistration && userRegistration.status === 'Completed' ? (
+                  <button
+                    disabled
+                    className="w-full bg-emerald-50 text-[#006d37] border border-emerald-100 py-3.5 rounded-xl text-sm font-bold cursor-not-allowed"
+                  >
+                    Đã tham gia & Hoàn thành
+                  </button>
+                ) : userRegistration && userRegistration.status === 'Absent' ? (
+                  <button
+                    disabled
+                    className="w-full bg-red-50 text-red-500 border border-red-100 py-3.5 rounded-xl text-sm font-bold cursor-not-allowed"
+                  >
+                    Vắng mặt hoạt động này
+                  </button>
+                ) : activity.status === 'Completed' ? (
+                  <button
+                    disabled
+                    className="w-full bg-slate-100 text-slate-400 py-3.5 rounded-xl text-sm font-bold cursor-not-allowed"
+                  >
+                    Hoạt động đã kết thúc
+                  </button>
+                ) : activity.status === 'Cancelled' ? (
+                  <button
+                    disabled
+                    className="w-full bg-slate-100 text-slate-400 py-3.5 rounded-xl text-sm font-bold cursor-not-allowed"
+                  >
+                    Hoạt động đã bị hủy
                   </button>
                 ) : activity.status === 'Full' ? (
                   <button

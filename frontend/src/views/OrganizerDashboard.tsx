@@ -278,20 +278,7 @@ export const OrganizerDashboard: React.FC = () => {
     setActiveTab('activities');
   };
 
-  const handleEndActivity = (activityId: string) => {
-    showConfirm(
-      'Bạn có chắc chắn muốn kết thúc chiến dịch này? Trạng thái sẽ được chuyển sang Đã kết thúc và tình nguyện viên có thể tiến hành điểm danh.',
-      async () => {
-        const res = await editActivity(activityId, { status: 'Completed' });
-        if (res.success) {
-          showNotification('Đã kết thúc chiến dịch thành công!', 'success');
-        } else {
-          showNotification(res.error || 'Có lỗi xảy ra khi kết thúc chiến dịch.', 'error');
-        }
-      },
-      'Kết thúc hoạt động'
-    );
-  };
+
 
   const handleSubmitActivity = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -349,18 +336,26 @@ export const OrganizerDashboard: React.FC = () => {
   };
 
 
-  const handleApprove = (regId: string) => {
-    approveRegistration(regId);
-    showNotification('Đã duyệt tình nguyện viên này tham gia.', 'success');
+  const handleApprove = async (regId: string) => {
+    const res = await approveRegistration(regId);
+    if (res && res.success) {
+      showNotification('Đã duyệt tình nguyện viên này tham gia.', 'success');
+    } else {
+      showNotification(res?.error || 'Có lỗi xảy ra khi duyệt đăng ký.', 'error');
+    }
   };
 
   const handleReject = (regId: string) => {
     showPrompt(
       'Nhập lý do từ chối đăng ký:',
-      (reason) => {
+      async (reason) => {
         if (!reason.trim()) { showNotification('Vui lòng nhập lý do từ chối.', 'error'); return; }
-        cancelOrRejectRegistration(regId, reason);
-        showNotification('Đã từ chối đơn đăng ký.', 'success');
+        const res = await cancelOrRejectRegistration(regId, reason);
+        if (res && res.success) {
+          showNotification('Đã từ chối đơn đăng ký.', 'success');
+        } else {
+          showNotification(res?.error || 'Có lỗi xảy ra khi từ chối đăng ký.', 'error');
+        }
       },
       'Từ chối đăng ký',
       'Lý do từ chối...'
@@ -564,14 +559,23 @@ export const OrganizerDashboard: React.FC = () => {
         {/* ===================== TAB: HOẠT ĐỘNG ===================== */}
         {activeTab === 'activities' && (
           <div className="space-y-6">
-            {/* Create/Edit Form */}
-            {showForm ? (
-              <div className="bg-white border border-slate-200/80 rounded-2xl p-6 md:p-8 max-w-[800px] mx-auto shadow-sm">
-                <h2 className="text-xl font-bold text-gray-900 mb-6 border-b border-slate-100 pb-3 font-headline-md">
-                  {editMode ? 'Chỉnh sửa hoạt động' : 'Tạo hoạt động mới'}
-                </h2>
+            {/* Create/Edit Form as Modal */}
+            {showForm && (
+              <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/45 backdrop-blur-sm p-4 overflow-y-auto animate-fadeIn">
+                <div className="bg-white border border-slate-200/80 rounded-3xl p-6 md:p-8 w-full max-w-[800px] shadow-2xl relative my-8 max-h-[90vh] overflow-y-auto animate-scaleUp text-left">
+                  {/* Close button */}
+                  <button 
+                    type="button"
+                    onClick={() => { resetForm(); setShowForm(false); }}
+                    className="absolute top-4 right-5 text-slate-400 hover:text-slate-650 text-2xl font-bold transition-colors cursor-pointer border-none bg-transparent"
+                  >
+                    ×
+                  </button>
+                  <h2 className="text-xl font-bold text-gray-900 mb-6 border-b border-slate-100 pb-3 font-headline-md">
+                    {editMode ? 'Chỉnh sửa hoạt động' : 'Tạo hoạt động mới'}
+                  </h2>
 
-                <form onSubmit={handleSubmitActivity} className="space-y-5" noValidate>
+                  <form onSubmit={handleSubmitActivity} className="space-y-5" noValidate>
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">Tên hoạt động *</label>
                     <input
@@ -701,9 +705,11 @@ export const OrganizerDashboard: React.FC = () => {
                   </div>
                 </form>
               </div>
-            ) : (
-              /* Activity List matching mockup */
-              <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm">
+            </div>
+          )}
+
+            {/* Activity List matching mockup */}
+            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm">
                 {/* List header */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between p-5 border-b border-slate-100 gap-3">
                   <h3 className="font-bold text-gray-900 text-sm font-headline-md">Danh sách hoạt động đã tạo</h3>
@@ -832,21 +838,11 @@ export const OrganizerDashboard: React.FC = () => {
                               </button>
                             )}
                             {isOpen && (
-                              <>
-                                <button
-                                  onClick={() => { setActiveTab('registrations'); setRegSubTab('pending'); }}
-                                  className="bg-[#006d37] hover:bg-[#005027] text-white px-4 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer">
-                                  Duyệt đơn
-                                </button>
-                                <button onClick={() => handleEditCampaignClick(act)}
-                                  className="border border-slate-200 text-slate-700 hover:bg-slate-50 px-4 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer">
-                                  Sửa
-                                </button>
-                                <button onClick={() => handleEndActivity(act._id)}
-                                  className="border border-slate-200 text-slate-700 hover:bg-slate-50 px-4 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer">
-                                  Kết thúc
-                                </button>
-                              </>
+                              <button
+                                onClick={() => { setActiveTab('registrations'); setRegSubTab('pending'); }}
+                                className="bg-[#006d37] hover:bg-[#005027] text-white px-4 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer">
+                                Duyệt đơn
+                              </button>
                             )}
                             {isCompleted && (
                               <button
@@ -861,8 +857,7 @@ export const OrganizerDashboard: React.FC = () => {
                     })}
                   </div>
                 )}
-              </div>
-            )}
+            </div>
           </div>
         )}
 

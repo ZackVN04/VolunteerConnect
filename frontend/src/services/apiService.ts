@@ -511,3 +511,11 @@ export const mediaService = {
     return res.data;
   }
 };
+
+// Statistics Services
+export const statsService = {
+  getGlobalStats: async (): Promise<{ totalCampaigns: number, totalVolunteers: number, totalOrganizers: number, totalCompleted: number }> => {
+    const res = await rootApi.get('/stats/');
+    return res.data;
+  }
+};
