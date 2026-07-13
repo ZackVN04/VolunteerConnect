@@ -322,24 +322,94 @@ const AppContent: React.FC = () => {
         </main>
 
         {/* Footer (Matching design mockup styles) */}
-        <footer className="bg-surface-container-low dark:bg-inverse-surface border-t border-surface-variant w-full mt-auto py-8">
-          <div className="w-full py-2 px-4 md:px-8 flex flex-col md:flex-row justify-between items-center gap-6 max-w-[1280px] mx-auto text-left">
-            <div className="flex flex-col gap-2">
-              <span className="font-headline-md text-base text-primary dark:text-primary-fixed font-bold flex items-center gap-1.5 select-none">
-                <span className="material-symbols-outlined text-sm">diversity_3</span>
+        <footer className="bg-slate-900 text-slate-300 border-t border-slate-800 w-full mt-auto py-12">
+          <div className="max-w-[1280px] mx-auto px-4 md:px-8 grid grid-cols-1 md:grid-cols-4 gap-8 text-left">
+            
+            {/* Column 1: Brand & Info */}
+            <div className="space-y-4 md:col-span-1">
+              <span className="font-headline-md text-xl text-white font-bold flex items-center gap-2 select-none">
+                <span className="material-symbols-outlined text-[#10b981]">diversity_3</span>
                 Volunteer Connect
               </span>
-              <span className="text-xs text-on-surface-variant">
-                © 2026 Volunteer Connect. Nền tảng kết nối tình nguyện cộng đồng.
-              </span>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Nền tảng kết nối tình nguyện cộng đồng, cầu nối giữa những tấm lòng nhân ái và các tổ chức hoạt động xã hội ý nghĩa trên khắp cả nước.
+              </p>
+              <div className="flex items-center gap-3.5 pt-2">
+                <a href="#" className="w-8 h-8 rounded-full bg-slate-800 hover:bg-[#10b981] hover:text-white flex items-center justify-center transition-all text-slate-400">
+                  <span className="material-symbols-outlined text-sm">public</span>
+                </a>
+                <a href="#" className="w-8 h-8 rounded-full bg-slate-800 hover:bg-[#10b981] hover:text-white flex items-center justify-center transition-all text-slate-400">
+                  <span className="material-symbols-outlined text-sm">mail</span>
+                </a>
+                <a href="#" className="w-8 h-8 rounded-full bg-slate-800 hover:bg-[#10b981] hover:text-white flex items-center justify-center transition-all text-slate-400">
+                  <span className="material-symbols-outlined text-sm">call</span>
+                </a>
+              </div>
             </div>
 
-            <nav className="flex flex-wrap gap-4 text-xs font-semibold">
-              <a className="text-on-surface-variant hover:text-primary transition-colors" href="#/feed">Bảng Tin</a>
-              <a className="text-on-surface-variant hover:text-primary transition-colors" href="#/activities">Khám Phá</a>
-              <a className="text-on-surface-variant hover:text-primary transition-colors" href="#/profile">Hồ Sơ</a>
-              <a className="text-on-surface-variant hover:text-primary transition-colors" href="#/terms">Chính Sách Bảo Mật</a>
-            </nav>
+            {/* Column 2: Navigation Links */}
+            <div className="space-y-4">
+              <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-200">Khám Phá</h4>
+              <nav className="flex flex-col gap-2.5 text-xs font-semibold">
+                <a className="hover:text-[#10b981] transition-colors" href="#/feed">Bảng Tin Cộng Đồng</a>
+                <a className="hover:text-[#10b981] transition-colors" href="#/activities">Danh Sách Hoạt Động</a>
+                <a className="hover:text-[#10b981] transition-colors" href="#/posts">Bài Viết Nổi Bật</a>
+                <a className="hover:text-[#10b981] transition-colors" href="#/organizer/dashboard">Bảng Tổ Chức</a>
+              </nav>
+            </div>
+
+            {/* Column 3: Contact Info & Support */}
+            <div className="space-y-4">
+              <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-200">Liên Hệ & Hỗ Trợ</h4>
+              <ul className="space-y-2.5 text-xs text-slate-400 font-medium">
+                <li className="flex items-start gap-2">
+                  <span className="material-symbols-outlined text-xs mt-0.5 text-[#10b981]">location_on</span>
+                  <span>123 Đường Nguyễn Văn Cừ, Quận 5, TP. Hồ Chí Minh</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-xs text-[#10b981]">mail</span>
+                  <span>support@volunteerconnect.vn</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-xs text-[#10b981]">call</span>
+                  <span>+84 (28) 3835 4409</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Column 4: Newsletter */}
+            <div className="space-y-4">
+              <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-200">Bản Tin</h4>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Đăng ký nhận thông tin về các hoạt động tình nguyện mới nhất trực tiếp qua Email của bạn.
+              </p>
+              <div className="flex gap-2 pt-1">
+                <input 
+                  type="email" 
+                  placeholder="Email của bạn..." 
+                  className="px-3.5 py-2 border border-slate-700 bg-slate-800 text-white rounded-xl text-xs w-full focus:outline-none focus:border-[#10b981] focus:ring-1 focus:ring-[#10b981] placeholder-slate-500 font-semibold"
+                />
+                <button 
+                  type="button" 
+                  onClick={() => alert("Cảm ơn bạn đã đăng ký nhận bản tin!")}
+                  className="bg-[#10b981] hover:bg-[#059669] text-white px-3.5 py-2 rounded-xl text-xs font-bold transition-colors shadow cursor-pointer"
+                >
+                  Gửi
+                </button>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Bottom Bar */}
+          <div className="max-w-[1280px] mx-auto px-4 md:px-8 mt-12 pt-6 border-t border-slate-800 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-slate-500 font-medium">
+            <span>
+              © 2026 Volunteer Connect. Tất cả các quyền được bảo lưu.
+            </span>
+            <div className="flex gap-4">
+              <a className="hover:text-slate-400 transition-colors" href="#/terms">Chính Sách Bảo Mật</a>
+              <a className="hover:text-slate-400 transition-colors" href="#/terms">Điều Khoản Sử Dụng</a>
+            </div>
           </div>
         </footer>
       </div>
