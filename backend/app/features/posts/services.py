@@ -1,5 +1,5 @@
 import math
-from typing import Optional
+from typing import Optional, Union, Dict, Any
 from fastapi import HTTPException, status
 from bson.errors import InvalidId
 from pydantic import ValidationError
@@ -14,10 +14,27 @@ class PostService:
     """
     
     @staticmethod
-    def _map_to_response(post: Post) -> PostResponse:
+    def _map_to_response(post: Union[Post, Dict[str, Any]]) -> PostResponse:
         """
-        Helper method to map a Beanie Post document to a Pydantic PostResponse.
+        Helper method to map a Beanie Post document or an aggregation dict to a Pydantic PostResponse.
         """
+        if isinstance(post, dict):
+            return PostResponse(
+                id=str(post.get("_id")),
+                title=post.get("title"),
+                content=post.get("content"),
+                images=post.get("images", []),
+                video_url=post.get("video_url"),
+                author_id=post.get("author_id"),
+                likes=post.get("likes", 0),
+                shares=post.get("shares", 0),
+                comment_count=post.get("comment_count", 0),
+                hashtags=post.get("hashtags", []),
+                created_at=post.get("created_at"),
+                updated_at=post.get("updated_at"),
+                denormalized_author=post.get("denormalized_author")
+            )
+        
         return PostResponse(
             id=str(post.id),
             title=post.title,

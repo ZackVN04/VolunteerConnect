@@ -1,4 +1,6 @@
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Dict, Any
+from bson import ObjectId
+from app.features.users.models import User
 from beanie.odm.operators.update.general import Inc
 from bson.errors import InvalidId
 from pydantic import ValidationError
@@ -10,16 +12,53 @@ class PostRepository:
     """
     
     @staticmethod
-    async def get_paginated_posts(skip: int, limit: int, hashtag: Optional[str] = None) -> Tuple[List[Post], int]:
+    async def get_paginated_posts(skip: int, limit: int, hashtag: Optional[str] = None) -> Tuple[List[Dict[str, Any]], int]:
         """
         Fetches posts with offset-based pagination, sorting by created_at descending.
         Optionally filters by a specific hashtag.
+        Fetches authors separately to prevent MongoDB aggregation errors.
         """
         query = Post.find({"hashtags": hashtag}) if hashtag else Post.find_all()
         total = await query.count()
+        
         # Uses the created_at descending index for fast sorting
         posts = await query.sort("-created_at").skip(skip).limit(limit).to_list()
-        return posts, total
+        
+        # Collect unique author IDs
+        author_ids = list(set(post.author_id for post in posts if post.author_id))
+        
+        # Convert valid string IDs to ObjectId
+        valid_author_obj_ids = []
+        for aid in author_ids:
+            try:
+                valid_author_obj_ids.append(ObjectId(aid))
+            except InvalidId:
+                pass
+                
+        # Fetch authors
+        authors = await User.find({"_id": {"$in": valid_author_obj_ids}}).to_list()
+        author_map = {str(author.id): author for author in authors}
+        
+        # Manually attach denormalized_author
+        result_posts = []
+        for post in posts:
+            post_dict = post.model_dump()
+            # Ensure _id is properly set for the mapper
+            post_dict["_id"] = post.id
+            
+            author = author_map.get(post.author_id)
+            if author:
+                post_dict["denormalized_author"] = {
+                    "name": author.full_name,
+                    "avatar_url": author.avatar_url,
+                    "role": author.role.value if hasattr(author.role, 'value') else author.role
+                }
+            else:
+                post_dict["denormalized_author"] = None
+                
+            result_posts.append(post_dict)
+            
+        return result_posts, total
 
     @staticmethod
     async def create_post(post: Post) -> Post:
