@@ -1,4 +1,6 @@
 from typing import List, Tuple, Optional, Dict, Any
+from bson import ObjectId
+from app.features.users.models import User
 from beanie.odm.operators.update.general import Inc
 from bson.errors import InvalidId
 from pydantic import ValidationError
@@ -14,45 +16,49 @@ class PostRepository:
         """
         Fetches posts with offset-based pagination, sorting by created_at descending.
         Optionally filters by a specific hashtag.
-        Uses aggregation to join with the users collection to get author information.
+        Fetches authors separately to prevent MongoDB aggregation errors.
         """
-        match_stage = {"hashtags": hashtag} if hashtag else {}
-        query = Post.find(match_stage) if hashtag else Post.find_all()
+        query = Post.find({"hashtags": hashtag}) if hashtag else Post.find_all()
         total = await query.count()
         
-        pipeline = []
-        if match_stage:
-            pipeline.append({"$match": match_stage})
+        # Uses the created_at descending index for fast sorting
+        posts = await query.sort("-created_at").skip(skip).limit(limit).to_list()
+        
+        # Collect unique author IDs
+        author_ids = list(set(post.author_id for post in posts if post.author_id))
+        
+        # Convert valid string IDs to ObjectId
+        valid_author_obj_ids = []
+        for aid in author_ids:
+            try:
+                valid_author_obj_ids.append(ObjectId(aid))
+            except InvalidId:
+                pass
+                
+        # Fetch authors
+        authors = await User.find({"_id": {"$in": valid_author_obj_ids}}).to_list()
+        author_map = {str(author.id): author for author in authors}
+        
+        # Manually attach denormalized_author
+        result_posts = []
+        for post in posts:
+            post_dict = post.model_dump()
+            # Ensure _id is properly set for the mapper
+            post_dict["_id"] = post.id
             
-        pipeline.extend([
-            {"$sort": {"created_at": -1}},
-            {"$skip": skip},
-            {"$limit": limit},
-            {"$addFields": {"author_obj_id": {"$toObjectId": "$author_id"}}},
-            {
-                "$lookup": {
-                    "from": "users",
-                    "localField": "author_obj_id",
-                    "foreignField": "_id",
-                    "as": "author_docs"
+            author = author_map.get(post.author_id)
+            if author:
+                post_dict["denormalized_author"] = {
+                    "name": author.full_name,
+                    "avatar_url": author.avatar_url,
+                    "role": author.role.value if hasattr(author.role, 'value') else author.role
                 }
-            },
-            {"$unwind": {"path": "$author_docs", "preserveNullAndEmptyArrays": True}},
-            {
-                "$addFields": {
-                    "denormalized_author": {
-                        "name": "$author_docs.full_name",
-                        "avatar_url": "$author_docs.avatar_url",
-                        "role": "$author_docs.role"
-                    }
-                }
-            },
-            {"$project": {"author_docs": 0, "author_obj_id": 0}}
-        ])
-
-        # aggregate() without projection_model returns dicts
-        posts = await Post.aggregate(pipeline).to_list()
-        return posts, total
+            else:
+                post_dict["denormalized_author"] = None
+                
+            result_posts.append(post_dict)
+            
+        return result_posts, total
 
     @staticmethod
     async def create_post(post: Post) -> Post:
