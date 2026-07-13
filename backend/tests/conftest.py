@@ -2,6 +2,7 @@ import pytest
 import sys
 import os
 from dotenv import load_dotenv
+from datetime import timezone
 
 # Hard load .env.test before any app import to configure settings for testing
 if os.path.exists(".env.test"):
@@ -89,7 +90,7 @@ async def initialize_db():
     # Tránh lỗi tương thích phiên bản Beanie và Motor
     AsyncIOMotorClient.append_metadata = lambda self, *args, **kwargs: None
 
-    client = AsyncIOMotorClient(settings.MONGO_URI)
+    client = AsyncIOMotorClient(settings.MONGO_URI, tz_aware=True, tzinfo=timezone.utc)
 
     # LUÔN LUÔN dùng test database riêng biệt — KHÔNG dùng get_default_database()
     # vì get_default_database() sẽ đọc tên DB từ URI và có thể trả về DB thật.
