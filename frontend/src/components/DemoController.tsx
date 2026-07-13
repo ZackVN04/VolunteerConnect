@@ -137,7 +137,7 @@ export const DemoController: React.FC = () => {
             {activeTab === 'activities' && <pre>{JSON.stringify(activities.map(a => ({ id: a._id, title: a.title, status: a.status, approvedVolunteers: a.approved_volunteers_count })), null, 2)}</pre>}
             {activeTab === 'registrations' && <pre>{JSON.stringify(registrations.map(r => ({ id: r._id, volunteer: r.denormalized_volunteer.name, activity: r.denormalized_activity.title, status: r.status })), null, 2)}</pre>}
             {activeTab === 'requests' && <pre>{JSON.stringify(organizerRequests.map(rq => ({ id: rq._id, volunteer: rq.denormalized_volunteer.name, status: rq.status })), null, 2)}</pre>}
-            {activeTab === 'posts' && <pre>{JSON.stringify(posts.map(p => ({ id: p._id, author: p.denormalized_author.name, likes: p.like_count })), null, 2)}</pre>}
+            {activeTab === 'posts' && <pre>{JSON.stringify(posts.map(p => ({ id: p._id, author: p.denormalized_author?.name, likes: p.like_count })), null, 2)}</pre>}
           </div>
         </div>
       )}
