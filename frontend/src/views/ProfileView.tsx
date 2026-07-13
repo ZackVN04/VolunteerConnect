@@ -470,6 +470,59 @@ export const ProfileView: React.FC = () => {
                       <p className="text-slate-400 text-xs mt-1">Các thông tin cơ bản và lý lịch cá nhân được liên kết trên hệ thống.</p>
                     </div>
 
+                    {/* Organizer upgrade banner if Volunteer (MOVED TO TOP) */}
+                    {displayUser.role === 'Volunteer' && (userRequest ? (
+                      <div className={`p-4 rounded-xl border text-sm text-left ${isPending ? 'bg-[#fef7e0] border-[#b06000]/30 text-[#b06000]' :
+                        isApproved ? 'bg-[#e8f5e9] border-[#006d37]/30 text-[#006d37]' :
+                          'bg-red-50 border-red-200 text-red-700'
+                        }`}>
+                        <div className="font-bold flex items-center gap-1.5">
+                          <span className="material-symbols-outlined text-lg">
+                            {isPending ? 'hourglass_empty' : isApproved ? 'verified' : 'cancel'}
+                          </span>
+                          Trạng thái đơn nâng quyền: {
+                            isPending ? 'Đang chờ Admin duyệt' :
+                              isApproved ? 'Đã duyệt thành công' : 'Bị từ chối'
+                          }
+                        </div>
+                        <p className="mt-1 text-xs opacity-90">Gửi ngày: {new Date(userRequest.created_at).toLocaleDateString('vi-VN')}</p>
+                        {userRequest.admin_feedback && (
+                          <p className="mt-2.5 p-3 bg-white/60 border border-current/20 rounded-lg text-xs font-semibold leading-relaxed">
+                            <strong>Phản hồi từ Admin:</strong> {userRequest.admin_feedback}
+                          </p>
+                        )}
+                        {isRejected && (
+                          <button
+                            onClick={() => {
+                              setViewMode('upgrade');
+                              window.location.hash = '#/profile?tab=upgrade';
+                            }}
+                            className="mt-3 w-full bg-[#006d37] hover:bg-emerald-800 text-white py-2 rounded-xl font-bold text-xs shadow-sm transition-all"
+                          >
+                            Gửi lại yêu cầu nâng quyền khác
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="bg-[#e8f5e9]/30 border border-[#006d37]/15 rounded-2xl p-5 flex flex-col sm:flex-row justify-between items-center gap-4 text-left">
+                        <div className="space-y-1">
+                          <h4 className="text-sm font-bold text-slate-800">Trở thành Ban Tổ Chức</h4>
+                          <p className="text-slate-500 text-xs leading-relaxed max-w-[420px]">
+                            Bạn muốn tự đăng bài và quản lý chiến dịch cộng đồng của riêng mình? Đăng ký nâng cấp tài khoản ngay.
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setViewMode('upgrade');
+                            window.location.hash = '#/profile?tab=upgrade';
+                          }}
+                          className="bg-[#006d37] hover:bg-emerald-800 text-white font-bold px-4 py-2.5 rounded-xl transition-all text-xs shadow-sm whitespace-nowrap cursor-pointer shrink-0 animate-pulse hover:animate-none"
+                        >
+                          Đăng ký nâng quyền
+                        </button>
+                      </div>
+                    ))}
+
                     {/* 2-Column Info Grid */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <InfoItem
@@ -547,63 +600,10 @@ export const ProfileView: React.FC = () => {
                       <div>
                         <span className="text-xs text-slate-400 font-bold uppercase tracking-wider block">Thống kê cống hiến</span>
                         <span className="text-slate-800 text-sm font-bold block mt-0.5">
-                          Đã tham gia <span className="text-[#006d37] text-base font-extrabold">{displayUser.profile.joined_activity_count || 0}</span> chiến dịch tình nguyện
+                          Đã tham gia <span className="text-[#006d37] text-base font-extrabold">{myRegs.filter(r => r.status === 'Completed').length}</span> chiến dịch tình nguyện
                         </span>
                       </div>
                     </div>
-
-                    {/* Organizer upgrade banner if Volunteer */}
-                    {displayUser.role === 'Volunteer' && (userRequest ? (
-                      <div className={`p-4 rounded-xl border text-sm text-left ${isPending ? 'bg-[#fef7e0] border-[#b06000]/30 text-[#b06000]' :
-                        isApproved ? 'bg-[#e8f5e9] border-[#006d37]/30 text-[#006d37]' :
-                          'bg-red-50 border-red-200 text-red-700'
-                        }`}>
-                        <div className="font-bold flex items-center gap-1.5">
-                          <span className="material-symbols-outlined text-lg">
-                            {isPending ? 'hourglass_empty' : isApproved ? 'verified' : 'cancel'}
-                          </span>
-                          Trạng thái đơn nâng quyền: {
-                            isPending ? 'Đang chờ Admin duyệt' :
-                              isApproved ? 'Đã duyệt thành công' : 'Bị từ chối'
-                          }
-                        </div>
-                        <p className="mt-1 text-xs opacity-90">Gửi ngày: {new Date(userRequest.created_at).toLocaleDateString('vi-VN')}</p>
-                        {userRequest.admin_feedback && (
-                          <p className="mt-2.5 p-3 bg-white/60 border border-current/20 rounded-lg text-xs font-semibold leading-relaxed">
-                            <strong>Phản hồi từ Admin:</strong> {userRequest.admin_feedback}
-                          </p>
-                        )}
-                        {isRejected && (
-                          <button
-                            onClick={() => {
-                              setViewMode('upgrade');
-                              window.location.hash = '#/profile?tab=upgrade';
-                            }}
-                            className="mt-3 w-full bg-[#006d37] hover:bg-emerald-800 text-white py-2 rounded-xl font-bold text-xs shadow-sm transition-all"
-                          >
-                            Gửi lại yêu cầu nâng quyền khác
-                          </button>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="bg-[#e8f5e9]/30 border border-[#006d37]/15 rounded-2xl p-5 flex flex-col sm:flex-row justify-between items-center gap-4 text-left">
-                        <div className="space-y-1">
-                          <h4 className="text-sm font-bold text-slate-800">Trở thành Ban Tổ Chức</h4>
-                          <p className="text-slate-500 text-xs leading-relaxed max-w-[420px]">
-                            Bạn muốn tự đăng bài và quản lý chiến dịch cộng đồng của riêng mình? Đăng ký nâng cấp tài khoản ngay.
-                          </p>
-                        </div>
-                        <button
-                          onClick={() => {
-                            setViewMode('upgrade');
-                            window.location.hash = '#/profile?tab=upgrade';
-                          }}
-                          className="bg-[#006d37] hover:bg-emerald-800 text-white font-bold px-4 py-2.5 rounded-xl transition-all text-xs shadow-sm whitespace-nowrap cursor-pointer shrink-0 animate-pulse hover:animate-none"
-                        >
-                          Đăng ký nâng quyền
-                        </button>
-                      </div>
-                    ))}
                   </div>
                 );
               })()}

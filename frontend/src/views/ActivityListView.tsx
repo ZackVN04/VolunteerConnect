@@ -170,6 +170,7 @@ export const ActivityListView: React.FC = () => {
                 <option value="Open/Full">Đang tuyển</option>
                 <option value="Open">Đang mở</option>
                 <option value="Full">Đã đầy chỗ</option>
+                <option value="Completed">Đã kết thúc</option>
               </select>
             </div>
           </div>
