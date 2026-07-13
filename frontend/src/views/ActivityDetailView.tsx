@@ -307,7 +307,7 @@ export const ActivityDetailView: React.FC<ActivityDetailViewProps> = ({ activity
                   >
                     Vắng mặt hoạt động này
                   </button>
-                ) : activity.status === 'Completed' ? (
+                ) : (activity.status === 'Completed' || new Date(activity.end_date) < new Date()) ? (
                   <button
                     disabled
                     className="w-full bg-slate-100 text-slate-400 py-3.5 rounded-xl text-sm font-bold cursor-not-allowed"

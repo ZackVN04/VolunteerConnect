@@ -629,6 +629,11 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       return { success: false, error: 'Hoạt động này không mở nhận đăng ký' };
     }
 
+    // Check if ended
+    if (new Date(activity.end_date) < new Date()) {
+      return { success: false, error: 'Hoạt động này đã kết thúc, không thể đăng ký tham gia' };
+    }
+
     // Check if limit reached
     if (activity.approved_volunteers_count >= activity.limit_volunteers) {
       return { success: false, error: 'Hoạt động đã đủ số lượng thành viên (Full)' };

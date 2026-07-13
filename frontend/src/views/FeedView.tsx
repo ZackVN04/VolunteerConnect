@@ -24,6 +24,11 @@ const PostAvatar: React.FC<{ name: string; src?: string | null; size?: number }>
   );
 };
 
+const fixImageUrl = (url: string | null | undefined): string | null => {
+  if (!url) return null;
+  return url.replace('http://localhost:3000/', 'http://localhost:8000/');
+};
+
 // Smart Video Player Component that uses IntersectionObserver to control preload
 const SmartVideoPlayer: React.FC<{ src: string }> = ({ src }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -542,7 +547,7 @@ export const FeedView: React.FC = () => {
             _id: c.id || c._id,
             post_id: showCommentsPostId,
             author_name: c.author_name || 'Thành viên',
-            author_avatar: c.author_avatar,
+            author_avatar: fixImageUrl(c.author_avatar),
             content: c.content,
             created_at: c.created_at
           }));
@@ -584,8 +589,8 @@ export const FeedView: React.FC = () => {
       const newComment: PostComment = {
         _id: createdComment.id || createdComment._id || `comment_${Date.now()}`,
         post_id: postId,
-        author_name: currentUser?.profile.full_name || 'Thành viên',
-        author_avatar: currentUser?.profile.avatar_url,
+        author_name: currentUser?.full_name || currentUser?.profile?.full_name || 'Thành viên',
+        author_avatar: fixImageUrl(currentUser?.avatar_url || currentUser?.profile?.avatar_url),
         content: text,
         created_at: new Date().toISOString()
       };
@@ -1158,7 +1163,7 @@ export const FeedView: React.FC = () => {
                           className="flex items-center gap-1.5 py-1.5 px-3 rounded-xl hover:bg-slate-50 hover:text-slate-700 transition-all cursor-pointer"
                         >
                           <span className="material-symbols-outlined text-lg">chat_bubble</span>
-                          <span>Bình luận ({commentsMap[post._id] !== undefined ? commentsMap[post._id].length : (post.comment_count || 0)})</span>
+                          <span>Bình luận ({post.comment_count || 0})</span>
                         </button>
 
                         <button

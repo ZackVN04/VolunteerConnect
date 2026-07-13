@@ -38,6 +38,16 @@ class RegistrationService:
         if activity.status != ActivityStatus.OPEN.value:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Activity is not open for registration. Current status: {activity.status}")
         
+        # 2.1 Check if activity has ended
+        activity_end = activity.end_date
+        if activity_end.tzinfo is None:
+            activity_end = activity_end.replace(tzinfo=timezone.utc)
+        if activity_end < datetime.now(timezone.utc):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Hoạt động này đã kết thúc, không thể đăng ký tham gia"
+            )
+        
         # 3. Check capacity limit using active_volunteers_count
         if getattr(activity, "active_volunteers_count", 0) >= activity.limit_volunteers:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Hoạt động đã đủ số lượng tình nguyện viên")

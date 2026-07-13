@@ -27,6 +27,7 @@ class PostService:
             author_id=post.author_id,
             likes=post.likes,
             shares=post.shares,
+            comment_count=post.comment_count,
             hashtags=post.hashtags,
             created_at=post.created_at,
             updated_at=post.updated_at

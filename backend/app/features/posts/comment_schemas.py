@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List
+from typing import List, Optional
 from datetime import datetime
 
 class CommentCreate(BaseModel):
@@ -10,6 +10,7 @@ class CommentResponse(BaseModel):
     post_id: str = Field(..., description="ID of the post")
     author_id: str = Field(..., description="ID of the user who created the comment")
     author_name: str = Field(..., description="Name of the author")
+    author_avatar: Optional[str] = Field(None, description="Avatar URL of the author")
     content: str = Field(..., description="Comment content")
     created_at: datetime = Field(..., description="Creation timestamp")
 
