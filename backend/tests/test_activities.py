@@ -313,4 +313,4 @@ async def test_register_active_activity_success(async_client, vol_headers, organ
 
     response = await async_client.post(f"/api/v1/activities/{str(activity.id)}/registrations", headers=vol_headers)
     assert response.status_code == 201
-    assert response.json()["data"]["status"] == "Pending"
+    assert response.json()["data"]["status"] == "pending"
