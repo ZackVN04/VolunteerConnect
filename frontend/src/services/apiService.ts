@@ -239,11 +239,11 @@ const mapPost = (post: any): Post => ({
   created_at: post.created_at,
   updated_at: post.updated_at,
   deleted_at: post.deleted_at ?? null,
-  denormalized_author: post.denormalized_author || {
-    name: 'Thành viên',
-    role: 'Volunteer',
-    organization_name: null
-  },
+  denormalized_author: post.denormalized_author ? {
+    name: post.denormalized_author.name || 'Thành viên',
+    role: post.denormalized_author.role || 'Volunteer',
+    avatar_url: fixImageUrl(post.denormalized_author.avatar_url)
+  } : undefined,
   likedByUserIds: post.likedByUserIds || []
 });
 

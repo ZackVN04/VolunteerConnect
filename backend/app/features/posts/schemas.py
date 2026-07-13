@@ -2,6 +2,11 @@ from pydantic import BaseModel, Field, AnyHttpUrl
 from typing import Optional, List
 from datetime import datetime
 
+class DenormalizedAuthor(BaseModel):
+    name: Optional[str] = None
+    avatar_url: Optional[str] = None
+    role: Optional[str] = None
+
 class PostCreate(BaseModel):
     title: str = Field(..., min_length=5, max_length=100, description="Title of the post")
     content: str = Field(..., min_length=10, max_length=5000, description="Content of the post")
@@ -17,6 +22,7 @@ class PostResponse(PostCreate):
     comment_count: int = Field(default=0, ge=0, description="Number of comments")
     created_at: datetime = Field(..., description="Creation timestamp")
     updated_at: datetime = Field(..., description="Last update timestamp")
+    denormalized_author: Optional[DenormalizedAuthor] = None
 
 class PostPaginationResponse(BaseModel):
     items: List[PostResponse]
