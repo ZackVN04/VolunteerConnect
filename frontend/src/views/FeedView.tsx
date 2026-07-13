@@ -75,7 +75,7 @@ const SmartVideoPlayer: React.FC<{ src: string }> = ({ src }) => {
 };
 
 // Create Post Modal Component
-const CreatePostModal: React.FC<{ onClose: () => void; onSubmit: (title: string, content: string, images: string[], videoUrl: string, hashtags: string[]) => Promise<void> }> = ({ onClose, onSubmit }) => {
+const CreatePostModal: React.FC<{ onClose: () => void; onSubmit: (title: string, content: string, images: string[], videoUrl: string | null, hashtags: string[]) => Promise<void> }> = ({ onClose, onSubmit }) => {
   const { showNotification } = useApp();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -161,7 +161,7 @@ const CreatePostModal: React.FC<{ onClose: () => void; onSubmit: (title: string,
 
       const tags = hashtagsStr.split(',').map(t => t.trim().replace(/^#/, '')).filter(Boolean);
       // Wait for onSubmit to complete
-      await onSubmit(title, content, imageUrls, videoUrl, tags);
+      await onSubmit(title, content, imageUrls, videoUrl || null, tags);
     } catch (err: any) {
       console.error(err);
       const msg = err.response?.data?.detail || err.message || 'Không thể đăng bài viết. Vui lòng kiểm tra lại.';

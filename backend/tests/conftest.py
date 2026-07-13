@@ -1,5 +1,14 @@
 import pytest
 import sys
+import os
+from dotenv import load_dotenv
+
+# Hard load .env.test before any app import to configure settings for testing
+if os.path.exists(".env.test"):
+    load_dotenv(".env.test", override=True)
+elif os.path.exists("backend/.env.test"):
+    load_dotenv("backend/.env.test", override=True)
+
 from motor.motor_asyncio import AsyncIOMotorClient
 from beanie import init_beanie
 
