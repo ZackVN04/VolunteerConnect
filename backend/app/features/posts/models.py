@@ -1,8 +1,13 @@
 from beanie import Document
-from pydantic import Field
+from pydantic import BaseModel, Field
 from datetime import datetime, timezone
 from typing import List, Optional
 import pymongo
+
+class DenormalizedAuthor(BaseModel):
+    name: str
+    role: str
+    organization_name: Optional[str] = None
 
 class Post(Document):
     """
@@ -22,6 +27,7 @@ class Post(Document):
     hashtags: List[str] = Field(default_factory=list)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    denormalized_author: Optional[DenormalizedAuthor] = None
 
     class Settings:
         name = "posts"
@@ -30,3 +36,4 @@ class Post(Document):
             [("created_at", pymongo.DESCENDING)],
             [("hashtags", pymongo.ASCENDING)]
         ]
+

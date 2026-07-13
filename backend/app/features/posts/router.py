@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Query, HTTPException, status, Depends
 from typing import Optional
-from .schemas import PostCreate, PostResponse, PostPaginationResponse
+from .schemas import PostCreate, PostResponse, PostPaginationResponse, PostUpdate
 from .services import PostService
 from .models import Post
 from app.features.auth.dependencies import get_current_user
@@ -78,4 +78,20 @@ async def delete_post(post_id: str, current_user: User = Depends(get_current_use
     if not deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found or invalid ID")
     return None
+
+@router.put("/{post_id}", response_model=PostResponse)
+async def update_post(
+    post_id: str,
+    post_data: PostUpdate,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Update an existing community post.
+    """
+    return await PostService.update_post(
+        post_id=post_id,
+        current_user_id=str(current_user.id),
+        data=post_data
+    )
+
 

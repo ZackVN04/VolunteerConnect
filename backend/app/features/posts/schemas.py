@@ -1,6 +1,11 @@
-from pydantic import BaseModel, Field, AnyHttpUrl
+from pydantic import BaseModel, Field, AnyHttpUrl, field_validator
 from typing import Optional, List
 from datetime import datetime
+
+class DenormalizedAuthor(BaseModel):
+    name: str
+    role: str
+    organization_name: Optional[str] = None
 
 class PostCreate(BaseModel):
     title: str = Field(..., min_length=5, max_length=100, description="Title of the post")
@@ -8,6 +13,13 @@ class PostCreate(BaseModel):
     images: List[AnyHttpUrl] = Field(default_factory=list, max_length=10, description="List of image URLs (max 10)")
     video_url: Optional[AnyHttpUrl] = Field(None, description="Optional video URL")
     hashtags: List[str] = Field(default_factory=list, description="List of hashtags")
+
+    @field_validator('video_url', mode='before')
+    @classmethod
+    def empty_string_to_none(cls, v):
+        if v == "":
+            return None
+        return v
 
 class PostResponse(PostCreate):
     id: str = Field(..., description="The MongoDB ObjectId as string")
@@ -17,6 +29,8 @@ class PostResponse(PostCreate):
     comment_count: int = Field(default=0, ge=0, description="Number of comments")
     created_at: datetime = Field(..., description="Creation timestamp")
     updated_at: datetime = Field(..., description="Last update timestamp")
+    denormalized_author: Optional[DenormalizedAuthor] = None
+
 
 class PostPaginationResponse(BaseModel):
     items: List[PostResponse]
@@ -25,3 +39,10 @@ class PostPaginationResponse(BaseModel):
     total_items: int = Field(..., ge=0, description="Total number of items")
     total_pages: int = Field(..., ge=0, description="Total number of pages")
     has_next: bool = Field(..., description="True if there is a next page")
+
+class PostUpdate(BaseModel):
+    title: str = Field(..., min_length=5, max_length=100, description="Title of the post")
+    content: str = Field(..., min_length=10, max_length=5000, description="Content of the post")
+    images: List[AnyHttpUrl] = Field(default_factory=list, max_length=10, description="List of image URLs (max 10)")
+    hashtags: List[str] = Field(default_factory=list, description="List of hashtags")
+
