@@ -188,6 +188,7 @@ const REGISTRATION_STATUS_MAP: Record<string, Registration['status']> = {
 const mapRegistration = (reg: any): Registration => {
   if (!reg) return reg;
   const rawStatus = (reg.status || '').toLowerCase();
+  const activityInfo = reg.denormalized_activity || reg.activity || {};
   return {
     ...reg,
     _id: reg._id || reg.id,
@@ -198,11 +199,13 @@ const mapRegistration = (reg: any): Registration => {
       phone: '',
       email: ''
     },
-    denormalized_activity: reg.denormalized_activity || reg.activity || {
-      title: '',
-      status: '',
-      start_date: '',
-      end_date: ''
+    denormalized_activity: {
+      title: activityInfo.title || '',
+      status: activityInfo.status || '',
+      start_date: activityInfo.start_date || '',
+      end_date: activityInfo.end_date || '',
+      organizer_id: activityInfo.organizer_id || reg.organizer_id || null,
+      organizer_name: activityInfo.organizer_name || reg.organizer_name || null
     }
   };
 };

@@ -92,7 +92,9 @@ class RegistrationService:
                         title=activity.title,
                         status=activity.status,
                         start_date=activity.start_date,
-                        end_date=activity.end_date
+                        end_date=activity.end_date,
+                        organizer_id=activity.organizer_id,
+                        organizer_name=activity.denormalized_organizer.name if activity.denormalized_organizer else None
                     )
                     
                     new_registration = Registration(

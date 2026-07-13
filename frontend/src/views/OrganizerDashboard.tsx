@@ -518,7 +518,12 @@ export const OrganizerDashboard: React.FC = () => {
                       return (
                         <div key={reg._id} className="flex items-center justify-between p-3 bg-amber-50/50 rounded-xl border border-amber-100/50 animate-fadeIn">
                           <div>
-                            <p className="font-bold text-xs text-gray-800">{reg.denormalized_volunteer.name}</p>
+                            <a
+                              href={`#/profile?userId=${reg.volunteer_id}`}
+                              className="font-bold text-xs text-gray-800 hover:text-[#006d37] hover:underline"
+                            >
+                              {reg.denormalized_volunteer.name}
+                            </a>
                             <p className="text-[10px] text-gray-500 font-medium">{act?.title || 'Hoạt động'}</p>
                           </div>
                           <button
@@ -1043,7 +1048,11 @@ export const OrganizerDashboard: React.FC = () => {
                               />
                             </td>
                           )}
-                          <td className="px-6 py-4 font-bold text-slate-800">{reg.denormalized_volunteer.name}</td>
+                          <td className="px-6 py-4 font-bold text-slate-800">
+                            <a href={`#/profile?userId=${reg.volunteer_id}`} className="hover:text-[#006d37] hover:underline">
+                              {reg.denormalized_volunteer.name}
+                            </a>
+                          </td>
                           <td className="px-6 py-4 text-slate-500 font-medium max-w-[200px] truncate">{act?.title || '—'}</td>
                           <td className="px-6 py-4 text-slate-500 font-semibold">{act?.location?.province || '—'}</td>
                           <td className="px-6 py-4 text-slate-400 font-medium">—</td>
@@ -1243,7 +1252,11 @@ export const OrganizerDashboard: React.FC = () => {
                                 />
                               )}
                             </td>
-                            <td className="px-6 py-4 font-bold text-slate-800">{reg.denormalized_volunteer.name}</td>
+                            <td className="px-6 py-4 font-bold text-slate-800">
+                              <a href={`#/profile?userId=${reg.volunteer_id}`} className="hover:text-[#006d37] hover:underline">
+                                {reg.denormalized_volunteer.name}
+                              </a>
+                            </td>
                             <td className="px-6 py-4 text-slate-500 font-semibold">{reg.denormalized_volunteer.phone || '—'}</td>
                             <td className="px-6 py-4">
                               <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border ${reg.status === 'Approved' ? 'bg-[#e8f5e9] text-[#006d37] border-emerald-100/50' :
