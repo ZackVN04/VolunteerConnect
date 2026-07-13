@@ -97,22 +97,22 @@ export const ActivityListView: React.FC = () => {
     return true;
   });
 
-  const totalPages = USE_REAL_BACKEND 
+  const totalPages = USE_REAL_BACKEND
     ? Math.ceil(totalServerCount / itemsPerPage)
     : Math.ceil(filteredActivities.length / itemsPerPage);
 
   const paginatedActivities = USE_REAL_BACKEND
     ? serverActivities
     : filteredActivities.slice(
-        (currentPage - 1) * itemsPerPage,
-        currentPage * itemsPerPage
-      );
+      (currentPage - 1) * itemsPerPage,
+      currentPage * itemsPerPage
+    );
 
   return (
     <div className="w-full bg-[#f8f9fa] min-h-screen pb-16">
       {/* Container */}
       <div className="max-w-[1280px] mx-auto px-4 md:px-8 py-8 space-y-8 text-left">
-        
+
         {/* Title Block */}
         <div>
           <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-on-surface font-headline-md">
@@ -131,8 +131,8 @@ export const ActivityListView: React.FC = () => {
               <label className="text-xs font-bold text-on-surface uppercase tracking-wider">Tìm kiếm</label>
               <div className="relative">
                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-base">search</span>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Tên hoạt động hoặc địa điểm..."
@@ -166,10 +166,9 @@ export const ActivityListView: React.FC = () => {
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="w-full px-4 py-2.5 border border-surface-variant rounded-xl bg-surface focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm text-on-surface transition-all cursor-pointer"
               >
-                <option value="Open/Full">Đang tuyển (Open/Full)</option>
-                <option value="Open">Đang mở (Open)</option>
-                <option value="Full">Đã đầy chỗ (Full)</option>
-                <option value="Completed">Đã kết thúc (Completed)</option>
+                <option value="Open/Full">Đang tuyển</option>
+                <option value="Open">Đang mở</option>
+                <option value="Full">Đã đầy chỗ</option>
               </select>
             </div>
           </div>
@@ -179,7 +178,7 @@ export const ActivityListView: React.FC = () => {
         <div className="flex justify-between items-center text-sm text-on-surface-variant">
           <span>Tìm thấy <strong>{USE_REAL_BACKEND ? totalServerCount : filteredActivities.length}</strong> hoạt động phù hợp</span>
           {(searchQuery || selectedCategory !== 'All' || statusFilter !== 'Open/Full') && (
-            <button 
+            <button
               onClick={() => {
                 setSearchQuery('');
                 setSelectedCategory('All');
@@ -205,16 +204,16 @@ export const ActivityListView: React.FC = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {paginatedActivities.map(act => (
-              <div 
-                key={act._id} 
+              <div
+                key={act._id}
                 onClick={() => { window.location.hash = `#/activity/${act._id}`; }}
                 className="bg-white border border-surface-variant/40 rounded-3xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col h-[550px] cursor-pointer"
               >
                 {/* Image Section */}
                 <div className="relative h-[250px] w-full shrink-0">
-                  <img 
-                    src={act.image_url || 'https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=600'} 
-                    alt={act.title} 
+                  <img
+                    src={act.image_url || 'https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=600'}
+                    alt={act.title}
                     className="w-full h-full object-cover"
                     onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=600'; }}
                   />
@@ -228,9 +227,9 @@ export const ActivityListView: React.FC = () => {
                 <div className="p-6 flex flex-col justify-between flex-grow">
                   <div className="space-y-4">
                     <h3 className="text-xl font-bold text-on-surface line-clamp-1 leading-tight">
-                       {act.title}
-                     </h3>
-                    
+                      {act.title}
+                    </h3>
+
                     <div className="space-y-2 text-sm text-on-surface-variant">
                       <div className="flex items-center gap-2">
                         <span className="material-symbols-outlined text-[#006d37] text-lg font-bold">calendar_month</span>
@@ -254,7 +253,7 @@ export const ActivityListView: React.FC = () => {
                     <span className="bg-[#e8f5e9] text-[#006d37] font-bold text-xs px-3 py-1 rounded-full uppercase">
                       {act.status === 'Open' ? 'Đang mở' : act.status === 'Full' ? 'Đã đầy chỗ' : act.status}
                     </span>
-                    <a 
+                    <a
                       href={`#/activity/${act._id}`}
                       onClick={(e) => e.stopPropagation()}
                       className="bg-[#006d37] hover:bg-emerald-800 text-white font-bold px-5 py-2.5 rounded-full transition-all text-sm shadow-sm"
@@ -278,11 +277,10 @@ export const ActivityListView: React.FC = () => {
                   setCurrentPage(i + 1);
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
-                className={`w-8 h-8 rounded-full text-sm font-bold transition-all ${
-                  currentPage === i + 1
+                className={`w-8 h-8 rounded-full text-sm font-bold transition-all ${currentPage === i + 1
                     ? 'bg-[#006d37] text-white'
                     : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
-                }`}
+                  }`}
               >
                 {i + 1}
               </button>
