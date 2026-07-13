@@ -1925,8 +1925,9 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         return {
           ...p,
           denormalized_author: {
-            ...p.denormalized_author,
-            name: currentUser.profile.full_name
+            name: currentUser.profile.full_name,
+            role: p.denormalized_author?.role || currentUser.role,
+            avatar_url: currentUser.profile.avatar_url
           }
         };
       }
