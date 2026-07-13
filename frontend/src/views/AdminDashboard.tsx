@@ -872,7 +872,13 @@ export const AdminDashboard: React.FC = () => {
                       <div className="space-y-4 text-xs font-semibold">
                         <div className="grid grid-cols-3 gap-2">
                           <span className="text-on-surface-variant">Họ và tên</span>
-                          <span className="col-span-2 text-on-surface font-bold">{pendingRequests[0].denormalized_volunteer.name}</span>
+                          <span className="col-span-2 text-on-surface font-bold">
+                            {(() => {
+                              const req = pendingRequests[0];
+                              const requesterUser = users.find(u => u._id === req.volunteer_id);
+                              return req.denormalized_volunteer?.name || requesterUser?.profile?.full_name || 'Tài khoản';
+                            })()}
+                          </span>
                         </div>
                         <div className="grid grid-cols-3 gap-2">
                           <span className="text-on-surface-variant">Số điện thoại</span>
@@ -1083,23 +1089,26 @@ export const AdminDashboard: React.FC = () => {
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-surface-variant/30 text-on-surface">
-                            {paginatedOrgs.map(req => (
-                              <tr key={req._id} className="hover:bg-slate-50 transition-colors">
-                                <td className="px-6 py-5 w-12 text-center">
-                                  <input
-                                    type="checkbox"
-                                    checked={selectedRequestIds.includes(req._id)}
-                                    onChange={(e) => {
-                                      if (e.target.checked) {
-                                        setSelectedRequestIds(prev => [...prev, req._id]);
-                                      } else {
-                                        setSelectedRequestIds(prev => prev.filter(id => id !== req._id));
-                                      }
-                                    }}
-                                    className="rounded border-slate-300 text-[#006d37] focus:ring-[#006d37] cursor-pointer"
-                                  />
-                                </td>
-                                <td className="px-6 py-5 font-bold">{req.denormalized_volunteer.name}</td>
+                            {paginatedOrgs.map(req => {
+                              const requesterUser = users.find(u => u._id === req.volunteer_id);
+                              const displayName = req.denormalized_volunteer?.name || requesterUser?.profile?.full_name || 'Tài khoản';
+                              return (
+                                <tr key={req._id} className="hover:bg-slate-50 transition-colors">
+                                  <td className="px-6 py-5 w-12 text-center">
+                                    <input
+                                      type="checkbox"
+                                      checked={selectedRequestIds.includes(req._id)}
+                                      onChange={(e) => {
+                                        if (e.target.checked) {
+                                          setSelectedRequestIds(prev => [...prev, req._id]);
+                                        } else {
+                                          setSelectedRequestIds(prev => prev.filter(id => id !== req._id));
+                                        }
+                                      }}
+                                      className="rounded border-slate-300 text-[#006d37] focus:ring-[#006d37] cursor-pointer"
+                                    />
+                                  </td>
+                                  <td className="px-6 py-5 font-bold">{displayName}</td>
                                 <td className="px-6 py-5 text-on-surface-variant font-semibold">
                                   {req.experience}
                                 </td>
@@ -1125,7 +1134,8 @@ export const AdminDashboard: React.FC = () => {
                                   </div>
                                 </td>
                               </tr>
-                            ))}
+                            );
+                            })}
                           </tbody>
                         </table>
                       </div>
