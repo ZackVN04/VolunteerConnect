@@ -508,7 +508,7 @@ export interface PostComment {
   _id: string;
   post_id: string;
   author_name: string;
-  author_avatar?: string;
+  author_avatar?: string | null;
   content: string;
   created_at: string;
 }
@@ -589,8 +589,8 @@ export const FeedView: React.FC = () => {
       const newComment: PostComment = {
         _id: createdComment.id || createdComment._id || `comment_${Date.now()}`,
         post_id: postId,
-        author_name: currentUser?.full_name || currentUser?.profile?.full_name || 'Thành viên',
-        author_avatar: fixImageUrl(currentUser?.avatar_url || currentUser?.profile?.avatar_url),
+        author_name: currentUser?.profile?.full_name || 'Thành viên',
+        author_avatar: fixImageUrl(currentUser?.profile?.avatar_url) || undefined,
         content: text,
         created_at: new Date().toISOString()
       };
