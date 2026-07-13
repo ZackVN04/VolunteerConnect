@@ -161,6 +161,15 @@ async def test_update_profile_syncs_denormalized_names(async_client, active_user
     )
     await organizer_request.insert()
 
+    legacy_organizer_request = OrganizerRequest(
+        volunteer_id=active_user.id,
+        reason="I want to organize another community event.",
+        experience="I have legacy data without denormalized volunteer details.",
+        contact_phone=active_user.phone_number,
+        denormalized_volunteer=None
+    )
+    await legacy_organizer_request.insert()
+
     response = await async_client.put(
         "/api/v1/users/me",
         json={"full_name": "Synced Name"},
@@ -172,12 +181,15 @@ async def test_update_profile_syncs_denormalized_names(async_client, active_user
     synced_activity = await Activity.get(activity.id)
     synced_registration = await Registration.get(registration.id)
     synced_request = await OrganizerRequest.get(organizer_request.id)
+    synced_legacy_request = await OrganizerRequest.get(legacy_organizer_request.id)
 
     assert synced_activity.denormalized_organizer.name == "Synced Name"
     assert synced_registration.denormalized_volunteer.name == "Synced Name"
     assert synced_registration.denormalized_activity.organizer_id == active_user.id
     assert synced_registration.denormalized_activity.organizer_name == "Synced Name"
     assert synced_request.denormalized_volunteer["name"] == "Synced Name"
+    assert synced_legacy_request.denormalized_volunteer["name"] == "Synced Name"
+    assert synced_legacy_request.denormalized_volunteer["email"] == TEST_EMAIL
 
 @pytest.mark.asyncio
 async def test_media_upload_endpoint(async_client, auth_headers):
