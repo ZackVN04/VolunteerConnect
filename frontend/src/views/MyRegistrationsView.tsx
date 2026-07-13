@@ -155,6 +155,8 @@ export const MyRegistrationsView: React.FC = () => {
           ) : (
             userRegs.map(reg => {
               const actDetails = activities.find(a => a._id === reg.activity_id);
+              const organizerId = reg.denormalized_activity.organizer_id || actDetails?.organizer_id;
+              const organizerName = reg.denormalized_activity.organizer_name || actDetails?.denormalized_organizer?.name;
               return (
                 <div 
                   key={reg._id} 
@@ -176,7 +178,14 @@ export const MyRegistrationsView: React.FC = () => {
                       <div className="flex items-center gap-1.5">
                         <span className="material-symbols-outlined text-[#006d37] text-[16px] font-bold">corporate_fare</span>
                         <span>
-                          <strong>Ban tổ chức:</strong> {actDetails?.denormalized_organizer?.name || 'Chưa cập nhật'}
+                          <strong>Ban tổ chức:</strong>{' '}
+                          {organizerId ? (
+                            <a href={`#/profile?userId=${organizerId}`} className="font-bold text-[#006d37] hover:underline">
+                              {organizerName || 'Ban tổ chức'}
+                            </a>
+                          ) : (
+                            organizerName || 'Chưa cập nhật'
+                          )}
                         </span>
                       </div>
                       <div className="flex items-center gap-1.5">
