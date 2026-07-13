@@ -242,6 +242,10 @@ export const ActivityListView: React.FC = () => {
                           {act.location?.address_detail || 'Chưa cập nhật'}, {act.location?.district || ''}, {act.location?.province || ''}
                         </span>
                       </div>
+                      <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-[#006d37] text-lg font-bold">group</span>
+                        <span>{act.approved_volunteers_count || 0}/{act.limit_volunteers} đã duyệt</span>
+                      </div>
                     </div>
 
                     <p className="text-on-surface-variant text-sm leading-relaxed line-clamp-3">

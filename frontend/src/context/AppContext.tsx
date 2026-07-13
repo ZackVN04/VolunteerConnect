@@ -204,6 +204,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   });
   const currentUserRef = useRef<User | null>(null);
   currentUserRef.current = currentUser;
+  const pollingRefreshInFlightRef = useRef(false);
   const [users, setUsers] = useState<User[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [registrations, setRegistrations] = useState<Registration[]>([]);
@@ -492,6 +493,23 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   useEffect(() => {
     refreshAllData();
   }, [refreshAllData]);
+
+  const currentUserId = currentUser?._id;
+
+  // Auto-polling effect for live updates (e.g. attendance, statistics, statuses) (Group 4)
+  useEffect(() => {
+    if (!USE_REAL_BACKEND || !currentUserId) return;
+    const intervalId = setInterval(() => {
+      if (document.visibilityState !== 'visible' || pollingRefreshInFlightRef.current) return;
+      pollingRefreshInFlightRef.current = true;
+      refreshAllData()
+        .catch(err => console.error("Lỗi tự động cập nhật (auto-polling):", err))
+        .finally(() => {
+          pollingRefreshInFlightRef.current = false;
+        });
+    }, 30000);
+    return () => clearInterval(intervalId);
+  }, [refreshAllData, currentUserId]);
 
 
 

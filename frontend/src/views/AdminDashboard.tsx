@@ -41,15 +41,10 @@ export const AdminDashboard: React.FC = () => {
   const {
     currentUser, users, activities, registrations, organizerRequests,
     reviewOrganizerRequest, reviewActivity, bulkReviewOrganizerRequests, bulkReviewActivities,
-    setCurrentUser, showNotification, showPrompt, refreshAllData
+    setCurrentUser, showNotification, showPrompt
   } = useApp();
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      refreshAllData().catch((err) => console.error("Lỗi tự động cập nhật dữ liệu Admin:", err));
-    }, 30000);
-    return () => clearInterval(interval);
-  }, [refreshAllData]);
+  // Note: Local auto-polling removed in favor of global auto-polling in AppContext.tsx (Group 4)
 
   const [activeTab, setActiveTab] = useState<'overview' | 'organizers' | 'activities' | 'users' | 'stats' | 'history'>('overview');
   const [historySubTab, setHistorySubTab] = useState<'organizers' | 'activities'>('organizers');
