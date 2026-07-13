@@ -807,7 +807,6 @@ export const OrganizerDashboard: React.FC = () => {
                   <div className="divide-y divide-slate-100">
                     {filteredCampaigns.map(act => {
                       const isCompleted = act.status === 'Completed';
-                      const isOpen = act.status === 'Open' || act.status === 'Full' || act.status === 'Ongoing';
                       const isPending = act.status === 'Pending Review';
                       const approvedCount = registrations.filter(r => r.activity_id === act._id && (r.status === 'Approved' || r.status === 'Completed')).length;
 
@@ -843,13 +842,6 @@ export const OrganizerDashboard: React.FC = () => {
                               <button onClick={() => handleEditCampaignClick(act)}
                                 className="border border-slate-200 text-slate-700 hover:bg-slate-50 px-4 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer">
                                 Sửa
-                              </button>
-                            )}
-                            {isOpen && (
-                              <button
-                                onClick={() => { setActiveTab('registrations'); setRegSubTab('pending'); }}
-                                className="bg-[#006d37] hover:bg-[#005027] text-white px-4 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer">
-                                Duyệt đơn
                               </button>
                             )}
                             {isCompleted && (
