@@ -88,10 +88,16 @@ export const ActivityDetailView: React.FC<ActivityDetailViewProps> = ({ activity
       statusClass = 'bg-[#fef7e0] text-[#b06000]';
     } else if (userRegistration.status === 'Rejected') {
       statusText = 'Bị từ chối';
-      statusClass = 'bg-red-50 text-red-600';
+      statusClass = 'bg-red-50 text-red-650';
     } else if (userRegistration.status === 'Cancelled') {
       statusText = 'Đã hủy đăng ký';
       statusClass = 'bg-slate-100 text-slate-500';
+    } else if (userRegistration.status === 'Completed') {
+      statusText = 'Đã hoàn thành';
+      statusClass = 'bg-emerald-50 text-[#006d37]';
+    } else if (userRegistration.status === 'Absent') {
+      statusText = 'Vắng mặt';
+      statusClass = 'bg-red-50 text-red-600';
     }
   }
 
@@ -202,6 +208,14 @@ export const ActivityDetailView: React.FC<ActivityDetailViewProps> = ({ activity
                 <span className={`px-4 py-2.5 rounded-xl text-xs font-bold text-center border border-surface-variant/30 ${statusClass}`}>
                   {statusText}
                 </span>
+                {userRegistration && userRegistration.status === 'Rejected' && (userRegistration.reject_reason || (userRegistration as any).rejection_reason) && (
+                  <div className="mt-2 p-3 bg-red-50 border border-red-100 rounded-xl text-xs text-red-650 font-semibold leading-relaxed flex items-start gap-2 animate-fadeIn text-left">
+                    <span className="material-symbols-outlined text-[16px] shrink-0 text-red-600 mt-0.5 font-bold">info</span>
+                    <span>
+                      <strong>Lý do từ chối:</strong> {userRegistration.reject_reason || (userRegistration as any).rejection_reason}
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Info Items */}
@@ -265,12 +279,47 @@ export const ActivityDetailView: React.FC<ActivityDetailViewProps> = ({ activity
                   >
                     Chỉ dành cho Tình nguyện viên
                   </button>
-                ) : userRegistration && userRegistration.status !== 'Cancelled' ? (
+                ) : userRegistration && ['Approved', 'Pending'].includes(userRegistration.status) ? (
                   <button
                     onClick={handleCancelRegistration}
                     className="w-full bg-white hover:bg-red-50 border border-red-200 text-red-600 py-3.5 rounded-xl text-sm font-bold transition-all"
                   >
                     Hủy đăng ký tham gia
+                  </button>
+                ) : userRegistration && userRegistration.status === 'Rejected' ? (
+                  <button
+                    disabled
+                    className="w-full bg-red-50 text-red-500 border border-red-100 py-3.5 rounded-xl text-sm font-bold cursor-not-allowed"
+                  >
+                    Đã bị từ chối tham gia
+                  </button>
+                ) : userRegistration && userRegistration.status === 'Completed' ? (
+                  <button
+                    disabled
+                    className="w-full bg-emerald-50 text-[#006d37] border border-emerald-100 py-3.5 rounded-xl text-sm font-bold cursor-not-allowed"
+                  >
+                    Đã tham gia & Hoàn thành
+                  </button>
+                ) : userRegistration && userRegistration.status === 'Absent' ? (
+                  <button
+                    disabled
+                    className="w-full bg-red-50 text-red-500 border border-red-100 py-3.5 rounded-xl text-sm font-bold cursor-not-allowed"
+                  >
+                    Vắng mặt hoạt động này
+                  </button>
+                ) : activity.status === 'Completed' ? (
+                  <button
+                    disabled
+                    className="w-full bg-slate-100 text-slate-400 py-3.5 rounded-xl text-sm font-bold cursor-not-allowed"
+                  >
+                    Hoạt động đã kết thúc
+                  </button>
+                ) : activity.status === 'Cancelled' ? (
+                  <button
+                    disabled
+                    className="w-full bg-slate-100 text-slate-400 py-3.5 rounded-xl text-sm font-bold cursor-not-allowed"
+                  >
+                    Hoạt động đã bị hủy
                   </button>
                 ) : activity.status === 'Full' ? (
                   <button
