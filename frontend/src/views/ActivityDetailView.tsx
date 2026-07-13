@@ -22,8 +22,6 @@ const ContactAvatar: React.FC<{ name: string; src?: string | null }> = ({ name, 
 
 export const ActivityDetailView: React.FC<ActivityDetailViewProps> = ({ activityId }) => {
   const { currentUser, users, activities, registrations, registerForActivity, cancelOrRejectRegistration, showNotification, showConfirm } = useApp();
-  const [showSuccessToast, setShowSuccessToast] = useState(false);
-  const [toastMessage, setToastMessage] = useState('');
 
   const activity = activities.find(a => a._id === activityId);
   const organizerUser = users.find(u => u._id === activity?.organizer_id);
@@ -33,15 +31,6 @@ export const ActivityDetailView: React.FC<ActivityDetailViewProps> = ({ activity
   const userRegistration = registrations.find(
     r => r.volunteer_id === currentUser?._id && r.activity_id === activityId
   );
-
-  useEffect(() => {
-    // If user just registered, show success toast automatically
-    if (userRegistration && userRegistration.status === 'Pending' && !localStorage.getItem(`toast_shown_${userRegistration._id}`)) {
-      setShowSuccessToast(true);
-      setToastMessage('Yêu cầu tham gia của bạn đã được gửi. Vui lòng chờ Ban tổ chức duyệt.');
-      localStorage.setItem(`toast_shown_${userRegistration._id}`, 'true');
-    }
-  }, [userRegistration]);
 
   if (!activity) {
     return (
@@ -121,27 +110,6 @@ export const ActivityDetailView: React.FC<ActivityDetailViewProps> = ({ activity
 
   return (
     <div className="w-full bg-[#f8f9fa] min-h-screen pb-16">
-      {/* Toast alert overlay if showSuccessToast is true */}
-      {showSuccessToast && (
-        <div className="fixed top-20 right-4 z-[100] w-full max-w-[400px] animate-slideIn">
-          <div className="bg-white border border-[#006d37] rounded-xl shadow-xl p-4 flex items-start gap-3 text-left">
-            <div className="bg-[#e8f5e9] p-2 rounded-full shrink-0">
-              <span className="material-symbols-outlined text-[#006d37]" data-weight="fill">check_circle</span>
-            </div>
-            <div className="flex-grow">
-              <h4 className="font-bold text-sm text-on-surface">Đăng ký thành công!</h4>
-              <p className="text-xs text-on-surface-variant mt-1">{toastMessage}</p>
-            </div>
-            <button
-              onClick={() => setShowSuccessToast(false)}
-              className="text-on-surface-variant hover:text-on-surface transition-colors p-1"
-            >
-              <span className="material-symbols-outlined text-[20px]">close</span>
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Container */}
       <div className="max-w-[1280px] mx-auto px-4 md:px-8 py-8 text-left">
 
