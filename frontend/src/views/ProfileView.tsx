@@ -494,6 +494,11 @@ export const ProfileView: React.FC = () => {
                             isPending ? 'Đang chờ Admin duyệt' :
                               isApproved ? 'Đã duyệt thành công' : 'Bị từ chối'
                           }
+                          {inCooldown && (
+                            <span className="text-red-600 font-medium ml-1">
+                              (Bạn có thể gửi lại yêu cầu sau {cooldownHoursRemaining} giờ)
+                            </span>
+                          )}
                         </div>
                         <p className="mt-[5px] ml-[5px] text-xs opacity-90">
                           Gửi ngày: {new Date(userRequest.created_at).toLocaleDateString('vi-VN')}
