@@ -145,7 +145,7 @@ interface AppContextType {
   organizerRequests: OrganizerRequest[];
   posts: Post[];
   setCurrentUser: (user: User | null) => void;
-  refreshAllData: () => Promise<void>;
+  refreshAllData: (options?: { silent?: boolean }) => Promise<void>;
 
   // Transactions & Actions
   loginAs: (userId: string) => void;
@@ -313,10 +313,13 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     resetToInitial();
   };
 
-  const refreshAllData = useCallback(async () => {
+  const refreshAllData = useCallback(async (options: { silent?: boolean } = {}) => {
+    const isSilent = options.silent === true;
     if (USE_REAL_BACKEND) {
       try {
-        setIsDataLoading(true);
+        if (!isSilent) {
+          setIsDataLoading(true);
+        }
         let activeUser = currentUserRef.current;
         const token = localStorage.getItem('token');
         if (token) {
@@ -485,12 +488,16 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         console.error('Lỗi khi tải dữ liệu từ Backend:', e);
       } finally {
         setIsAuthLoading(false);
-        setIsDataLoading(false);
+        if (!isSilent) {
+          setIsDataLoading(false);
+        }
       }
     } else {
       loadLocalStorageData();
       setIsAuthLoading(false);
-      setIsDataLoading(false);
+      if (!isSilent) {
+        setIsDataLoading(false);
+      }
     }
   }, []);
 
@@ -521,7 +528,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     const intervalId = setInterval(() => {
       if (document.visibilityState !== 'visible' || pollingRefreshInFlightRef.current) return;
       pollingRefreshInFlightRef.current = true;
-      refreshAllData()
+      refreshAllData({ silent: true })
         .catch(err => console.error("Lỗi tự động cập nhật (auto-polling):", err))
         .finally(() => {
           pollingRefreshInFlightRef.current = false;
