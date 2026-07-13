@@ -13,17 +13,38 @@ class ActivityRepository:
         search: Optional[str] = None,
         category: Optional[str] = None,
         province: Optional[str] = None,
+        status: Optional[str] = None,
         skip: int = 0,
         limit: int = 10
     ) -> Tuple[List[Activity], int]:
-        query = {
-            "status": {
+        query = {}
+
+        if status:
+            status_lower = status.lower()
+            if status_lower == "open":
+                query["status"] = ActivityStatus.OPEN.value
+            elif status_lower == "full":
+                query["status"] = ActivityStatus.FULL.value
+            elif status_lower == "completed":
+                query["status"] = ActivityStatus.COMPLETED.value
+            elif status_lower == "cancelled":
+                query["status"] = ActivityStatus.CANCELLED.value
+            elif status_lower in ("open/full", "open_full"):
+                query["status"] = {
+                    "$in": [
+                        ActivityStatus.OPEN.value,
+                        ActivityStatus.FULL.value
+                    ]
+                }
+            else:
+                query["status"] = status
+        else:
+            query["status"] = {
                 "$in": [
                     ActivityStatus.OPEN.value,
                     ActivityStatus.FULL.value
                 ]
             }
-        }
         
         if search:
             query["$text"] = {"$search": search}
@@ -33,8 +54,8 @@ class ActivityRepository:
             query["location.province"] = province
 
         total = await Activity.find(query).count()
-        # Sort theo start_date giảm dần (mới nhất hiển thị trước)
-        activities = await Activity.find(query).sort("-start_date").skip(skip).limit(limit).to_list()
+        # Sort theo created_at giảm dần (ưu tiên hoạt động mới tạo hiển thị trước)
+        activities = await Activity.find(query).sort("-created_at").skip(skip).limit(limit).to_list()
         
         return activities, total
 

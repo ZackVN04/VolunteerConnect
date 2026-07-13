@@ -415,7 +415,25 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           } else {
             serverActs = await activityService.getAll();
           }
-          setActivitiesWithLocalOverride(serverActs);
+
+          // Normalize activity status to match Frontend UI logic (Title Case)
+          const activityStatusMap: Record<string, Activity['status']> = {
+            'draft': 'Draft',
+            'pending_review': 'Pending Review',
+            'open': 'Open',
+            'full': 'Full',
+            'ongoing': 'Ongoing',
+            'completed': 'Completed',
+            'rejected': 'Rejected',
+            'cancelled': 'Cancelled'
+          };
+
+          const normalizedActs = serverActs.map((act: Activity) => ({
+            ...act,
+            status: activityStatusMap[String(act.status).toLowerCase()] || act.status
+          }));
+
+          setActivitiesWithLocalOverride(normalizedActs);
         } catch (err) {
           console.error("Lỗi lấy danh sách hoạt động từ server:", err);
         }

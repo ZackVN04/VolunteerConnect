@@ -45,18 +45,11 @@ export const ActivityListView: React.FC = () => {
       activityService.list({
         search: searchQuery,
         category: selectedCategory,
+        status: statusFilter,
         page: currentPage,
         limit: itemsPerPage
       }).then(res => {
-        let list = res.activities;
-        if (statusFilter === 'Open') {
-          list = list.filter(a => a.status === 'Open');
-        } else if (statusFilter === 'Full') {
-          list = list.filter(a => a.status === 'Full');
-        } else if (statusFilter === 'Completed') {
-          list = list.filter(a => a.status === 'Completed');
-        }
-        setServerActivities(list);
+        setServerActivities(res.activities);
         setTotalServerCount(res.total);
         setLoading(false);
       }).catch(err => {
