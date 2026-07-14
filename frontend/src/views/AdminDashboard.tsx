@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import type { User } from '../context/AppContext';
+import logoImg from '../assets/logo.png';
 
 // Helper: inline avatar fallback with initials
 const AdminAvatar: React.FC<{ name: string; src?: string | null }> = ({ name, src }) => {
@@ -120,6 +120,7 @@ export const AdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'organizers' | 'activities' | 'users' | 'stats' | 'history'>('overview');
   const [historySubTab, setHistorySubTab] = useState<'organizers' | 'activities'>('organizers');
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const [menuExpanded, setMenuExpanded] = useState(false);
 
   // Filters for History Tab
   const [historySearch, setHistorySearch] = useState('');
@@ -387,50 +388,28 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
-  const getLoginStatusBadge = (user: User) => {
-    // Current logged-in user is always online. Other users are simulated based on their ID hash for a realistic experience.
-    const isOnline = currentUser && user._id === currentUser._id
-      ? true
-      : (user._id.charCodeAt(user._id.length - 1) % 2 === 0);
-
-    if (isOnline) {
-      return (
-        <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 text-xs px-2.5 py-1.5 rounded-full font-bold border border-emerald-200 shadow-sm shrink-0">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-          Đang hoạt động
-        </span>
-      );
-    } else {
-      return (
-        <span className="inline-flex items-center gap-1.5 bg-slate-50 text-slate-500 text-xs px-2.5 py-1.5 rounded-full font-semibold border border-slate-200 shadow-sm shrink-0">
-          <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
-          Ngoại tuyến
-        </span>
-      );
-    }
-  };
 
   return (
     <div className="w-full bg-[#f8f9fa] min-h-screen pb-16 relative">
       {/* Admin specialized Header */}
       <header className="bg-white border-b border-surface-variant/40 shadow-sm transition-all duration-200 w-full mb-2">
-        <div className="flex justify-between items-center px-4 md:px-8 py-4 w-full max-w-[1440px] mx-auto h-[72px]">
+        <div className="flex justify-between items-center gap-3 px-3 sm:px-4 md:px-8 py-3 md:py-4 w-full max-w-[1440px] mx-auto min-h-16 md:h-[72px]">
           {/* Left: Brand & Admin Tag */}
-          <div className="flex items-center gap-3">
-            <a href="#/feed" className="font-headline-md text-xl text-primary font-bold flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary text-3xl filled">diversity_3</span>
-              <span className="tracking-tight select-none">Volunteer Connect</span>
+          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+            <a href="#/feed" className="font-headline-md text-base sm:text-xl text-primary font-bold flex min-w-0 items-center gap-2 hover:opacity-90 active:scale-[0.98] transition-all">
+              <img src={logoImg} alt="Volunteer Connect Logo" className="h-8 sm:h-9 w-auto object-contain shrink-0" />
+              <span className="tracking-tight select-none truncate">Volunteer Connect</span>
             </a>
-            <span className="text-on-surface-variant border-l border-surface-variant pl-3 font-semibold text-sm">
+            <span className="hidden sm:inline text-on-surface-variant border-l border-surface-variant pl-3 font-semibold text-sm">
               Quản trị hệ thống
             </span>
           </div>
 
           {/* Right: Admin Actions & Info Dropdown */}
-          <div className="flex items-center gap-4">
+          <div className="flex shrink-0 items-center gap-2 sm:gap-4">
             <a
               href="#/feed"
-              className="flex items-center gap-1.5 px-3.5 py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold rounded-xl text-xs transition-all shadow-sm cursor-pointer"
+              className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold rounded-xl text-xs transition-all shadow-sm cursor-pointer"
             >
               <span className="material-symbols-outlined text-sm">home</span>
               Trang chủ
@@ -447,7 +426,7 @@ export const AdminDashboard: React.FC = () => {
                     src={currentUser.profile.avatar_url}
                   />
                 </div>
-                <div className="flex flex-col text-left">
+                <div className="hidden sm:flex flex-col text-left">
                   <span className="font-bold text-xs text-on-surface leading-tight">
                     {currentUser.profile.full_name}
                   </span>
@@ -517,21 +496,50 @@ export const AdminDashboard: React.FC = () => {
       </header>
 
       {/* Container */}
-      <div className="max-w-[1440px] mx-auto px-4 md:px-8 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8 text-left">
+      <div className="max-w-[1440px] mx-auto px-3 sm:px-4 md:px-8 py-5 sm:py-8 grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-8 text-left">
 
         {/* Left Sidebar Layout */}
-        <aside className="lg:col-span-3 bg-white border border-surface-variant/40 rounded-3xl p-6 shadow-sm h-fit space-y-6">
-          <div>
-            <h3 className="text-lg font-bold text-on-surface font-headline-md">Admin Console</h3>
-            <p className="text-xs text-on-surface-variant mt-0.5 font-semibold">Quản trị toàn bộ hệ thống</p>
+        <aside className="lg:col-span-3 bg-white border border-surface-variant/40 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm h-fit space-y-4 lg:space-y-6">
+          <div className="flex items-center justify-between lg:block">
+            <div>
+              <h3 className="text-lg font-bold text-on-surface font-headline-md">Admin Console</h3>
+              <p className="text-xs text-on-surface-variant mt-0.5 font-semibold">Quản trị toàn bộ hệ thống</p>
+              {/* Show active tab status badge on mobile */}
+              <div className="lg:hidden mt-2 text-[10px] sm:text-xs text-[#006d37] font-extrabold flex items-center gap-1.5 bg-[#e8f5e9] px-3 py-1 rounded-full w-fit border border-[#006d37]/10">
+                <span className="material-symbols-outlined text-[14px]">
+                  {activeTab === 'overview' && 'dashboard'}
+                  {activeTab === 'organizers' && 'person_add'}
+                  {activeTab === 'activities' && 'verified_user'}
+                  {activeTab === 'users' && 'group'}
+                  {activeTab === 'stats' && 'analytics'}
+                  {activeTab === 'history' && 'history'}
+                </span>
+                {activeTab === 'overview' && 'Tổng quan hệ thống'}
+                {activeTab === 'organizers' && 'Phê duyệt ban tổ chức'}
+                {activeTab === 'activities' && 'Phê duyệt hoạt động'}
+                {activeTab === 'users' && 'Danh sách người dùng'}
+                {activeTab === 'stats' && 'Thống kê tham gia'}
+                {activeTab === 'history' && 'Lịch sử phê duyệt'}
+              </div>
+            </div>
+            
+            {/* Toggle Button for Mobile Menu */}
+            <button
+              onClick={() => setMenuExpanded(!menuExpanded)}
+              className="lg:hidden flex items-center justify-center p-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 hover:text-[#006d37] hover:bg-[#e8f5e9] transition-all cursor-pointer shrink-0 active:scale-95"
+            >
+              <span className="material-symbols-outlined text-2xl">
+                {menuExpanded ? 'expand_less' : 'expand_more'}
+              </span>
+            </button>
           </div>
 
-          <nav className="flex flex-col gap-1.5 text-sm font-semibold">
+          <nav className={`${menuExpanded ? 'flex' : 'hidden'} lg:flex flex-col gap-1.5 text-sm font-semibold transition-all duration-300 animate-fadeIn`}>
             {/* Tab 1 */}
             <button
-              onClick={() => setActiveTab('overview')}
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${activeTab === 'overview'
-                ? 'bg-[#006d37] text-white'
+              onClick={() => { setActiveTab('overview'); setMenuExpanded(false); }}
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all cursor-pointer ${activeTab === 'overview'
+                ? 'bg-[#006d37] text-white shadow-sm'
                 : 'text-on-surface-variant hover:bg-slate-100 hover:text-on-surface'
                 }`}
             >
@@ -543,9 +551,9 @@ export const AdminDashboard: React.FC = () => {
 
             {/* Tab 2 */}
             <button
-              onClick={() => setActiveTab('organizers')}
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${activeTab === 'organizers'
-                ? 'bg-[#006d37] text-white'
+              onClick={() => { setActiveTab('organizers'); setMenuExpanded(false); }}
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all cursor-pointer ${activeTab === 'organizers'
+                ? 'bg-[#006d37] text-white shadow-sm'
                 : 'text-on-surface-variant hover:bg-slate-100 hover:text-on-surface'
                 }`}
             >
@@ -562,9 +570,9 @@ export const AdminDashboard: React.FC = () => {
 
             {/* Tab 3 */}
             <button
-              onClick={() => setActiveTab('activities')}
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${activeTab === 'activities'
-                ? 'bg-[#006d37] text-white'
+              onClick={() => { setActiveTab('activities'); setMenuExpanded(false); }}
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all cursor-pointer ${activeTab === 'activities'
+                ? 'bg-[#006d37] text-white shadow-sm'
                 : 'text-on-surface-variant hover:bg-slate-100 hover:text-on-surface'
                 }`}
             >
@@ -581,9 +589,9 @@ export const AdminDashboard: React.FC = () => {
 
             {/* Tab 4 */}
             <button
-              onClick={() => setActiveTab('users')}
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${activeTab === 'users'
-                ? 'bg-[#006d37] text-white'
+              onClick={() => { setActiveTab('users'); setMenuExpanded(false); }}
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all cursor-pointer ${activeTab === 'users'
+                ? 'bg-[#006d37] text-white shadow-sm'
                 : 'text-on-surface-variant hover:bg-slate-100 hover:text-on-surface'
                 }`}
             >
@@ -595,9 +603,9 @@ export const AdminDashboard: React.FC = () => {
 
             {/* Tab 5 */}
             <button
-              onClick={() => setActiveTab('stats')}
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${activeTab === 'stats'
-                ? 'bg-[#006d37] text-white'
+              onClick={() => { setActiveTab('stats'); setMenuExpanded(false); }}
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all cursor-pointer ${activeTab === 'stats'
+                ? 'bg-[#006d37] text-white shadow-sm'
                 : 'text-on-surface-variant hover:bg-slate-100 hover:text-on-surface'
                 }`}
             >
@@ -609,9 +617,9 @@ export const AdminDashboard: React.FC = () => {
 
             {/* Tab 6: Lịch sử phê duyệt */}
             <button
-              onClick={() => setActiveTab('history')}
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${activeTab === 'history'
-                ? 'bg-[#006d37] text-white'
+              onClick={() => { setActiveTab('history'); setMenuExpanded(false); }}
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all cursor-pointer ${activeTab === 'history'
+                ? 'bg-[#006d37] text-white shadow-sm'
                 : 'text-on-surface-variant hover:bg-slate-100 hover:text-on-surface'
                 }`}
             >
@@ -640,9 +648,9 @@ export const AdminDashboard: React.FC = () => {
               </div>
 
               {/* Stats bento-grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
                 {/* Stats 1 */}
-                <div className="bg-white border border-surface-variant/40 rounded-2xl p-6 shadow-sm flex items-center gap-4">
+                <div className="bg-white border border-surface-variant/40 rounded-2xl p-4 sm:p-6 shadow-sm flex items-center gap-4">
                   <div className="w-12 h-12 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-center text-slate-500 shrink-0">
                     <span className="material-symbols-outlined text-2xl">description</span>
                   </div>
@@ -653,7 +661,7 @@ export const AdminDashboard: React.FC = () => {
                 </div>
 
                 {/* Stats 2 */}
-                <div className="bg-white border border-surface-variant/40 rounded-2xl p-6 shadow-sm flex items-center gap-4">
+                <div className="bg-white border border-surface-variant/40 rounded-2xl p-4 sm:p-6 shadow-sm flex items-center gap-4">
                   <div className="w-12 h-12 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-center text-slate-500 shrink-0">
                     <span className="material-symbols-outlined text-2xl">person</span>
                   </div>
@@ -664,7 +672,7 @@ export const AdminDashboard: React.FC = () => {
                 </div>
 
                 {/* Stats 3 */}
-                <div className="bg-white border border-surface-variant/40 rounded-2xl p-6 shadow-sm flex items-center gap-4">
+                <div className="bg-white border border-surface-variant/40 rounded-2xl p-4 sm:p-6 shadow-sm flex items-center gap-4">
                   <div className="w-12 h-12 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-center text-slate-500 shrink-0">
                     <span className="material-symbols-outlined text-2xl">shield</span>
                   </div>
@@ -679,7 +687,7 @@ export const AdminDashboard: React.FC = () => {
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
                 {/* Left: Nhiệm vụ cần xử lý */}
-                <div className="lg:col-span-8 bg-white border border-surface-variant/40 rounded-2xl p-6 shadow-sm space-y-4">
+                <div className="lg:col-span-8 bg-white border border-surface-variant/40 rounded-2xl p-4 sm:p-6 shadow-sm space-y-4">
                   <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
                     <span className="material-symbols-outlined text-[#006d37]">schedule</span>
                     <h3 className="text-base font-bold text-on-surface">Nhiệm vụ cần xử lý</h3>
@@ -687,57 +695,57 @@ export const AdminDashboard: React.FC = () => {
 
                   <div className="space-y-3">
                     {/* Task 1 */}
-                    <div className="flex justify-between items-center bg-[#f8f9fa] border border-slate-100 rounded-xl p-4 gap-4">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center bg-[#f8f9fa] border border-slate-100 rounded-xl p-4 gap-4">
                       <div className="flex items-center gap-3">
                         <span className="w-7 h-7 rounded-full bg-[#fef7e0] text-[#b06000] font-bold text-xs flex items-center justify-center shrink-0">
                           {pendingActivities.length}
                         </span>
-                        <div>
+                        <div className="min-w-0">
                           <span className="font-bold text-sm text-on-surface block">Hoạt động tình nguyện chờ duyệt</span>
                           <span className="text-xs text-on-surface-variant font-semibold">Cần kiểm duyệt nội dung chiến dịch mới đăng ký.</span>
                         </div>
                       </div>
                       <button
                         onClick={() => setActiveTab('activities')}
-                        className="border border-slate-200 hover:bg-slate-100 text-on-surface-variant font-bold text-xs px-4 py-2 rounded-lg transition-all shrink-0"
+                        className="w-full sm:w-auto border border-slate-200 hover:bg-slate-100 text-on-surface-variant font-bold text-xs px-4 py-2 rounded-lg transition-all shrink-0"
                       >
                         Xem danh sách
                       </button>
                     </div>
 
                     {/* Task 2 */}
-                    <div className="flex justify-between items-center bg-[#f8f9fa] border border-slate-100 rounded-xl p-4 gap-4">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center bg-[#f8f9fa] border border-slate-100 rounded-xl p-4 gap-4">
                       <div className="flex items-center gap-3">
                         <span className="w-7 h-7 rounded-full bg-[#fef7e0] text-[#b06000] font-bold text-xs flex items-center justify-center shrink-0">
                           {pendingRequests.length}
                         </span>
-                        <div>
+                        <div className="min-w-0">
                           <span className="font-bold text-sm text-on-surface block">Yêu cầu nâng quyền Organizer</span>
                           <span className="text-xs text-on-surface-variant font-semibold">Đơn đề xuất xin quyền tổ chức hoạt động của Tình nguyện viên.</span>
                         </div>
                       </div>
                       <button
                         onClick={() => setActiveTab('organizers')}
-                        className="border border-slate-200 hover:bg-slate-100 text-on-surface-variant font-bold text-xs px-4 py-2 rounded-lg transition-all shrink-0"
+                        className="w-full sm:w-auto border border-slate-200 hover:bg-slate-100 text-on-surface-variant font-bold text-xs px-4 py-2 rounded-lg transition-all shrink-0"
                       >
                         Xem danh sách
                       </button>
                     </div>
 
                     {/* Task 3 */}
-                    <div className="flex justify-between items-center bg-[#f8f9fa] border border-slate-100 rounded-xl p-4 gap-4">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center bg-[#f8f9fa] border border-slate-100 rounded-xl p-4 gap-4">
                       <div className="flex items-center gap-3">
                         <span className="w-7 h-7 rounded-full bg-[#fef7e0] text-[#b06000] font-bold text-xs flex items-center justify-center shrink-0">
                           {registrations.filter(r => r.status === 'Pending').length}
                         </span>
-                        <div>
+                        <div className="min-w-0">
                           <span className="font-bold text-sm text-on-surface block">Đăng ký tham gia hoạt động</span>
                           <span className="text-xs text-on-surface-variant font-semibold">Lượt đăng ký tham gia hoạt động cần rà soát trên hệ thống.</span>
                         </div>
                       </div>
                       <button
                         onClick={() => setActiveTab('stats')}
-                        className="border border-slate-200 hover:bg-slate-100 text-on-surface-variant font-bold text-xs px-4 py-2 rounded-lg transition-all shrink-0"
+                        className="w-full sm:w-auto border border-slate-200 hover:bg-slate-100 text-on-surface-variant font-bold text-xs px-4 py-2 rounded-lg transition-all shrink-0"
                       >
                         Xem danh sách
                       </button>
@@ -1046,7 +1054,7 @@ export const AdminDashboard: React.FC = () => {
 
               <div className="bg-white border border-surface-variant/40 rounded-2xl shadow-sm overflow-hidden">
                 {pendingRequests.length === 0 ? (
-                  <div className="p-16 text-center space-y-3">
+                  <div className="p-8 sm:p-16 text-center space-y-3">
                     <span className="material-symbols-outlined text-outline text-5xl">verified</span>
                     <p className="text-sm text-on-surface-variant italic">Không có yêu cầu nâng cấp nào đang chờ duyệt.</p>
                   </div>
@@ -1112,10 +1120,8 @@ export const AdminDashboard: React.FC = () => {
                                 <td className="px-6 py-5 text-on-surface-variant font-semibold">
                                   {req.experience}
                                 </td>
-                                <td className="px-6 py-5 text-on-surface-variant">
-                                  <p className="line-clamp-2 max-w-[300px]" title={req.reason}>
-                                    {req.reason}
-                                  </p>
+                                <td className="px-6 py-5 text-on-surface-variant max-w-[300px] break-words text-xs">
+                                  <ExpandableText text={req.reason} limit={80} />
                                 </td>
                                 <td className="px-6 py-5 whitespace-nowrap">
                                   <div className="flex gap-3">
@@ -1226,7 +1232,7 @@ export const AdminDashboard: React.FC = () => {
 
               <div className="bg-white border border-surface-variant/40 rounded-2xl shadow-sm overflow-hidden">
                 {pendingActivities.length === 0 ? (
-                  <div className="p-16 text-center space-y-3">
+                  <div className="p-8 sm:p-16 text-center space-y-3">
                     <span className="material-symbols-outlined text-outline text-5xl">fact_check</span>
                     <p className="text-sm text-on-surface-variant italic">Không có hoạt động nào đang chờ duyệt.</p>
                   </div>
@@ -1406,7 +1412,7 @@ export const AdminDashboard: React.FC = () => {
 
                 <div className="bg-white border border-surface-variant/40 rounded-2xl shadow-sm overflow-hidden">
                   {filteredUsers.length === 0 ? (
-                    <div className="p-16 text-center space-y-3">
+                    <div className="p-8 sm:p-16 text-center space-y-3">
                       <span className="material-symbols-outlined text-outline text-5xl">group</span>
                       <p className="text-sm text-on-surface-variant italic">Không tìm thấy người dùng phù hợp.</p>
                     </div>
@@ -1426,7 +1432,7 @@ export const AdminDashboard: React.FC = () => {
                                 <th className="px-4 py-3 whitespace-nowrap">Số điện thoại</th>
                                 <th className="px-4 py-3 whitespace-nowrap">Email</th>
                                 <th className="px-4 py-3 whitespace-nowrap">Vai trò</th>
-                                <th className="px-4 py-3 whitespace-nowrap">Trạng thái hoạt động</th>
+                                <th className="px-4 py-3 whitespace-nowrap">Ngày tạo tài khoản</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-surface-variant/30 text-on-surface">
@@ -1440,8 +1446,8 @@ export const AdminDashboard: React.FC = () => {
                                   <td className="px-4 py-3.5 whitespace-nowrap">
                                     {getRoleBadge(u.role)}
                                   </td>
-                                  <td className="px-4 py-3.5 whitespace-nowrap">
-                                    {getLoginStatusBadge(u)}
+                                  <td className="px-4 py-3.5 whitespace-nowrap text-on-surface-variant text-xs font-semibold">
+                                    {u.created_at ? new Date(u.created_at).toLocaleDateString('vi-VN') : 'Chưa cập nhật'}
                                   </td>
                                 </tr>
                               ))}
@@ -1536,7 +1542,7 @@ export const AdminDashboard: React.FC = () => {
 
                 <div className="bg-white border border-surface-variant/40 rounded-2xl shadow-sm overflow-hidden">
                   {filteredRegs.length === 0 ? (
-                    <div className="p-16 text-center space-y-3">
+                    <div className="p-8 sm:p-16 text-center space-y-3">
                       <span className="material-symbols-outlined text-outline text-5xl">analytics</span>
                       <p className="text-sm text-on-surface-variant italic">Không tìm thấy kết quả thống kê tham gia phù hợp.</p>
                     </div>
@@ -1747,7 +1753,7 @@ export const AdminDashboard: React.FC = () => {
                 {historySubTab === 'organizers' ? (
                   <div className="bg-white border border-surface-variant/40 rounded-2xl shadow-sm overflow-hidden">
                     {filteredRequests.length === 0 ? (
-                      <div className="p-16 text-center space-y-3">
+                      <div className="p-8 sm:p-16 text-center space-y-3">
                         <span className="material-symbols-outlined text-outline text-5xl">history</span>
                         <p className="text-sm text-on-surface-variant italic">Không tìm thấy lịch sử phê duyệt Ban tổ chức phù hợp.</p>
                       </div>
@@ -1782,7 +1788,7 @@ export const AdminDashboard: React.FC = () => {
                                         </div>
                                       </td>
                                       <td className="px-4 py-3.5 text-xs text-on-surface-variant max-w-[250px] break-words">
-                                        {req.reason}
+                                        <ExpandableText text={req.reason} limit={80} />
                                       </td>
                                       <td className="px-4 py-3.5 whitespace-nowrap text-xs text-on-surface-variant">
                                         {req.reviewed_at ? new Date(req.reviewed_at).toLocaleString('vi-VN') : 'Chưa cập nhật'}
@@ -1819,7 +1825,7 @@ export const AdminDashboard: React.FC = () => {
                 ) : (
                   <div className="bg-white border border-surface-variant/40 rounded-2xl shadow-sm overflow-hidden">
                     {filteredActs.length === 0 ? (
-                      <div className="p-16 text-center space-y-3">
+                      <div className="p-8 sm:p-16 text-center space-y-3">
                         <span className="material-symbols-outlined text-outline text-5xl">history</span>
                         <p className="text-sm text-on-surface-variant italic">Không tìm thấy lịch sử phê duyệt hoạt động phù hợp.</p>
                       </div>

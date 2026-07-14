@@ -38,13 +38,13 @@ const InfoItem: React.FC<{
   label: string;
   value: React.ReactNode
 }> = ({ icon, iconColorClass, bgClass, label, value }) => (
-  <div className="flex gap-4 p-4 bg-slate-50 border border-slate-100 rounded-2xl items-center hover:shadow-sm transition-all duration-150">
+  <div className="flex gap-3 sm:gap-4 p-3 sm:p-4 bg-slate-50 border border-slate-100 rounded-2xl items-start sm:items-center hover:shadow-sm transition-all duration-150">
     <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${bgClass} shrink-0`}>
       <span className={`material-symbols-outlined text-lg ${iconColorClass}`}>{icon}</span>
     </div>
-    <div className="space-y-0.5 text-left">
-      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">{label}</span>
-      <span className="text-slate-800 text-sm font-semibold block">{value}</span>
+    <div className="min-w-0 space-y-0.5 text-left flex-1">
+      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block break-words">{label}</span>
+      <span className="text-slate-800 text-sm font-semibold block break-words">{value}</span>
     </div>
   </div>
 );
@@ -343,15 +343,15 @@ export const ProfileView: React.FC = () => {
 
   return (
     <div className="w-full bg-[#f8f9fa] min-h-screen pb-16 text-left">
-      <div className="max-w-[1100px] mx-auto px-4 md:px-8 py-8 space-y-6">
+      <div className="max-w-[1100px] mx-auto px-3 sm:px-4 md:px-8 py-5 sm:py-8 space-y-5 sm:space-y-6">
 
         {/* Header Breadcrumbs and Navigation */}
-        <div className="flex justify-between items-center border-b border-slate-200/60 pb-5">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight text-slate-800 font-headline-md">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 border-b border-slate-200/60 pb-5">
+          <div className="min-w-0">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-800 font-headline-md">
               {isOwnProfile ? 'Hồ sơ tài khoản' : 'Hồ sơ đối tác'}
             </h1>
-            <p className="text-slate-500 text-sm mt-1.5 font-medium">
+            <p className="text-slate-500 text-sm mt-1.5 font-medium leading-relaxed">
               {isOwnProfile
                 ? 'Quản lý thông tin bảo mật, chỉnh sửa các chi tiết hồ sơ cá nhân và theo dõi hoạt động cộng đồng.'
                 : 'Thông tin liên hệ, giới thiệu và lịch sử cống hiến của thành viên.'
@@ -361,7 +361,7 @@ export const ProfileView: React.FC = () => {
           {!isOwnProfile && (
             <button
               onClick={() => window.history.back()}
-              className="flex items-center gap-2 border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold px-4 py-2 rounded-xl transition-all text-sm shadow-sm cursor-pointer"
+              className="w-full sm:w-auto justify-center flex items-center gap-2 border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold px-4 py-2 rounded-xl transition-all text-sm shadow-sm cursor-pointer"
             >
               <span className="material-symbols-outlined text-lg">arrow_back</span>
               Quay lại
@@ -371,13 +371,13 @@ export const ProfileView: React.FC = () => {
 
         {isOwnProfile ? (
           /* OWN PROFILE: 2-COLUMN LAYOUT (hồ sơ cá nhân.jpg) */
-          <div className="grid grid-cols-12 gap-8 items-start">
+          <div className="grid grid-cols-12 gap-5 sm:gap-8 items-start">
 
             {/* ================= COLUMN 1: LEFT SIDEBAR (Avatar Card & Tab Menus) ================= */}
             <div className="col-span-12 md:col-span-4 space-y-6">
 
               {/* Avatar & Basic Info Card */}
-              <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm p-6 text-center space-y-4">
+              <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm p-4 sm:p-6 text-center space-y-4">
                 <div className="flex flex-col items-center">
                   <div className="relative group w-32 h-32 rounded-full overflow-hidden border-4 border-[#006d37] shrink-0 bg-slate-50 shadow-sm">
                     {avatarUrl ? (
@@ -400,7 +400,7 @@ export const ProfileView: React.FC = () => {
                       />
                     </label>
                   </div>
-                  <h3 className="text-xl font-bold text-slate-800 mt-4 leading-tight">{displayUser.profile.full_name}</h3>
+                  <h3 className="text-lg sm:text-xl font-bold text-slate-800 mt-4 leading-tight break-words">{displayUser.profile.full_name}</h3>
                   <span className="bg-[#e8f5e9] text-[#006d37] text-xs px-3 py-1 rounded-full font-bold uppercase mt-2">
                     {displayUser.role === 'Volunteer' ? 'Tình nguyện viên' : (displayUser.role === 'Organizer' ? 'Ban tổ chức' : displayUser.role)}
                   </span>
@@ -486,7 +486,7 @@ export const ProfileView: React.FC = () => {
                 const displayAreaOfInterest = isOwnProfile ? areaOfInterest : displayUser.profile.area_of_interest;
 
                 return (
-                  <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm p-6 md:p-8 space-y-6">
+                  <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm p-4 sm:p-6 md:p-8 space-y-6">
                     <div>
                       <h3 className="text-xl font-bold text-slate-800">Thông tin chi tiết</h3>
                       <p className="text-slate-400 text-xs mt-1">Các thông tin cơ bản và lý lịch cá nhân được liên kết trên hệ thống.</p>
@@ -533,8 +533,8 @@ export const ProfileView: React.FC = () => {
                         )}
                       </div>
                     ) : (
-                      <div className="bg-[#e8f5e9]/30 border border-[#006d37]/15 rounded-2xl p-5 flex flex-col sm:flex-row justify-between items-center gap-4 text-left">
-                        <div className="space-y-1">
+                      <div className="bg-[#e8f5e9]/30 border border-[#006d37]/15 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4 text-left">
+                        <div className="space-y-1 min-w-0">
                           <h4 className="text-sm font-bold text-slate-800">Trở thành Ban Tổ Chức</h4>
                           <p className="text-slate-500 text-xs leading-relaxed max-w-[420px]">
                             Bạn muốn tự đăng bài và quản lý chiến dịch cộng đồng của riêng mình? Đăng ký nâng cấp tài khoản ngay.
@@ -545,7 +545,7 @@ export const ProfileView: React.FC = () => {
                             setViewMode('upgrade');
                             window.location.hash = '#/profile?tab=upgrade';
                           }}
-                          className="bg-[#006d37] hover:bg-emerald-800 text-white font-bold px-4 py-2.5 rounded-xl transition-all text-xs shadow-sm whitespace-nowrap cursor-pointer shrink-0 animate-pulse hover:animate-none"
+                          className="w-full sm:w-auto bg-[#006d37] hover:bg-emerald-800 text-white font-bold px-4 py-2.5 rounded-xl transition-all text-xs shadow-sm whitespace-nowrap cursor-pointer shrink-0 animate-pulse hover:animate-none"
                         >
                           Đăng ký nâng quyền
                         </button>
@@ -622,11 +622,11 @@ export const ProfileView: React.FC = () => {
                     </div>
 
                     {/* Stats Box */}
-                    <div className="bg-[#e8f5e9]/40 border border-[#006d37]/15 p-5 rounded-xl flex items-center gap-4 text-left">
+                    <div className="bg-[#e8f5e9]/40 border border-[#006d37]/15 p-4 sm:p-5 rounded-xl flex items-start sm:items-center gap-4 text-left">
                       <div className="w-12 h-12 rounded-xl bg-[#e8f5e9] flex items-center justify-center shrink-0">
                         <span className="material-symbols-outlined text-[#006d37] text-2xl font-bold">star</span>
                       </div>
-                      <div>
+                      <div className="min-w-0">
                         <span className="text-xs text-slate-400 font-bold uppercase tracking-wider block">Thống kê cống hiến</span>
                         <span className="text-slate-800 text-sm font-bold block mt-0.5">
                           Đã tham gia <span className="text-[#006d37] text-base font-extrabold">{myRegs.filter(r => r.status === 'Completed').length}</span> chiến dịch tình nguyện
@@ -639,7 +639,7 @@ export const ProfileView: React.FC = () => {
 
               {/* tab === edit: EDIT PROFILE FORM */}
               {viewMode === 'edit' && (
-                <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm p-6 md:p-8 space-y-6">
+                <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm p-4 sm:p-6 md:p-8 space-y-6">
                   <div>
                     <h3 className="text-xl font-bold text-slate-800">Cập nhật thông tin cá nhân</h3>
                     <p className="text-slate-400 text-xs mt-1">Thay đổi họ tên, số điện thoại liên lạc, giới tính và khu vực hoạt động.</p>
@@ -762,17 +762,17 @@ export const ProfileView: React.FC = () => {
                       />
                     </div>
 
-                    <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+                    <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-4 border-t border-slate-100">
                       <button
                         type="button"
                         onClick={handleCancelEdit}
-                        className="px-5 py-2.5 border border-slate-200 text-slate-500 rounded-xl hover:bg-slate-50 transition-colors text-sm font-bold cursor-pointer"
+                        className="w-full sm:w-auto px-5 py-2.5 border border-slate-200 text-slate-500 rounded-xl hover:bg-slate-50 transition-colors text-sm font-bold cursor-pointer"
                       >
                         Hủy
                       </button>
                       <button
                         type="submit"
-                        className="px-5 py-2.5 bg-[#006d37] hover:bg-emerald-800 text-white rounded-xl transition-colors text-sm font-bold shadow-sm cursor-pointer"
+                        className="w-full sm:w-auto px-5 py-2.5 bg-[#006d37] hover:bg-emerald-800 text-white rounded-xl transition-colors text-sm font-bold shadow-sm cursor-pointer"
                       >
                         Lưu thay đổi
                       </button>
@@ -784,7 +784,7 @@ export const ProfileView: React.FC = () => {
 
               {/* tab === password: CHANGE PASSWORD */}
               {viewMode === 'password' && (
-                <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-8 space-y-6">
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-4 sm:p-6 md:p-8 space-y-6">
                   <div className="text-center space-y-1">
                     <h3 className="text-2xl font-bold text-gray-900">Đổi mật khẩu</h3>
                     <p className="text-slate-400 text-xs">Cập nhật mật khẩu mới để bảo mật tài khoản cá nhân</p>
@@ -888,7 +888,7 @@ export const ProfileView: React.FC = () => {
 
               {/* tab === participated: PARTICIPATED CAMPAIGNS */}
               {viewMode === 'participated' && (
-                <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm p-6 md:p-8 space-y-6">
+                <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm p-4 sm:p-6 md:p-8 space-y-6">
                   <div>
                     <h3 className="text-xl font-bold text-slate-800">Lịch sử tham gia hoạt động</h3>
                   </div>
@@ -969,13 +969,13 @@ export const ProfileView: React.FC = () => {
 
               {/* tab === org_management: ORGANIZER MANAGEMENT */}
               {viewMode === 'org_management' && (
-                <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm p-6 md:p-8 space-y-6">
+                <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm p-4 sm:p-6 md:p-8 space-y-6">
                   <div>
                     <h3 className="text-xl font-bold text-slate-800">Quản lý tổ chức</h3>
                     <p className="text-slate-400 text-xs mt-1">Thông tin chiến dịch và hoạt động quản trị của đơn vị tổ chức.</p>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 text-center">
                       <h4 className="text-3xl font-extrabold text-[#006d37]">{orgActs.length}</h4>
                       <p className="text-slate-500 text-xs font-semibold mt-1">Tổng chiến dịch</p>
@@ -1013,11 +1013,11 @@ export const ProfileView: React.FC = () => {
 
                           return (
                             <div key={act._id} className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 hover:bg-white transition-colors">
-                              <div className="space-y-1">
-                                <h5 className="font-bold text-sm text-slate-800">{act.title}</h5>
+                              <div className="space-y-1 min-w-0">
+                                <h5 className="font-bold text-sm text-slate-800 break-words">{act.title}</h5>
                                 <p className="text-xs text-slate-500 font-medium">Bắt đầu: {new Date(act.start_date).toLocaleDateString('vi-VN')}</p>
                               </div>
-                              <div className="flex items-center gap-3">
+                              <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto">
                                 <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase ${badge.class}`}>
                                   {badge.label}
                                 </span>
@@ -1037,7 +1037,7 @@ export const ProfileView: React.FC = () => {
           </div>
         ) : (
           /* PARTNER PROFILE VIEW (isOwnProfile === false) */
-          <div className="bg-white border border-slate-200/80 rounded-3xl shadow-sm p-6 md:p-8 flex flex-col md:flex-row gap-8 items-center md:items-start">
+          <div className="bg-white border border-slate-200/80 rounded-2xl sm:rounded-3xl shadow-sm p-4 sm:p-6 md:p-8 flex flex-col md:flex-row gap-5 sm:gap-8 items-center md:items-start">
             {/* Avatar Column */}
             <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-[#006d37]/80 shrink-0 bg-slate-50 shadow-md">
               {displayUser.profile.avatar_url ? (
@@ -1056,7 +1056,7 @@ export const ProfileView: React.FC = () => {
               {/* Name & Role Badge */}
               <div className="space-y-1">
                 <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
-                  <h2 className="text-2xl font-bold text-slate-800">{displayUser.profile.full_name}</h2>
+                  <h2 className="text-xl sm:text-2xl font-bold text-slate-800 break-words">{displayUser.profile.full_name}</h2>
                   <span className="bg-[#e8f5e9] text-[#006d37] text-xs px-3 py-1 rounded-full font-bold uppercase tracking-wider">
                     {displayUser.role === 'Volunteer' ? 'Tình nguyện viên' : (displayUser.role === 'Organizer' ? 'Ban tổ chức' : displayUser.role)}
                   </span>
@@ -1123,11 +1123,11 @@ export const ProfileView: React.FC = () => {
               )}
 
               {/* Stats Box */}
-              <div className="bg-[#e8f5e9]/40 border border-[#006d37]/15 p-5 rounded-2xl inline-flex items-center gap-4 text-left w-full sm:max-w-md">
+              <div className="bg-[#e8f5e9]/40 border border-[#006d37]/15 p-4 sm:p-5 rounded-2xl inline-flex items-start sm:items-center gap-4 text-left w-full sm:max-w-md">
                 <div className="w-12 h-12 rounded-xl bg-[#e8f5e9] flex items-center justify-center shrink-0">
                   <span className="material-symbols-outlined text-[#e3a008] text-2xl font-bold">star</span>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <span className="text-xs text-slate-400 font-bold uppercase tracking-wider block">Hoạt động cống hiến</span>
                   <span className="text-slate-800 text-sm font-bold block mt-0.5">
                     Đã tham gia <span className="text-[#006d37] text-base">{displayUser.profile.joined_activity_count || 0}</span> chiến dịch tình nguyện

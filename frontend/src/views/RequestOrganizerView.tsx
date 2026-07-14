@@ -31,6 +31,10 @@ export const RequestOrganizerView: React.FC = () => {
       showNotification('Vui lòng nhập đầy đủ thông tin yêu cầu.', 'error');
       return;
     }
+    if (requestOrgDesc.trim().length < 10 || requestOrgDesc.trim().length > 500) {
+      showNotification('Lý do muốn trở thành Nhà tổ chức phải từ 10 đến 500 ký tự.', 'error');
+      return;
+    }
 
     setLoading(true);
     try {
@@ -57,7 +61,7 @@ export const RequestOrganizerView: React.FC = () => {
 
   return (
     <div className="w-full bg-[#f5f5f5] min-h-screen pb-16 text-left font-body-md">
-      <div className="max-w-[1280px] mx-auto px-4 md:px-8 py-8">
+      <div className="max-w-[1280px] mx-auto px-3 sm:px-4 md:px-8 py-5 sm:py-8">
 
         {/* Link quay lại */}
         <button
@@ -68,10 +72,10 @@ export const RequestOrganizerView: React.FC = () => {
         </button>
 
         {/* Centered Card */}
-        <div className="max-w-2xl mx-auto bg-white border border-slate-200/80 rounded-3xl p-8 md:p-10 shadow-sm space-y-6">
+        <div className="max-w-2xl mx-auto bg-white border border-slate-200/80 rounded-2xl sm:rounded-3xl p-4 sm:p-8 md:p-10 shadow-sm space-y-6">
           <div className="space-y-1">
             <span className="text-xs font-bold text-slate-400">Hồ sơ cá nhân &gt; Xin quyền tổ chức</span>
-            <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 font-headline-md tracking-tight pt-1">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-slate-900 font-headline-md tracking-tight pt-1">
               Đăng ký quyền Ban tổ chức
             </h1>
             <p className="text-sm text-slate-500 leading-relaxed font-semibold pt-2">
@@ -135,25 +139,32 @@ export const RequestOrganizerView: React.FC = () => {
                 value={requestOrgDesc}
                 onChange={(e) => setRequestOrgDesc(e.target.value)}
                 required
+                maxLength={500}
                 placeholder="Chia sẻ mục đích của bạn (ví dụ: Muốn tổ chức gom pin cũ định kỳ hàng tuần, Muốn liên kết các bữa ăn thiện nguyện tại các mái ấm...)"
                 className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/20 text-sm font-semibold text-slate-800 bg-white transition-all resize-none"
                 disabled={loading}
               />
+              <div className="flex justify-between items-center text-[10px] text-slate-400 mt-1 font-semibold">
+                <span>Vui lòng điền chi tiết từ 10 đến 500 ký tự</span>
+                <span className={requestOrgDesc.length >= 500 ? 'text-red-500 font-bold' : ''}>
+                  {requestOrgDesc.length}/500
+                </span>
+              </div>
             </div>
 
             {/* Actions */}
-            <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-4 border-t border-slate-100">
               <button
                 type="button"
                 onClick={handleCancel}
-                className="px-6 py-2.5 border border-slate-200 text-slate-500 rounded-xl hover:bg-slate-50 transition-colors text-sm font-bold cursor-pointer"
+                className="w-full sm:w-auto px-6 py-2.5 border border-slate-200 text-slate-500 rounded-xl hover:bg-slate-50 transition-colors text-sm font-bold cursor-pointer"
                 disabled={loading}
               >
                 Hủy bỏ
               </button>
               <button
                 type="submit"
-                className="px-6 py-2.5 bg-[#006d37] hover:bg-emerald-800 text-white rounded-xl transition-colors text-sm font-bold shadow-sm cursor-pointer disabled:opacity-50"
+                className="w-full sm:w-auto px-6 py-2.5 bg-[#006d37] hover:bg-emerald-800 text-white rounded-xl transition-colors text-sm font-bold shadow-sm cursor-pointer disabled:opacity-50"
                 disabled={loading}
               >
                 {loading ? 'Đang gửi...' : 'Gửi yêu cầu duyệt'}
