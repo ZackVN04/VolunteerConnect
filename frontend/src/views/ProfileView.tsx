@@ -194,6 +194,7 @@ export const ProfileView: React.FC = () => {
   );
   const [gender, setGender] = useState(currentUser?.profile.gender || '');
   const [isFormInitialized, setIsFormInitialized] = useState(false);
+  const [hasInteractedWithGender, setHasInteractedWithGender] = useState(false);
 
   // Pagination state for Organizer Management
   const [orgActsPage, setOrgActsPage] = useState(1);
@@ -285,10 +286,11 @@ export const ProfileView: React.FC = () => {
   const myRegs = registrations.filter(r => r.volunteer_id === displayUser?._id);
   const orgActs = activities.filter(a => a.organizer_id === displayUser?._id);
 
-  // Reset isFormInitialized when viewMode is not 'edit'
+  // Reset isFormInitialized and hasInteractedWithGender when viewMode is not 'edit'
   useEffect(() => {
     if (viewMode !== 'edit') {
       setIsFormInitialized(false);
+      setHasInteractedWithGender(false);
     }
   }, [viewMode]);
 
@@ -362,6 +364,11 @@ export const ProfileView: React.FC = () => {
     const cleanPhone = phone.trim().replace(/[\s\-()]/g, "");
     if (!/^\+?[0-9]{10,15}$/.test(cleanPhone)) {
       showNotification('Số điện thoại không hợp lệ (phải từ 10-15 chữ số).', 'error');
+      return;
+    }
+
+    if (hasInteractedWithGender && !gender) {
+      showNotification('Vui lòng chọn giới tính (Nam, Nữ hoặc Khác).', 'error');
       return;
     }
     
@@ -621,12 +628,10 @@ export const ProfileView: React.FC = () => {
 
               {/* tab === details: VIEW PROFILE DETAILS */}
               {viewMode === 'details' && (() => {
-                const displaySkills: string[] = isOwnProfile
-                  ? (skillsStr ? skillsStr.split(',').map(s => s.trim()).filter(Boolean) : [])
-                  : (displayUser.profile.skills || []);
-                const displayAge = isOwnProfile ? age : displayUser.profile.age;
-                const displayGender = isOwnProfile ? gender : displayUser.profile.gender;
-                const displayAreaOfInterest = isOwnProfile ? areaOfInterest : displayUser.profile.area_of_interest;
+                const displaySkills: string[] = displayUser.profile.skills || [];
+                const displayAge = displayUser.profile.age;
+                const displayGender = displayUser.profile.gender;
+                const displayAreaOfInterest = displayUser.profile.area_of_interest;
 
                 return (
                   <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm p-4 sm:p-6 md:p-8 space-y-6">
@@ -723,7 +728,7 @@ export const ProfileView: React.FC = () => {
                         iconColorClass="text-amber-600"
                         bgClass="bg-amber-50"
                         label="Tuổi"
-                        value={displayAge ? `${displayAge} tuổi (Sinh năm: ${new Date().getFullYear() - displayAge})` : "Chưa cập nhật"}
+                        value={displayAge ? `${displayAge} tuổi` : "Chưa cập nhật"}
                       />
                       <InfoItem
                         icon="wc"
@@ -856,7 +861,7 @@ export const ProfileView: React.FC = () => {
                               setAge('');
                             }
                           }}
-                          placeholder="VD: 1998"
+                          placeholder="1998"
                           min={1900}
                           max={new Date().getFullYear()}
                           className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm font-semibold text-slate-800 bg-white transition-all"
@@ -872,10 +877,14 @@ export const ProfileView: React.FC = () => {
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Giới tính</label>
                         <select
                           value={gender}
-                          onChange={(e) => setGender(e.target.value)}
+                          onFocus={() => setHasInteractedWithGender(true)}
+                          onChange={(e) => {
+                            setGender(e.target.value);
+                            setHasInteractedWithGender(true);
+                          }}
                           className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm font-semibold text-slate-800 bg-white transition-all cursor-pointer"
                         >
-                          <option value="">Chưa chọn</option>
+                          <option value="" disabled={gender !== ""}>Chưa chọn</option>
                           <option value="Nam">Nam</option>
                           <option value="Nữ">Nữ</option>
                           <option value="Khác">Khác</option>
