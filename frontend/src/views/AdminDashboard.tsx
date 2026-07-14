@@ -121,6 +121,7 @@ export const AdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'organizers' | 'activities' | 'users' | 'stats' | 'history'>('overview');
   const [historySubTab, setHistorySubTab] = useState<'organizers' | 'activities'>('organizers');
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const [menuExpanded, setMenuExpanded] = useState(false);
 
   // Filters for History Tab
   const [historySearch, setHistorySearch] = useState('');
@@ -521,18 +522,47 @@ export const AdminDashboard: React.FC = () => {
       <div className="max-w-[1440px] mx-auto px-3 sm:px-4 md:px-8 py-5 sm:py-8 grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-8 text-left">
 
         {/* Left Sidebar Layout */}
-        <aside className="lg:col-span-3 bg-white border border-surface-variant/40 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm h-fit space-y-6">
-          <div>
-            <h3 className="text-lg font-bold text-on-surface font-headline-md">Admin Console</h3>
-            <p className="text-xs text-on-surface-variant mt-0.5 font-semibold">Quản trị toàn bộ hệ thống</p>
+        <aside className="lg:col-span-3 bg-white border border-surface-variant/40 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm h-fit space-y-4 lg:space-y-6">
+          <div className="flex items-center justify-between lg:block">
+            <div>
+              <h3 className="text-lg font-bold text-on-surface font-headline-md">Admin Console</h3>
+              <p className="text-xs text-on-surface-variant mt-0.5 font-semibold">Quản trị toàn bộ hệ thống</p>
+              {/* Show active tab status badge on mobile */}
+              <div className="lg:hidden mt-2 text-[10px] sm:text-xs text-[#006d37] font-extrabold flex items-center gap-1.5 bg-[#e8f5e9] px-3 py-1 rounded-full w-fit border border-[#006d37]/10">
+                <span className="material-symbols-outlined text-[14px]">
+                  {activeTab === 'overview' && 'dashboard'}
+                  {activeTab === 'organizers' && 'person_add'}
+                  {activeTab === 'activities' && 'verified_user'}
+                  {activeTab === 'users' && 'group'}
+                  {activeTab === 'stats' && 'analytics'}
+                  {activeTab === 'history' && 'history'}
+                </span>
+                {activeTab === 'overview' && 'Tổng quan hệ thống'}
+                {activeTab === 'organizers' && 'Phê duyệt ban tổ chức'}
+                {activeTab === 'activities' && 'Phê duyệt hoạt động'}
+                {activeTab === 'users' && 'Danh sách người dùng'}
+                {activeTab === 'stats' && 'Thống kê tham gia'}
+                {activeTab === 'history' && 'Lịch sử phê duyệt'}
+              </div>
+            </div>
+            
+            {/* Toggle Button for Mobile Menu */}
+            <button
+              onClick={() => setMenuExpanded(!menuExpanded)}
+              className="lg:hidden flex items-center justify-center p-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 hover:text-[#006d37] hover:bg-[#e8f5e9] transition-all cursor-pointer shrink-0 active:scale-95"
+            >
+              <span className="material-symbols-outlined text-2xl">
+                {menuExpanded ? 'expand_less' : 'expand_more'}
+              </span>
+            </button>
           </div>
 
-          <nav className="flex flex-col gap-1.5 text-sm font-semibold">
+          <nav className={`${menuExpanded ? 'flex' : 'hidden'} lg:flex flex-col gap-1.5 text-sm font-semibold transition-all duration-300 animate-fadeIn`}>
             {/* Tab 1 */}
             <button
-              onClick={() => setActiveTab('overview')}
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${activeTab === 'overview'
-                ? 'bg-[#006d37] text-white'
+              onClick={() => { setActiveTab('overview'); setMenuExpanded(false); }}
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all cursor-pointer ${activeTab === 'overview'
+                ? 'bg-[#006d37] text-white shadow-sm'
                 : 'text-on-surface-variant hover:bg-slate-100 hover:text-on-surface'
                 }`}
             >
@@ -544,9 +574,9 @@ export const AdminDashboard: React.FC = () => {
 
             {/* Tab 2 */}
             <button
-              onClick={() => setActiveTab('organizers')}
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${activeTab === 'organizers'
-                ? 'bg-[#006d37] text-white'
+              onClick={() => { setActiveTab('organizers'); setMenuExpanded(false); }}
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all cursor-pointer ${activeTab === 'organizers'
+                ? 'bg-[#006d37] text-white shadow-sm'
                 : 'text-on-surface-variant hover:bg-slate-100 hover:text-on-surface'
                 }`}
             >
@@ -563,9 +593,9 @@ export const AdminDashboard: React.FC = () => {
 
             {/* Tab 3 */}
             <button
-              onClick={() => setActiveTab('activities')}
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${activeTab === 'activities'
-                ? 'bg-[#006d37] text-white'
+              onClick={() => { setActiveTab('activities'); setMenuExpanded(false); }}
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all cursor-pointer ${activeTab === 'activities'
+                ? 'bg-[#006d37] text-white shadow-sm'
                 : 'text-on-surface-variant hover:bg-slate-100 hover:text-on-surface'
                 }`}
             >
@@ -582,9 +612,9 @@ export const AdminDashboard: React.FC = () => {
 
             {/* Tab 4 */}
             <button
-              onClick={() => setActiveTab('users')}
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${activeTab === 'users'
-                ? 'bg-[#006d37] text-white'
+              onClick={() => { setActiveTab('users'); setMenuExpanded(false); }}
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all cursor-pointer ${activeTab === 'users'
+                ? 'bg-[#006d37] text-white shadow-sm'
                 : 'text-on-surface-variant hover:bg-slate-100 hover:text-on-surface'
                 }`}
             >
@@ -596,9 +626,9 @@ export const AdminDashboard: React.FC = () => {
 
             {/* Tab 5 */}
             <button
-              onClick={() => setActiveTab('stats')}
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${activeTab === 'stats'
-                ? 'bg-[#006d37] text-white'
+              onClick={() => { setActiveTab('stats'); setMenuExpanded(false); }}
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all cursor-pointer ${activeTab === 'stats'
+                ? 'bg-[#006d37] text-white shadow-sm'
                 : 'text-on-surface-variant hover:bg-slate-100 hover:text-on-surface'
                 }`}
             >
@@ -610,9 +640,9 @@ export const AdminDashboard: React.FC = () => {
 
             {/* Tab 6: Lịch sử phê duyệt */}
             <button
-              onClick={() => setActiveTab('history')}
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${activeTab === 'history'
-                ? 'bg-[#006d37] text-white'
+              onClick={() => { setActiveTab('history'); setMenuExpanded(false); }}
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all cursor-pointer ${activeTab === 'history'
+                ? 'bg-[#006d37] text-white shadow-sm'
                 : 'text-on-surface-variant hover:bg-slate-100 hover:text-on-surface'
                 }`}
             >
