@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { USE_REAL_BACKEND } from '../config/backend';
 import { authService } from '../services/apiService';
-
-const USE_REAL_BACKEND = true;
 
 interface OTPVerifyViewProps {
   phoneNumber: string;

@@ -10,188 +10,16 @@ import {
   adminService,
   statsService
 } from '../services/apiService';
+import { USE_REAL_BACKEND } from '../config/backend';
+import type { Activity, OrganizerRequest, Post, Registration, User, UserProfile } from '../types/domain';
+import type { AppContextType, GlobalStats } from './AppContext.types';
+import { applyLocalActivityOverrides, injectLikedStatus } from './contextHelpers';
+import { LOCAL_STORAGE_KEY, syncToLocalStorage } from './storage';
+import { useDialogNotifications } from './useDialogNotifications';
 
-const USE_REAL_BACKEND = true;
-
-
-// --- Interface Definitions ---
-
-export interface UserProfile {
-  full_name: string;
-  bio: string | null;
-  area_of_interest: string | null;
-  skills: string[];
-  joined_activity_count: number;
-  avatar_url?: string;
-  organizer_request_status?: 'None' | 'Pending' | 'Approved' | 'Rejected';
-  organizer_request_feedback?: string | null;
-  age?: number;
-  gender?: string;
-}
-
-export interface User {
-  _id: string;
-  phone: string;
-  is_phone_verified: boolean;
-  otp_code: string | null;
-  otp_expires_at: string | null;
-  otp_send_count: number;
-  otp_cooldown_until: string | null;
-  email: string | null;
-  password_hash: string;
-  role: 'Volunteer' | 'Organizer' | 'Admin';
-  created_at: string;
-  updated_at: string;
-  profile: UserProfile;
-  status?: string;
-}
-
-export interface LocationInfo {
-  province: string;
-  district: string;
-  address_detail: string;
-}
-
-export interface Activity {
-  _id: string;
-  organizer_id: string;
-  title: string;
-  description: string;
-  categories: string[];
-  location: LocationInfo;
-  start_date: string;
-  end_date: string;
-  limit_volunteers: number;
-  approved_volunteers_count: number;
-  requirements: string | null;
-  image_url: string | null;
-  status: 'Draft' | 'Pending Review' | 'Open' | 'Full' | 'Ongoing' | 'Completed' | 'Rejected' | 'Cancelled';
-  created_at: string;
-  updated_at: string;
-  denormalized_organizer: {
-    name: string;
-  };
-}
-
-export interface Registration {
-  _id: string;
-  volunteer_id: string;
-  activity_id: string;
-  status: 'Pending' | 'Approved' | 'Rejected' | 'Completed' | 'Absent' | 'Cancelled';
-  created_at: string;
-  updated_at: string;
-  reviewed_at: string | null;
-  participation_updated_at: string | null;
-  denormalized_volunteer: {
-    name: string;
-    phone: string;
-    email: string;
-  };
-  denormalized_activity: {
-    title: string;
-    status: string;
-    start_date: string;
-    end_date: string;
-    organizer_id?: string | null;
-    organizer_name?: string | null;
-  };
-  reject_reason?: string; // custom field to show in registration management
-}
-
-export interface OrganizerRequest {
-  _id: string;
-  volunteer_id: string;
-  reason: string;
-  experience: string | null;
-  contact_phone: string;
-  status: 'Pending' | 'Approved' | 'Rejected';
-  admin_feedback: string | null;
-  created_at: string;
-  reviewed_at: string | null;
-  reviewed_by: string | null;
-  denormalized_volunteer: {
-    name: string;
-    email: string;
-  };
-}
-
-export interface Post {
-  _id: string;
-  author_id: string;
-  title?: string;
-  content: string;
-  images: string[];
-  video_url?: string | null;
-  visibility: 'Public' | 'Organization' | 'Private';
-  status: 'Active' | 'Deleted' | 'Flagged';
-  hashtags: string[];
-  like_count: number;
-  comment_count: number;
-  share_count: number;
-  created_at: string;
-  updated_at: string;
-  deleted_at: string | null;
-  denormalized_author?: {
-    name: string;
-    role: string;
-    avatar_url?: string | null;
-  };
-  likedByUserIds?: string[]; // track who liked to simulate toggle
-}
-
-interface AppContextType {
-  currentUser: User | null;
-  users: User[];
-  activities: Activity[];
-  registrations: Registration[];
-  organizerRequests: OrganizerRequest[];
-  posts: Post[];
-  setCurrentUser: (user: User | null) => void;
-  refreshAllData: (options?: { silent?: boolean }) => Promise<void>;
-
-  // Transactions & Actions
-  loginAs: (userId: string) => void;
-  registerForActivity: (activityId: string) => { success: boolean; error?: string };
-  cancelOrRejectRegistration: (registrationId: string, rejectReason?: string) => any;
-  approveRegistration: (registrationId: string) => Promise<{ success: boolean; error?: string }>;
-  updateParticipation: (registrationId: string, status: 'Completed' | 'Absent') => { success: boolean; error?: string };
-  cancelActivity: (activityId: string) => void;
-  submitOrganizerRequest: (reason: string, experience: string, contactPhone: string) => { success: boolean; error?: string };
-  reviewOrganizerRequest: (requestId: string, approve: boolean, feedback?: string) => Promise<{ success: boolean; error?: string }>;
-  createActivity: (activityData: Partial<Activity>, submitForReview: boolean) => Promise<{ success: boolean; error?: string }>;
-  editActivity: (activityId: string, activityData: Partial<Activity>) => Promise<{ success: boolean; error?: string }>;
-  reviewActivity: (activityId: string, approve: boolean, feedback?: string) => Promise<{ success: boolean; error?: string }>;
-  bulkReviewOrganizerRequests: (requestIds: string[], approve: boolean, feedback?: string) => Promise<{ success: boolean; error?: string }>;
-  bulkReviewActivities: (activityIds: string[], approve: boolean, feedback?: string) => Promise<{ success: boolean; error?: string }>;
-  bulkReviewRegistrations: (registrationIds: string[], approve: boolean, feedback?: string) => Promise<{ success: boolean; error?: string }>;
-  createPost: (title: string, content: string, images: string[], videoUrl: string | null, hashtags: string[]) => Promise<{ success: boolean; error?: string }>;
-  editPost: (postId: string, title: string, content: string, images: string[], hashtags: string[]) => Promise<{ success: boolean; error?: string }>;
-  likePost: (postId: string) => void;
-  sharePost: (postId: string) => void;
-  deletePost: (postId: string) => Promise<{ success: boolean; error?: string }>;
-  incrementCommentCount: (postId: string) => void;
-  updateProfile: (updatedProfile: Partial<UserProfile>, email: string, province: string, phone?: string) => void;
-  changePassword: (oldPassword: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
-  changeUserRole: (userId: string, role: 'Volunteer' | 'Organizer' | 'Admin') => void;
-  resetDatabase: () => void;
-
-  // Dialog / Toast System
-  notification: { message: string; type: 'success' | 'error' | 'info' } | null;
-  showNotification: (message: string, type?: 'success' | 'error' | 'info') => void;
-  confirmDialog: { message: string; title?: string; onConfirm: () => void } | null;
-  showConfirm: (message: string, onConfirm: () => void, title?: string) => void;
-  closeConfirm: () => void;
-  promptDialog: { message: string; title?: string; placeholder?: string; onConfirm: (val: string) => void } | null;
-  showPrompt: (message: string, onConfirm: (val: string) => void, title?: string, placeholder?: string) => void;
-  closePrompt: () => void;
-  isAuthLoading: boolean;
-  isDataLoading: boolean;
-  globalStats: { totalCampaigns: number, totalVolunteers: number, totalOrganizers: number, totalCompleted: number } | null;
-}
+export type { Activity, LocationInfo, OrganizerRequest, Post, Registration, User, UserProfile } from '../types/domain';
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
-
-const LOCAL_STORAGE_KEY = 'volunteer_connect_db';
 
 export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Main states
@@ -223,7 +51,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   });
   const [posts, setPosts] = useState<Post[]>([]);
 
-  const [globalStats, setGlobalStats] = useState<{ totalCampaigns: number, totalVolunteers: number, totalOrganizers: number, totalCompleted: number } | null>(null);
+  const [globalStats, setGlobalStats] = useState<GlobalStats | null>(null);
 
   // Sync organizerRequests to localStorage whenever it changes
   useEffect(() => {
@@ -242,71 +70,19 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   // Track initial data loading state for skeleton screens
   const [isDataLoading, setIsDataLoading] = useState<boolean>(true);
 
-  // Dialog / Toast states
-  const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
-  const [confirmDialog, setConfirmDialog] = useState<{ message: string; title?: string; onConfirm: () => void } | null>(null);
-  const [promptDialog, setPromptDialog] = useState<{ message: string; title?: string; placeholder?: string; onConfirm: (val: string) => void } | null>(null);
-
-  const notificationTimeoutRef = useRef<any>(null);
-
-  const showNotification = useCallback((message: string, type: 'success' | 'error' | 'info' = 'success') => {
-    if (notificationTimeoutRef.current) {
-      clearTimeout(notificationTimeoutRef.current);
-    }
-    setNotification({ message, type });
-    notificationTimeoutRef.current = setTimeout(() => {
-      setNotification(null);
-      notificationTimeoutRef.current = null;
-    }, 3000);
-  }, []);
-
-  const showConfirm = (message: string, onConfirm: () => void, title?: string) => {
-    setConfirmDialog({ message, title, onConfirm });
-  };
-
-  const closeConfirm = () => {
-    setConfirmDialog(null);
-  };
-
-  const showPrompt = (message: string, onConfirm: (val: string) => void, title?: string, placeholder?: string) => {
-    setPromptDialog({ message, title, placeholder, onConfirm });
-  };
-
-  const closePrompt = () => {
-    setPromptDialog(null);
-  };
-
-  const injectLikedStatus = (serverPosts: Post[], userId: string | undefined): Post[] => {
-    if (!userId) return serverPosts;
-    const storageKey = `liked_posts_${userId}`;
-    const likedListStr = localStorage.getItem(storageKey);
-    const likedPostIds: string[] = likedListStr ? JSON.parse(likedListStr) : [];
-    return serverPosts.map(p => {
-      if (likedPostIds.includes(p._id)) {
-        return { ...p, likedByUserIds: [userId] };
-      } else {
-        return { ...p, likedByUserIds: [] };
-      }
-    });
-  };
+  const {
+    notification,
+    showNotification,
+    confirmDialog,
+    showConfirm,
+    closeConfirm,
+    promptDialog,
+    showPrompt,
+    closePrompt
+  } = useDialogNotifications();
 
   const setActivitiesWithLocalOverride = (acts: Activity[]) => {
-    try {
-      const locallyCompletedIds = JSON.parse(localStorage.getItem('locally_completed_activity_ids') || '[]');
-      if (Array.isArray(locallyCompletedIds) && locallyCompletedIds.length > 0) {
-        const mapped = acts.map(a => {
-          if (locallyCompletedIds.includes(a._id)) {
-            return { ...a, status: 'Completed' as const };
-          }
-          return a;
-        });
-        setActivities(mapped);
-        return;
-      }
-    } catch (e) {
-      console.error(e);
-    }
-    setActivities(acts);
+    setActivities(applyLocalActivityOverrides(acts));
   };
 
   const loadLocalStorageData = () => {
@@ -560,30 +336,6 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }, 30000);
     return () => clearInterval(intervalId);
   }, [refreshAllData, currentUserId]);
-
-
-
-
-  // Sync state to local storage helper
-  const syncToLocalStorage = (
-    newUsers: User[],
-    newActivities: Activity[],
-    newRegistrations: Registration[],
-    newRequests: OrganizerRequest[],
-    newPosts: Post[],
-    updatedCurrentUser: User | null
-  ) => {
-    const db = {
-      users: newUsers,
-      activities: newActivities,
-      registrations: newRegistrations,
-      organizerRequests: newRequests,
-      posts: newPosts,
-      currentUser: updatedCurrentUser
-    };
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(db));
-  };
-
   const resetToInitial = () => {
     const defaultUsers = initialMockData.users as User[];
     const defaultActivities = initialMockData.activities as Activity[];

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { USE_REAL_BACKEND } from '../config/backend';
 import { authService } from '../services/apiService';
-const USE_REAL_BACKEND = true;
 
 interface RegisterViewProps {
   onNavigateToLogin: () => void;

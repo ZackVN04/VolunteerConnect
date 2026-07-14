@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
-import type { Activity } from '../context/AppContext';
+import type { Activity } from '../types/domain';
 import { activityService } from '../services/apiService';
 import { USE_REAL_BACKEND } from '../config/backend';
 

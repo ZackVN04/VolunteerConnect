@@ -1,76 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import type { Activity } from '../context/AppContext';
+import { ActivityStatusBadge } from '../components/common/ActivityStatusBadge';
+import { LOCATION_DATA } from '../constants/locations';
 import { mediaService } from '../services/apiService';
-
-const LOCATION_DATA: Record<string, string[]> = {
-  "Hồ Chí Minh": [
-    "Quận 1", "Quận 3", "Quận 4", "Quận 5", "Quận 6", "Quận 7", "Quận 8", "Quận 10", "Quận 11", "Quận 12",
-    "Quận Bình Thạnh", "Quận Bình Tân", "Quận Gò Vấp", "Quận Phú Nhuận", "Quận Tân Bình", "Quận Tân Phú",
-    "Thành phố Thủ Đức", "Huyện Bình Chánh", "Huyện Cần Giờ", "Huyện Củ Chi", "Huyện Hóc Môn", "Huyện Nhà Bè"
-  ],
-  "Hà Nội": [
-    "Quận Ba Đình", "Quận Hoàn Kiếm", "Quận Tây Hồ", "Quận Long Biên", "Quận Cầu Giấy", "Quận Đống Đa",
-    "Quận Hai Bà Trưng", "Quận Hoàng Mai", "Quận Thanh Xuân", "Huyện Sóc Sơn", "Huyện Đông Anh", "Huyện Gia Lâm"
-  ],
-  "Đà Nẵng": [
-    "Quận Hải Châu", "Quận Thanh Khê", "Quận Sơn Trà", "Quận Ngũ Hành Sơn", "Quận Liên Chiểu", "Quận Cẩm Lệ", "Huyện Hòa Vang"
-  ],
-  "Cần Thơ": [
-    "Quận Ninh Kiều", "Quận Bình Thủy", "Quận Cái Răng", "Quận Ô Môn", "Quận Thốt Nốt", "Huyện Phong Điền", "Huyện Cờ Đỏ"
-  ],
-  "Hải Phòng": [
-    "Quận Hồng Bàng", "Quận Lê Chân", "Quận Ngô Quyền", "Quận Kiến An", "Quận Hải An", "Quận Đồ Sơn", "Quận Dương Kinh"
-  ]
-};
-
-// Status badge helper matches mockup badge designs
-const ActivityStatusBadge: React.FC<{ status: string }> = ({ status }) => {
-  const map: Record<string, { label: string; cls: string }> = {
-    'Draft': { label: 'Bản nháp', cls: 'bg-slate-100 text-slate-600 border border-slate-200/50' },
-    'Pending Review': { label: 'Chờ duyệt', cls: 'bg-[#fef7e0] text-[#b06000] border border-[#b06000]/10' },
-    'Open': { label: 'Đang tuyển', cls: 'bg-emerald-50 text-[#006d37] border border-emerald-100/50' },
-    'Full': { label: 'Đã đầy', cls: 'bg-teal-50 text-teal-800 border border-teal-100/50' },
-    'Ongoing': { label: 'Đang diễn ra', cls: 'bg-blue-50 text-blue-800 border border-blue-100/50' },
-    'Completed': { label: 'Đã kết thúc', cls: 'bg-slate-100 text-slate-600 border border-slate-200/50' }, // gray background matches mockup
-    'Rejected': { label: 'Bị từ chối', cls: 'bg-red-50 text-red-700 border border-red-200/50' },
-    'Cancelled': { label: 'Đã hủy', cls: 'bg-slate-50 text-slate-500 border border-slate-100/50' },
-  };
-  const s = map[status] || { label: status, cls: 'bg-slate-100 text-slate-600' };
-  return <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide border ${s.cls}`}>{s.label}</span>;
-};
-
-const formatDateTimeToISO = (dateStr: string, defaultTime: string): string => {
-  if (!dateStr) return '';
-  if (dateStr.endsWith('Z') || dateStr.includes('+')) return dateStr;
-
-  let normalized = dateStr.replace(' ', 'T');
-  if (!normalized.includes('T')) {
-    normalized = `${normalized}T${defaultTime}`;
-  }
-
-  const [datePart, timePart] = normalized.split('T');
-  const [year, month, day] = datePart.split('-').map(Number);
-  const [hours, minutes] = timePart.split(':').map(Number);
-
-  const localDate = new Date(year, month - 1, day, hours, minutes);
-  return localDate.toISOString();
-};
-
-const formatISOToLocalInput = (isoStr: string): string => {
-  if (!isoStr) return '';
-  const date = new Date(isoStr);
-  if (isNaN(date.getTime())) return '';
-
-  const pad = (n: number) => n.toString().padStart(2, '0');
-  const year = date.getFullYear();
-  const month = pad(date.getMonth() + 1);
-  const day = pad(date.getDate());
-  const hours = pad(date.getHours());
-  const minutes = pad(date.getMinutes());
-
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
-};
+import type { Activity } from '../types/domain';
+import { formatDateTimeToISO, formatISOToLocalInput } from '../utils/date';
 
 export const OrganizerDashboard: React.FC = () => {
   const {

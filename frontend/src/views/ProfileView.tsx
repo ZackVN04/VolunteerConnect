@@ -1,53 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import type { User } from '../context/AppContext';
+import { AvatarPlaceholder } from '../components/common/Avatar';
+import { InfoItem } from '../components/common/InfoItem';
 import { mediaService, userService } from '../services/apiService';
 import { USE_REAL_BACKEND } from '../config/backend';
-
-// Helper: generate avatar initials placeholder
-const AvatarPlaceholder: React.FC<{ name: string; size?: number }> = ({ name, size = 128 }) => {
-  const initials = name
-    .split(' ')
-    .map(w => w[0])
-    .filter(Boolean)
-    .slice(0, 2)
-    .join('')
-    .toUpperCase();
-  const colors = ['#006d37', '#0d6efd', '#6f42c1', '#fd7e14', '#20c997', '#e83e8c'];
-  const bg = colors[name.charCodeAt(0) % colors.length];
-  return (
-    <div
-      style={{ width: size, height: size, background: bg, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
-      aria-label={`Avatar của ${name}`}
-    >
-      <span style={{ color: '#fff', fontWeight: 700, fontSize: size * 0.35, fontFamily: 'inherit' }}>{initials}</span>
-    </div>
-  );
-};
-
-// Helper: fix wrong dev port in backend-returned image URLs
-const fixImageUrl = (url: string | null | undefined): string | null => {
-  if (!url) return null;
-  return url.replace('http://localhost:3000/', 'http://localhost:8000/');
-};
-
-const InfoItem: React.FC<{
-  icon: string;
-  iconColorClass: string;
-  bgClass: string;
-  label: string;
-  value: React.ReactNode
-}> = ({ icon, iconColorClass, bgClass, label, value }) => (
-  <div className="flex gap-4 p-4 bg-slate-50 border border-slate-100 rounded-2xl items-center hover:shadow-sm transition-all duration-150">
-    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${bgClass} shrink-0`}>
-      <span className={`material-symbols-outlined text-lg ${iconColorClass}`}>{icon}</span>
-    </div>
-    <div className="space-y-0.5 text-left">
-      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">{label}</span>
-      <span className="text-slate-800 text-sm font-semibold block">{value}</span>
-    </div>
-  </div>
-);
+import type { User } from '../types/domain';
+import { fixImageUrl } from '../utils/media';
 
 export const ProfileView: React.FC = () => {
   const { currentUser, users, activities, registrations, organizerRequests, updateProfile, showNotification, changePassword, refreshAllData } = useApp();

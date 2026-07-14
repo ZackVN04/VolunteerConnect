@@ -1,5 +1,6 @@
 import api, { rootApi } from './api';
-import type { User, UserProfile, Activity, Registration, OrganizerRequest, Post } from '../context/AppContext';
+import type { Activity, OrganizerRequest, Post, Registration, User, UserProfile } from '../types/domain';
+import { fixImageUrl } from '../utils/media';
 
 // Helper to translate E164 phone formats
 export const formatPhoneE164 = (phone: string): string => {
@@ -11,11 +12,6 @@ export const formatPhoneE164 = (phone: string): string => {
     cleaned = '+' + cleaned;
   }
   return cleaned;
-};
-
-const fixImageUrl = (url: string | null | undefined): string | null => {
-  if (!url) return null;
-  return url.replace('http://localhost:3000/', 'http://localhost:8000/');
 };
 
 // Helper mapper to translate backend models to frontend types

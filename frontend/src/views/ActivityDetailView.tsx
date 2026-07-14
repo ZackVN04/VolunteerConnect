@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { activityService } from '../services/apiService';
 import { USE_REAL_BACKEND } from '../config/backend';
-import type { Activity } from '../context/AppContext';
+import type { Activity } from '../types/domain';
 
 interface ActivityDetailViewProps {
   activityId: string;
