@@ -16,9 +16,9 @@ class RegistrationRepository:
         return await Registration.find(
             Registration.volunteer_id == volunteer_id,
             NotIn(Registration.status, [
-                RegistrationStatus.REJECTED, 
-                RegistrationStatus.ABSENT, 
-                RegistrationStatus.CANCELLED
+                RegistrationStatus.REJECTED.value, 
+                RegistrationStatus.ABSENT.value, 
+                RegistrationStatus.CANCELLED.value
             ]),
             Registration.denormalized_activity.start_date < end_date,
             Registration.denormalized_activity.end_date > start_date
