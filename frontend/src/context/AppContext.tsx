@@ -235,6 +235,16 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     } catch (e) {}
   }, [organizerRequests]);
 
+  // Sync currentUser to localStorage whenever it changes to prevent stale UI loading on refresh
+  useEffect(() => {
+    try {
+      const savedDbStr = localStorage.getItem(LOCAL_STORAGE_KEY);
+      const db = savedDbStr ? JSON.parse(savedDbStr) : {};
+      db.currentUser = currentUser;
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(db));
+    } catch (e) {}
+  }, [currentUser]);
+
   const [isAuthLoading, setIsAuthLoading] = useState<boolean>(() => {
     return !!localStorage.getItem('token');
   });
