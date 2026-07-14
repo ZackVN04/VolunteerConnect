@@ -446,7 +446,7 @@ export const OrganizerDashboard: React.FC = () => {
 
   return (
     <div className="w-full bg-[#f8f9fa] min-h-screen pb-16">
-      <div className="max-w-[1280px] mx-auto px-4 md:px-8 py-8 space-y-6 text-left">
+      <div className="max-w-[1280px] mx-auto px-3 sm:px-4 md:px-8 py-5 sm:py-8 space-y-5 sm:space-y-6 text-left">
 
         {/* Page Title */}
         <div>
@@ -458,15 +458,15 @@ export const OrganizerDashboard: React.FC = () => {
         <div>
           <a
             href="#/profile"
-            className="inline-flex items-center gap-1.5 border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 font-bold text-xs px-4 py-2 rounded-xl transition-all shadow-sm"
+            className="inline-flex w-full sm:w-auto justify-center items-center gap-1.5 border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 font-bold text-xs px-4 py-2 rounded-xl transition-all shadow-sm"
           >
             ← Quay lại Hồ sơ cá nhân
           </a>
         </div>
 
         {/* Tabs + Create button */}
-        <div className="flex items-end justify-between border-b border-gray-200 pb-px">
-          <div className="flex gap-6">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 border-b border-gray-200 pb-px">
+          <div className="-mx-3 flex gap-4 overflow-x-auto px-3 sm:mx-0 sm:gap-6 sm:px-0">
             <button onClick={() => setActiveTab('overview')} className={tabCls('overview')}>Tổng quan</button>
             <button onClick={() => { setActiveTab('activities'); setShowForm(false); }} className={tabCls('activities')}>Hoạt động</button>
             <button onClick={() => setActiveTab('registrations')} className={tabCls('registrations')}>Đăng ký</button>
@@ -479,7 +479,7 @@ export const OrganizerDashboard: React.FC = () => {
               setEditMode(false);
               resetForm();
             }}
-            className="mb-3 bg-[#006d37] hover:bg-[#005027] text-white font-bold text-xs px-5 py-2.5 rounded-full transition-all shadow-sm cursor-pointer"
+            className="mb-3 w-full sm:w-auto bg-[#006d37] hover:bg-[#005027] text-white font-bold text-xs px-5 py-2.5 rounded-full transition-all shadow-sm cursor-pointer"
           >
             + Tạo hoạt động
           </button>
@@ -489,12 +489,12 @@ export const OrganizerDashboard: React.FC = () => {
         {activeTab === 'overview' && (
           <div className="space-y-6">
             {/* Stats row */}
-            <div className="bg-[#e8f5e9]/70 rounded-2xl p-6 grid grid-cols-3 gap-4 border border-emerald-100/50">
+            <div className="bg-[#e8f5e9]/70 rounded-2xl p-4 sm:p-6 grid grid-cols-1 sm:grid-cols-3 gap-4 border border-emerald-100/50">
               <div className="text-center">
                 <p className="text-4xl font-extrabold text-[#006d37] font-headline-md">{openCampaigns}</p>
                 <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mt-1.5">CHIẾN DỊCH MỞ</p>
               </div>
-              <div className="text-center border-l border-r border-[#006d37]/15">
+              <div className="text-center border-y py-4 sm:border-x sm:border-y-0 sm:py-0 border-[#006d37]/15">
                 <p className="text-4xl font-extrabold text-[#006d37] font-headline-md">{pendingApprovalCount}</p>
                 <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mt-1.5">ĐĂNG KÝ CHỜ DUYỆT</p>
               </div>
@@ -507,7 +507,7 @@ export const OrganizerDashboard: React.FC = () => {
             {/* Two-column cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Việc cần xử lý ngay */}
-              <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm">
+              <div className="bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-6 shadow-sm">
                 <h3 className="font-bold text-gray-900 text-sm pb-3 border-b border-slate-100 font-headline-md">Việc cần xử lý ngay</h3>
                 {pendingApprovalCount === 0 ? (
                   <p className="text-xs text-gray-400 text-center py-10 font-semibold">Không có việc cần xử lý ngay.</p>
@@ -516,8 +516,8 @@ export const OrganizerDashboard: React.FC = () => {
                     {organizerRegs.filter(r => r.status === 'Pending').slice(0, 5).map(reg => {
                       const act = activities.find(a => a._id === reg.activity_id);
                       return (
-                        <div key={reg._id} className="flex items-center justify-between p-3 bg-amber-50/50 rounded-xl border border-amber-100/50 animate-fadeIn">
-                          <div>
+                        <div key={reg._id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 bg-amber-50/50 rounded-xl border border-amber-100/50 animate-fadeIn">
+                          <div className="min-w-0">
                             <a
                               href={`#/profile?userId=${reg.volunteer_id}`}
                               className="font-bold text-xs text-gray-800 hover:text-[#006d37] hover:underline"
@@ -528,7 +528,7 @@ export const OrganizerDashboard: React.FC = () => {
                           </div>
                           <button
                             onClick={() => handleApprove(reg._id)}
-                            className="text-xs font-bold text-[#006d37] hover:underline cursor-pointer"
+                            className="w-full sm:w-auto text-left sm:text-right text-xs font-bold text-[#006d37] hover:underline cursor-pointer"
                           >
                             Duyệt ngay
                           </button>
@@ -540,8 +540,8 @@ export const OrganizerDashboard: React.FC = () => {
               </div>
 
               {/* Hoạt động gần đây */}
-              <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm">
-                <div className="flex justify-between items-center pb-3 border-b border-slate-100">
+              <div className="bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-6 shadow-sm">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 pb-3 border-b border-slate-100">
                   <h3 className="font-bold text-gray-900 text-sm font-headline-md">Hoạt động gần đây</h3>
                   <button
                     onClick={() => setActiveTab('activities')}
@@ -574,8 +574,8 @@ export const OrganizerDashboard: React.FC = () => {
           <div className="space-y-6">
             {/* Create/Edit Form as Modal */}
             {showForm && (
-              <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/45 backdrop-blur-sm p-4 overflow-y-auto animate-fadeIn">
-                <div className="bg-white border border-slate-200/80 rounded-3xl p-6 md:p-8 w-full max-w-[800px] shadow-2xl relative my-8 max-h-[90vh] overflow-y-auto animate-scaleUp text-left">
+              <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/45 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto animate-fadeIn">
+                <div className="bg-white border border-slate-200/80 rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 w-full max-w-[800px] shadow-2xl relative my-4 sm:my-8 max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto animate-scaleUp text-left">
                   {/* Close button */}
                   <button
                     type="button"
@@ -671,7 +671,7 @@ export const OrganizerDashboard: React.FC = () => {
 
                     <div className="flex flex-col gap-2 text-left">
                       <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">Hình ảnh minh họa</label>
-                      <div className="flex items-center gap-4 pt-1">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-4 pt-1">
                         {imageUrl ? (
                           <div className="relative w-36 h-24 rounded-xl overflow-hidden border border-gray-200 shrink-0 shadow-sm">
                             <img src={imageUrl} alt="preview" className="w-full h-full object-cover" />
@@ -692,7 +692,7 @@ export const OrganizerDashboard: React.FC = () => {
                             Đang tải lên...
                           </div>
                         ) : (
-                          <label className="inline-flex items-center gap-1.5 px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold cursor-pointer transition-all shadow-sm">
+                          <label className="inline-flex w-full sm:w-auto justify-center items-center gap-1.5 px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold cursor-pointer transition-all shadow-sm">
                             <span className="material-symbols-outlined text-sm text-slate-500">upload</span>
                             Tải ảnh lên
                             <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
@@ -701,13 +701,13 @@ export const OrganizerDashboard: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="flex justify-end gap-3 border-t border-gray-100 pt-5">
+                    <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 border-t border-gray-100 pt-5">
                       <button type="button" onClick={() => { resetForm(); setShowForm(false); }}
-                        className="px-5 py-2.5 border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 text-sm font-bold cursor-pointer transition-all">
+                        className="w-full sm:w-auto px-5 py-2.5 border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 text-sm font-bold cursor-pointer transition-all">
                         Hủy
                       </button>
                       <button type="submit" disabled={isSubmitting}
-                        className={`px-5 py-2.5 rounded-xl text-sm font-bold shadow-sm transition-all ${isSubmitting
+                        className={`w-full sm:w-auto px-5 py-2.5 rounded-xl text-sm font-bold shadow-sm transition-all ${isSubmitting
                           ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
                           : 'bg-[#006d37] hover:bg-[#005027] text-white cursor-pointer'
                           }`}>
@@ -725,18 +725,18 @@ export const OrganizerDashboard: React.FC = () => {
               {/* List header */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between p-5 border-b border-slate-100 gap-3">
                 <h3 className="font-bold text-gray-900 text-sm font-headline-md">Danh sách hoạt động đã tạo</h3>
-                <div className="flex items-center gap-3">
+                <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
                   <input
                     type="text"
                     value={activitySearch}
                     onChange={e => setActivitySearch(e.target.value)}
                     placeholder="Tìm tên hoạt động..."
-                    className="border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-semibold focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/10 w-48 shadow-sm transition-all"
+                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-semibold focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/10 sm:w-48 shadow-sm transition-all"
                   />
                   <button
                     type="button"
                     onClick={() => setShowActivityFilters(!showActivityFilters)}
-                    className={`flex items-center gap-1.5 border rounded-xl px-4 py-2 text-xs font-bold cursor-pointer shadow-sm transition-all ${showActivityFilters
+                    className={`flex w-full items-center justify-center gap-1.5 border rounded-xl px-4 py-2 text-xs font-bold cursor-pointer shadow-sm transition-all sm:w-auto ${showActivityFilters
                       ? 'border-[#006d37] bg-[#006d37] text-white'
                       : 'border-[#006d37] text-[#006d37] hover:bg-emerald-50'
                       }`}
@@ -752,13 +752,13 @@ export const OrganizerDashboard: React.FC = () => {
 
               {/* Collapsible Filters Panel */}
               {showActivityFilters && (
-                <div className="flex flex-wrap items-center gap-4 px-5 py-4 bg-slate-50/50 border-b border-slate-100 animate-slideDown">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap lg:items-center gap-4 px-4 sm:px-5 py-4 bg-slate-50/50 border-b border-slate-100 animate-slideDown">
                   <div className="flex flex-col gap-1 text-left">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Trạng thái</label>
                     <select
                       value={activityStatusFilter}
                       onChange={e => setActivityStatusFilter(e.target.value)}
-                      className="border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-[#006d37] bg-white cursor-pointer shadow-sm text-slate-700 min-w-[150px]"
+                      className="w-full border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-[#006d37] bg-white cursor-pointer shadow-sm text-slate-700 lg:min-w-[150px]"
                     >
                       <option value="All">Tất cả trạng thái</option>
                       <option value="Draft">Bản nháp</option>
@@ -773,7 +773,7 @@ export const OrganizerDashboard: React.FC = () => {
                     <select
                       value={activityCategoryFilter}
                       onChange={e => setActivityCategoryFilter(e.target.value)}
-                      className="border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-[#006d37] bg-white cursor-pointer shadow-sm text-slate-700 min-w-[150px]"
+                      className="w-full border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-[#006d37] bg-white cursor-pointer shadow-sm text-slate-700 lg:min-w-[150px]"
                     >
                       <option value="All">Tất cả lĩnh vực</option>
                       <option value="Môi trường">Môi trường</option>
@@ -800,7 +800,7 @@ export const OrganizerDashboard: React.FC = () => {
               )}
 
               {filteredCampaigns.length === 0 ? (
-                <div className="p-16 text-center">
+                <div className="p-8 sm:p-16 text-center">
                   <span className="material-symbols-outlined text-gray-300 text-5xl">campaign</span>
                   <p className="text-xs text-gray-400 italic mt-3 font-semibold">
                     {activitySearch ? 'Không tìm thấy hoạt động nào.' : 'Bạn chưa tạo hoạt động nào.'}
@@ -818,16 +818,16 @@ export const OrganizerDashboard: React.FC = () => {
                     const formattedDate = `${dateObj.getDate()}/${dateObj.getMonth() + 1}/${dateObj.getFullYear()}`;
 
                     return (
-                      <div key={act._id} className="flex flex-col sm:flex-row sm:items-center justify-between px-5 py-5 gap-3 hover:bg-slate-50/50 transition-colors animate-fadeIn">
+                      <div key={act._id} className="flex flex-col sm:flex-row sm:items-center justify-between px-4 sm:px-5 py-5 gap-3 hover:bg-slate-50/50 transition-colors animate-fadeIn">
                         <div className="space-y-1.5 flex-1 min-w-0">
                           <div className="flex items-center gap-2.5 flex-wrap">
                             <a href={`#/activity/${act._id}`}
-                              className="font-bold text-sm text-[#006d37] hover:underline truncate max-w-[420px]">
+                              className="font-bold text-sm text-[#006d37] hover:underline break-words sm:truncate sm:max-w-[420px]">
                               {act.title}
                             </a>
                             <ActivityStatusBadge status={act.status} />
                           </div>
-                          <div className="flex items-center gap-4 text-xs text-slate-500 font-semibold">
+                          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500 font-semibold">
                             <span className="flex items-center gap-1.5">
                               <span className="material-symbols-outlined text-sm text-slate-400">calendar_month</span>
                               <span>{formattedDate}</span>
@@ -840,17 +840,17 @@ export const OrganizerDashboard: React.FC = () => {
                         </div>
 
                         {/* Action buttons per status matching mockup designs */}
-                        <div className="flex items-center gap-2 shrink-0">
+                        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:shrink-0">
                           {isPending && (
                             <button onClick={() => handleEditCampaignClick(act)}
-                              className="border border-slate-200 text-slate-700 hover:bg-slate-50 px-4 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer">
+                              className="w-full sm:w-auto border border-slate-200 text-slate-700 hover:bg-slate-50 px-4 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer">
                               Sửa
                             </button>
                           )}
                           {isCompleted && (
                             <button
                               onClick={() => { setActiveTab('attendance'); setSelectedActivityId(act._id); }}
-                              className="bg-[#006d37] hover:bg-[#005027] text-white px-4 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer">
+                              className="w-full sm:w-auto bg-[#006d37] hover:bg-[#005027] text-white px-4 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer">
                               Điểm danh
                             </button>
                           )}
@@ -868,10 +868,10 @@ export const OrganizerDashboard: React.FC = () => {
         {activeTab === 'registrations' && (
           <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm">
             {/* Sub-tabs Segmented Control + Search */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between p-5 border-b border-slate-100 gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 sm:p-5 border-b border-slate-100 gap-3">
 
               {/* Segmented style filter buttons matching mockup */}
-              <div className="bg-[#e8f5e9]/50 p-1 rounded-2xl flex gap-1 border border-emerald-100/50">
+              <div className="w-full overflow-x-auto bg-[#e8f5e9]/50 p-1 rounded-2xl flex gap-1 border border-emerald-100/50 sm:w-auto">
                 <button
                   onClick={() => setRegSubTab('pending')}
                   className={`px-5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${regSubTab === 'pending'
@@ -901,18 +901,18 @@ export const OrganizerDashboard: React.FC = () => {
                 </button>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
                 <input
                   type="text"
                   value={regSearch}
                   onChange={e => setRegSearch(e.target.value)}
                   placeholder="Tìm tên tình nguyện viên..."
-                  className="border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-semibold focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/10 w-48 shadow-sm transition-all"
+                  className="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-semibold focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/10 sm:w-48 shadow-sm transition-all"
                 />
                 <button
                   type="button"
                   onClick={() => setShowRegFilters(!showRegFilters)}
-                  className={`flex items-center gap-1.5 border rounded-xl px-4 py-2 text-xs font-bold cursor-pointer shadow-sm transition-all ${showRegFilters
+                  className={`flex w-full items-center justify-center gap-1.5 border rounded-xl px-4 py-2 text-xs font-bold cursor-pointer shadow-sm transition-all sm:w-auto ${showRegFilters
                     ? 'border-[#006d37] bg-[#006d37] text-white'
                     : 'border-[#006d37] text-[#006d37] hover:bg-emerald-50'
                     }`}
@@ -928,13 +928,13 @@ export const OrganizerDashboard: React.FC = () => {
 
             {/* Collapsible Filters Panel for Registrations */}
             {showRegFilters && (
-              <div className="flex flex-wrap items-center gap-4 px-5 py-4 bg-slate-50/50 border-b border-slate-100 animate-slideDown">
+              <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end gap-4 px-4 sm:px-5 py-4 bg-slate-50/50 border-b border-slate-100 animate-slideDown">
                 <div className="flex flex-col gap-1 text-left">
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Hoạt động đăng ký</label>
                   <select
                     value={regActivityFilter}
                     onChange={e => setRegActivityFilter(e.target.value)}
-                    className="border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-[#006d37] bg-white cursor-pointer shadow-sm text-slate-700 min-w-[240px] max-w-[360px]"
+                    className="w-full border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-[#006d37] bg-white cursor-pointer shadow-sm text-slate-700 sm:min-w-[240px] sm:max-w-[360px]"
                   >
                     <option value="All">Tất cả hoạt động</option>
                     {myCampaigns.map(act => (
@@ -1079,16 +1079,16 @@ export const OrganizerDashboard: React.FC = () => {
 
         {/* ===================== TAB: ĐIỂM DANH ===================== */}
         {activeTab === 'attendance' && (
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 space-y-6">
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-4 sm:p-6 space-y-6">
             <div className="flex flex-col gap-4 pb-4 border-b border-slate-100">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <h3 className="font-bold text-gray-900 text-sm font-headline-md">Điểm danh tình nguyện viên</h3>
-                <div className="flex items-center gap-3">
+                <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Chọn chiến dịch:</label>
                   <select
                     value={selectedActivityId}
                     onChange={e => setSelectedActivityId(e.target.value)}
-                    className="px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/10 text-xs font-semibold bg-white min-w-[240px] cursor-pointer shadow-sm transition-all"
+                    className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/10 text-xs font-semibold bg-white sm:min-w-[240px] cursor-pointer shadow-sm transition-all"
                   >
                     <option value="">-- Chọn hoạt động để điểm danh --</option>
                     {completedCampaigns.map(act => (
@@ -1102,7 +1102,7 @@ export const OrganizerDashboard: React.FC = () => {
               {selectedActivityId && (
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2 animate-fadeIn">
                   {/* Left: Bulk Action Buttons */}
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     {checkedRegIds.length > 0 ? (
                       <>
                         <span className="text-xs font-bold text-[#006d37] bg-[#e8f5e9] px-3 py-1.5 rounded-xl border border-emerald-100 shadow-sm animate-fadeIn">
@@ -1110,14 +1110,14 @@ export const OrganizerDashboard: React.FC = () => {
                         </span>
                         <button
                           onClick={() => handleBulkCheckIn('Completed')}
-                          className="flex items-center gap-1.5 bg-[#006d37] hover:bg-[#005027] text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer"
+                          className="flex w-full sm:w-auto items-center justify-center gap-1.5 bg-[#006d37] hover:bg-[#005027] text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer"
                         >
                           <span className="material-symbols-outlined text-[15px] font-bold">check_circle</span>
                           Có mặt hàng loạt
                         </button>
                         <button
                           onClick={() => handleBulkCheckIn('Absent')}
-                          className="flex items-center gap-1.5 border border-red-300 text-red-650 hover:bg-red-50 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer"
+                          className="flex w-full sm:w-auto items-center justify-center gap-1.5 border border-red-300 text-red-650 hover:bg-red-50 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer"
                         >
                           <span className="material-symbols-outlined text-[15px] font-bold">cancel</span>
                           Vắng mặt hàng loạt
@@ -1131,18 +1131,18 @@ export const OrganizerDashboard: React.FC = () => {
                   </div>
 
                   {/* Right: Filters */}
-                  <div className="flex items-center gap-3">
+                  <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
                     <input
                       type="text"
                       value={attendanceSearch}
                       onChange={e => setAttendanceSearch(e.target.value)}
                       placeholder="Tìm tên hoặc SĐT..."
-                      className="border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-semibold focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/10 w-44 shadow-sm transition-all"
+                      className="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-semibold focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/10 sm:w-44 shadow-sm transition-all"
                     />
                     <select
                       value={attendanceStatusFilter}
                       onChange={e => setAttendanceStatusFilter(e.target.value)}
-                      className="border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-[#006d37] bg-white cursor-pointer shadow-sm text-slate-700 w-36"
+                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-[#006d37] bg-white cursor-pointer shadow-sm text-slate-700 sm:w-36"
                     >
                       <option value="All">Tất cả trạng thái</option>
                       <option value="Approved">Chờ điểm danh</option>
@@ -1170,17 +1170,17 @@ export const OrganizerDashboard: React.FC = () => {
             <div className="rounded-2xl overflow-hidden">
               {!selectedActivityId ? (
                 // Dashed border card container matching mockup
-                <div className="border-2 border-dashed border-slate-200/80 rounded-2xl p-12 text-center bg-slate-50/50">
+                <div className="border-2 border-dashed border-slate-200/80 rounded-2xl p-8 sm:p-12 text-center bg-slate-50/50">
                   <p className="text-xs font-bold text-slate-500">
                     Vui lòng chọn chiến dịch đã kết thúc để tiến hành điểm danh.
                   </p>
                 </div>
               ) : selectedRegs.filter(r => r.status === 'Approved' || r.status === 'Completed' || r.status === 'Absent').length === 0 ? (
-                <div className="border border-slate-150 rounded-2xl p-10 text-center text-xs text-slate-400 font-semibold bg-slate-50">
+                <div className="border border-slate-150 rounded-2xl p-8 sm:p-10 text-center text-xs text-slate-400 font-semibold bg-slate-50">
                   Chưa có tình nguyện viên đã được duyệt cho chiến dịch này.
                 </div>
               ) : filteredAttendanceRegs.length === 0 ? (
-                <div className="border border-slate-150 rounded-2xl p-10 text-center text-xs text-slate-400 font-semibold bg-slate-50">
+                <div className="border border-slate-150 rounded-2xl p-8 sm:p-10 text-center text-xs text-slate-400 font-semibold bg-slate-50">
                   Không tìm thấy tình nguyện viên phù hợp với bộ lọc.
                 </div>
               ) : (
