@@ -231,10 +231,10 @@ async def test_update_activity_success(async_client, org_headers, organizer_user
 
 @pytest.mark.asyncio
 async def test_update_activity_forbidden_status(async_client, org_headers, organizer_user):
-    """Negative Case: Chỉnh sửa hoạt động đã gửi duyệt (Expects 400)."""
+    """Negative Case: Chỉnh sửa hoạt động không được phép (Expects 400)."""
     activity = Activity(
         organizer_id=organizer_user.id,
-        title="test_QA_PendingForUpdate",
+        title="test_QA_ForbiddenUpdate",
         description="Chiến dịch dọn dẹp rác thải bờ sông Hồng của QA Team.",
         categories=["Môi trường"],
         location={
@@ -245,7 +245,7 @@ async def test_update_activity_forbidden_status(async_client, org_headers, organ
         start_date=datetime.now(timezone.utc) + timedelta(days=2),
         end_date=datetime.now(timezone.utc) + timedelta(days=2, hours=4),
         limit_volunteers=50,
-        status=ActivityStatus.PENDING_REVIEW, # Đang pending_review không được sửa
+        status=ActivityStatus.OPEN, # Trạng thái OPEN không được sửa
         denormalized_organizer={"name": "QA Organizer"}
     )
     await activity.insert()
