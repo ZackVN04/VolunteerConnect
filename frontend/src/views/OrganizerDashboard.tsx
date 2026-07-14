@@ -1293,7 +1293,8 @@ export const OrganizerDashboard: React.FC = () => {
                   Không tìm thấy tình nguyện viên phù hợp với bộ lọc.
                 </div>
               ) : (
-                <div className="overflow-x-auto border border-slate-100 rounded-2xl">
+                <>
+                  <div className="overflow-x-auto border border-slate-100 rounded-2xl">
                   <table className="w-full text-sm text-left border-collapse">
                     <thead>
                       <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
@@ -1401,7 +1402,7 @@ export const OrganizerDashboard: React.FC = () => {
                   totalPages={Math.ceil(filteredAttendanceRegs.length / itemsPerPage)}
                   onPageChange={setAttendancePage}
                 />
-              )}
+              </>)}
             </div>
           </div>
         )}
