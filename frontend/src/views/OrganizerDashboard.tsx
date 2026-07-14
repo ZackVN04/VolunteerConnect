@@ -79,6 +79,48 @@ const Pagination: React.FC<{
 }> = ({ currentPage, totalPages, onPageChange }) => {
   if (totalPages <= 1) return null;
 
+  const getPageNumbers = () => {
+    const pages: (number | string)[] = [];
+    const maxVisiblePages = 5;
+
+    if (totalPages <= maxVisiblePages + 2) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      pages.push(1);
+
+      if (currentPage > 3) {
+        pages.push('...');
+      }
+
+      const start = Math.max(2, currentPage - 1);
+      const end = Math.min(totalPages - 1, currentPage + 1);
+
+      let adjustedStart = start;
+      let adjustedEnd = end;
+      if (currentPage <= 3) {
+        adjustedEnd = 4;
+      }
+      if (currentPage >= totalPages - 2) {
+        adjustedStart = totalPages - 3;
+      }
+
+      for (let i = adjustedStart; i <= adjustedEnd; i++) {
+        pages.push(i);
+      }
+
+      if (currentPage < totalPages - 2) {
+        pages.push('...');
+      }
+
+      pages.push(totalPages);
+    }
+    return pages;
+  };
+
+  const pages = getPageNumbers();
+
   return (
     <div className="flex items-center justify-between border-t border-slate-100 px-4 py-4 sm:px-6 mt-4">
       <div className="flex flex-1 justify-between sm:hidden">
@@ -113,13 +155,23 @@ const Pagination: React.FC<{
               <span className="material-symbols-outlined text-[16px]">chevron_left</span>
             </button>
             
-            {Array.from({ length: totalPages }).map((_, i) => {
-              const p = i + 1;
+            {pages.map((p, i) => {
+              if (p === '...') {
+                return (
+                  <span
+                    key={`ellipsis-${i}`}
+                    className="relative inline-flex items-center rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-400 bg-white"
+                  >
+                    ...
+                  </span>
+                );
+              }
+
               const isCurrent = p === currentPage;
               return (
                 <button
                   key={p}
-                  onClick={() => onPageChange(p)}
+                  onClick={() => onPageChange(p as number)}
                   className={`relative inline-flex items-center rounded-lg px-3.5 py-1.5 text-xs font-extrabold cursor-pointer transition-all ${
                     isCurrent
                       ? 'bg-[#006d37] text-white shadow-sm'
