@@ -59,6 +59,7 @@ export const Navbar: React.FC = () => {
         <nav className="hidden lg:flex flex-row items-center gap-3 shrink-0">
           <a className={navLinkClass('#/feed')} href="#/feed">Trang chủ</a>
           <a className={navLinkClass('#/activities')} href="#/activities">Hoạt động</a>
+          <a className={navLinkClass('#/about')} href="#/about">Về chúng tôi</a>
           {currentUser && currentUser.role === 'Volunteer' && (
             <a className={navLinkClass('#/my-registrations')} href="#/my-registrations">Đăng ký của tôi</a>
           )}
@@ -255,6 +256,16 @@ export const Navbar: React.FC = () => {
               >
                 <span className="material-symbols-outlined text-lg">explore</span>
                 Hoạt động
+              </a>
+              <a 
+                onClick={() => setMobileMenuOpen(false)}
+                className={`flex items-center gap-3 py-3 px-4 rounded-xl transition-all ${
+                  isActive('#/about') ? 'bg-[#e8f5e9] text-[#006d37] font-bold shadow-sm' : 'text-slate-600 hover:bg-slate-50'
+                }`} 
+                href="#/about"
+              >
+                <span className="material-symbols-outlined text-lg">info</span>
+                Về chúng tôi
               </a>
               
               {currentUser ? (
