@@ -18,7 +18,8 @@ class RegistrationRepository:
             NotIn(Registration.status, [
                 RegistrationStatus.REJECTED.value, 
                 RegistrationStatus.ABSENT.value, 
-                RegistrationStatus.CANCELLED.value
+                RegistrationStatus.CANCELLED.value,
+                RegistrationStatus.COMPLETED.value
             ]),
             Registration.denormalized_activity.start_date < end_date,
             Registration.denormalized_activity.end_date > start_date
