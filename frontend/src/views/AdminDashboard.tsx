@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import type { User } from '../context/AppContext';
 import logoImg from '../assets/logo.png';
 
 // Helper: inline avatar fallback with initials
@@ -389,28 +388,6 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
-  const getLoginStatusBadge = (user: User) => {
-    // Current logged-in user is always online. Other users are simulated based on their ID hash for a realistic experience.
-    const isOnline = currentUser && user._id === currentUser._id
-      ? true
-      : (user._id.charCodeAt(user._id.length - 1) % 2 === 0);
-
-    if (isOnline) {
-      return (
-        <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 text-xs px-2.5 py-1.5 rounded-full font-bold border border-emerald-200 shadow-sm shrink-0">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-          Đang hoạt động
-        </span>
-      );
-    } else {
-      return (
-        <span className="inline-flex items-center gap-1.5 bg-slate-50 text-slate-500 text-xs px-2.5 py-1.5 rounded-full font-semibold border border-slate-200 shadow-sm shrink-0">
-          <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
-          Ngoại tuyến
-        </span>
-      );
-    }
-  };
 
   return (
     <div className="w-full bg-[#f8f9fa] min-h-screen pb-16 relative">
@@ -1143,10 +1120,8 @@ export const AdminDashboard: React.FC = () => {
                                 <td className="px-6 py-5 text-on-surface-variant font-semibold">
                                   {req.experience}
                                 </td>
-                                <td className="px-6 py-5 text-on-surface-variant">
-                                  <p className="line-clamp-2 max-w-[300px]" title={req.reason}>
-                                    {req.reason}
-                                  </p>
+                                <td className="px-6 py-5 text-on-surface-variant max-w-[300px] break-words text-xs">
+                                  <ExpandableText text={req.reason} limit={80} />
                                 </td>
                                 <td className="px-6 py-5 whitespace-nowrap">
                                   <div className="flex gap-3">
@@ -1457,7 +1432,7 @@ export const AdminDashboard: React.FC = () => {
                                 <th className="px-4 py-3 whitespace-nowrap">Số điện thoại</th>
                                 <th className="px-4 py-3 whitespace-nowrap">Email</th>
                                 <th className="px-4 py-3 whitespace-nowrap">Vai trò</th>
-                                <th className="px-4 py-3 whitespace-nowrap">Trạng thái hoạt động</th>
+                                <th className="px-4 py-3 whitespace-nowrap">Ngày tạo tài khoản</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-surface-variant/30 text-on-surface">
@@ -1471,8 +1446,8 @@ export const AdminDashboard: React.FC = () => {
                                   <td className="px-4 py-3.5 whitespace-nowrap">
                                     {getRoleBadge(u.role)}
                                   </td>
-                                  <td className="px-4 py-3.5 whitespace-nowrap">
-                                    {getLoginStatusBadge(u)}
+                                  <td className="px-4 py-3.5 whitespace-nowrap text-on-surface-variant text-xs font-semibold">
+                                    {u.created_at ? new Date(u.created_at).toLocaleDateString('vi-VN') : 'Chưa cập nhật'}
                                   </td>
                                 </tr>
                               ))}
@@ -1813,7 +1788,7 @@ export const AdminDashboard: React.FC = () => {
                                         </div>
                                       </td>
                                       <td className="px-4 py-3.5 text-xs text-on-surface-variant max-w-[250px] break-words">
-                                        {req.reason}
+                                        <ExpandableText text={req.reason} limit={80} />
                                       </td>
                                       <td className="px-4 py-3.5 whitespace-nowrap text-xs text-on-surface-variant">
                                         {req.reviewed_at ? new Date(req.reviewed_at).toLocaleString('vi-VN') : 'Chưa cập nhật'}

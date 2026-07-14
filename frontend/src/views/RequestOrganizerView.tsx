@@ -31,6 +31,10 @@ export const RequestOrganizerView: React.FC = () => {
       showNotification('Vui lòng nhập đầy đủ thông tin yêu cầu.', 'error');
       return;
     }
+    if (requestOrgDesc.trim().length < 10 || requestOrgDesc.trim().length > 500) {
+      showNotification('Lý do muốn trở thành Nhà tổ chức phải từ 10 đến 500 ký tự.', 'error');
+      return;
+    }
 
     setLoading(true);
     try {
@@ -135,10 +139,17 @@ export const RequestOrganizerView: React.FC = () => {
                 value={requestOrgDesc}
                 onChange={(e) => setRequestOrgDesc(e.target.value)}
                 required
+                maxLength={500}
                 placeholder="Chia sẻ mục đích của bạn (ví dụ: Muốn tổ chức gom pin cũ định kỳ hàng tuần, Muốn liên kết các bữa ăn thiện nguyện tại các mái ấm...)"
                 className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-2 focus:ring-[#006d37]/20 text-sm font-semibold text-slate-800 bg-white transition-all resize-none"
                 disabled={loading}
               />
+              <div className="flex justify-between items-center text-[10px] text-slate-400 mt-1 font-semibold">
+                <span>Vui lòng điền chi tiết từ 10 đến 500 ký tự</span>
+                <span className={requestOrgDesc.length >= 500 ? 'text-red-500 font-bold' : ''}>
+                  {requestOrgDesc.length}/500
+                </span>
+              </div>
             </div>
 
             {/* Actions */}
