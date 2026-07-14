@@ -201,6 +201,7 @@ class PostService:
         post.title = data.title
         post.content = data.content
         post.images = [str(img) for img in data.images] if data.images else []
+        post.video_url = str(data.video_url) if data.video_url else None
         post.hashtags = data.hashtags
         post.updated_at = datetime.now(timezone.utc)
 

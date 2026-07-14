@@ -300,6 +300,13 @@ export const OrganizerDashboard: React.FC = () => {
       if (title.trim().length < 5) { showNotification('Tiêu đề phải có ít nhất 5 ký tự', 'error'); return; }
       if (description.trim().length < 20) { showNotification('Mô tả phải có ít nhất 20 ký tự', 'error'); return; }
       if (new Date(endDate) <= new Date(startDate)) { showNotification('Ngày kết thúc phải sau ngày bắt đầu', 'error'); return; }
+      
+      const now = new Date();
+      const submissionGrace = 2 * 60 * 1000; // 2 phút bù trừ trễ
+      if (new Date(startDate).getTime() < now.getTime() - submissionGrace) {
+        showNotification('Ngày bắt đầu không được ở trong quá khứ', 'error');
+        return;
+      }
       const limitNum = Number(limitVolunteers);
       if (isNaN(limitNum) || limitNum < 1) { showNotification('Số lượng tình nguyện viên tối thiểu là 1', 'error'); return; }
 
