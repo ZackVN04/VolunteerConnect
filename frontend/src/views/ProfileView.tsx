@@ -49,6 +49,79 @@ const InfoItem: React.FC<{
   </div>
 );
 
+const Pagination: React.FC<{
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+}> = ({ currentPage, totalPages, onPageChange }) => {
+  if (totalPages <= 1) return null;
+
+  return (
+    <div className="flex items-center justify-between border-t border-slate-100 px-4 py-4 sm:px-6 mt-4">
+      <div className="flex flex-1 justify-between sm:hidden">
+        <button
+          onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+          disabled={currentPage === 1}
+          className="relative inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+        >
+          Trước
+        </button>
+        <button
+          onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
+          disabled={currentPage === totalPages}
+          className="relative ml-3 inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+        >
+          Sau
+        </button>
+      </div>
+      <div className="hidden sm:flex sm:flex-grow sm:items-center sm:justify-between w-full">
+        <div>
+          <p className="text-xs text-slate-500 font-semibold">
+            Hiển thị trang <span className="font-extrabold text-slate-800">{currentPage}</span> / <span className="font-extrabold text-slate-800">{totalPages}</span>
+          </p>
+        </div>
+        <div>
+          <nav className="isolate inline-flex -space-x-px rounded-xl shadow-sm gap-1" aria-label="Pagination">
+            <button
+              onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+              disabled={currentPage === 1}
+              className="relative inline-flex items-center rounded-lg border border-slate-200 bg-white p-2 text-xs font-bold text-slate-500 hover:bg-slate-50 disabled:opacity-50 cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-[16px]">chevron_left</span>
+            </button>
+            
+            {Array.from({ length: totalPages }).map((_, i) => {
+              const p = i + 1;
+              const isCurrent = p === currentPage;
+              return (
+                <button
+                  key={p}
+                  onClick={() => onPageChange(p)}
+                  className={`relative inline-flex items-center rounded-lg px-3.5 py-1.5 text-xs font-extrabold cursor-pointer transition-all ${
+                    isCurrent
+                      ? 'bg-[#006d37] text-white shadow-sm'
+                      : 'border border-slate-200 bg-white text-slate-650 hover:bg-slate-50'
+                  }`}
+                >
+                  {p}
+                </button>
+              );
+            })}
+
+            <button
+              onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
+              disabled={currentPage === totalPages}
+              className="relative inline-flex items-center rounded-lg border border-slate-200 bg-white p-2 text-xs font-bold text-slate-500 hover:bg-slate-50 disabled:opacity-50 cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-[16px]">chevron_right</span>
+            </button>
+          </nav>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export const ProfileView: React.FC = () => {
   const { currentUser, users, activities, registrations, organizerRequests, updateProfile, showNotification, changePassword, refreshAllData } = useApp();
 
@@ -68,6 +141,16 @@ export const ProfileView: React.FC = () => {
     currentUser?.profile.age ? (new Date().getFullYear() - currentUser.profile.age) : ''
   );
   const [gender, setGender] = useState(currentUser?.profile.gender || '');
+  const [isFormInitialized, setIsFormInitialized] = useState(false);
+
+  // Pagination state for Organizer Management
+  const [orgActsPage, setOrgActsPage] = useState(1);
+  const itemsPerPage = 5;
+
+  // Reset pagination when viewMode changes
+  useEffect(() => {
+    setOrgActsPage(1);
+  }, [viewMode]);
 
   // Form states for Change Password
   const [oldPassword, setOldPassword] = useState('');
@@ -150,8 +233,15 @@ export const ProfileView: React.FC = () => {
   const myRegs = registrations.filter(r => r.volunteer_id === displayUser?._id);
   const orgActs = activities.filter(a => a.organizer_id === displayUser?._id);
 
+  // Reset isFormInitialized when viewMode is not 'edit'
   useEffect(() => {
-    if (currentUser && isOwnProfile) {
+    if (viewMode !== 'edit') {
+      setIsFormInitialized(false);
+    }
+  }, [viewMode]);
+
+  useEffect(() => {
+    if (currentUser && isOwnProfile && !isFormInitialized) {
       setFullName(currentUser.profile.full_name || '');
       setEmail(currentUser.email || '');
       setPhone(currentUser.phone || '');
@@ -162,8 +252,9 @@ export const ProfileView: React.FC = () => {
       setAge(currentUser.profile.age ?? '');
       setBirthYear(currentUser.profile.age ? (new Date().getFullYear() - currentUser.profile.age) : '');
       setGender(currentUser.profile.gender || '');
+      setIsFormInitialized(true);
     }
-  }, [currentUser, isOwnProfile]);
+  }, [currentUser, isOwnProfile, isFormInitialized]);
 
   if (loadingUser) {
     return (
@@ -997,36 +1088,43 @@ export const ProfileView: React.FC = () => {
                         )}
                       </div>
                     ) : (
-                      <div className="divide-y divide-slate-100 border border-slate-100 rounded-xl overflow-hidden bg-slate-50">
-                        {orgActs.map(act => {
-                          const statusConfig: Record<string, { label: string; class: string }> = {
-                            'Draft': { label: 'Bản nháp', class: 'bg-slate-100 text-slate-600' },
-                            'Pending Review': { label: 'Chờ duyệt', class: 'bg-amber-100 text-amber-800' },
-                            'Open': { label: 'Đang mở', class: 'bg-emerald-100 text-emerald-800' },
-                            'Full': { label: 'Đã đầy', class: 'bg-teal-100 text-teal-800' },
-                            'Ongoing': { label: 'Đang diễn ra', class: 'bg-blue-100 text-blue-800' },
-                            'Completed': { label: 'Đã kết thúc', class: 'bg-[#bbcbbb] text-slate-700' },
-                            'Rejected': { label: 'Từ chối', class: 'bg-rose-100 text-rose-800' },
-                            'Cancelled': { label: 'Đã hủy', class: 'bg-slate-200 text-slate-700' }
-                          };
-                          const badge = statusConfig[act.status] || { label: act.status, class: 'bg-slate-100 text-slate-600' };
+                      <>
+                        <div className="divide-y divide-slate-100 border border-slate-100 rounded-xl overflow-hidden bg-slate-50">
+                          {orgActs.slice((orgActsPage - 1) * itemsPerPage, orgActsPage * itemsPerPage).map(act => {
+                            const statusConfig: Record<string, { label: string; class: string }> = {
+                              'Draft': { label: 'Bản nháp', class: 'bg-slate-100 text-slate-600' },
+                              'Pending Review': { label: 'Chờ duyệt', class: 'bg-amber-100 text-amber-800' },
+                              'Open': { label: 'Đang mở', class: 'bg-emerald-100 text-emerald-800' },
+                              'Full': { label: 'Đã đầy', class: 'bg-teal-100 text-teal-800' },
+                              'Ongoing': { label: 'Đang diễn ra', class: 'bg-blue-100 text-blue-800' },
+                              'Completed': { label: 'Đã kết thúc', class: 'bg-[#bbcbbb] text-slate-700' },
+                              'Rejected': { label: 'Từ chối', class: 'bg-rose-100 text-rose-800' },
+                              'Cancelled': { label: 'Đã hủy', class: 'bg-slate-200 text-slate-700' }
+                            };
+                            const badge = statusConfig[act.status] || { label: act.status, class: 'bg-slate-100 text-slate-600' };
 
-                          return (
-                            <div key={act._id} className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 hover:bg-white transition-colors">
-                              <div className="space-y-1 min-w-0">
-                                <h5 className="font-bold text-sm text-slate-800 break-words">{act.title}</h5>
-                                <p className="text-xs text-slate-500 font-medium">Bắt đầu: {new Date(act.start_date).toLocaleDateString('vi-VN')}</p>
+                            return (
+                              <div key={act._id} className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 hover:bg-white transition-colors">
+                                <div className="space-y-1 min-w-0">
+                                  <h5 className="font-bold text-sm text-slate-800 break-words">{act.title}</h5>
+                                  <p className="text-xs text-slate-500 font-medium">Bắt đầu: {new Date(act.start_date).toLocaleDateString('vi-VN')}</p>
+                                </div>
+                                <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto">
+                                  <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase ${badge.class}`}>
+                                    {badge.label}
+                                  </span>
+                                  <a href={`#/activity/${act._id}`} className="bg-white hover:bg-slate-50 border border-slate-200 text-[#006d37] font-bold px-3 py-1.5 rounded-lg text-[11px] transition-colors">Xem chi tiết</a>
+                                </div>
                               </div>
-                              <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto">
-                                <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase ${badge.class}`}>
-                                  {badge.label}
-                                </span>
-                                <a href={`#/activity/${act._id}`} className="bg-white hover:bg-slate-50 border border-slate-200 text-[#006d37] font-bold px-3 py-1.5 rounded-lg text-[11px] transition-colors">Xem chi tiết</a>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
+                            );
+                          })}
+                        </div>
+                        <Pagination
+                          currentPage={orgActsPage}
+                          totalPages={Math.ceil(orgActs.length / itemsPerPage)}
+                          onPageChange={setOrgActsPage}
+                        />
+                      </>
                     )}
                   </div>
                 </div>

@@ -72,6 +72,79 @@ const formatISOToLocalInput = (isoStr: string): string => {
   return `${year}-${month}-${day}T${hours}:${minutes}`;
 };
 
+const Pagination: React.FC<{
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+}> = ({ currentPage, totalPages, onPageChange }) => {
+  if (totalPages <= 1) return null;
+
+  return (
+    <div className="flex items-center justify-between border-t border-slate-100 px-4 py-4 sm:px-6 mt-4">
+      <div className="flex flex-1 justify-between sm:hidden">
+        <button
+          onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+          disabled={currentPage === 1}
+          className="relative inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+        >
+          Trước
+        </button>
+        <button
+          onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
+          disabled={currentPage === totalPages}
+          className="relative ml-3 inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+        >
+          Sau
+        </button>
+      </div>
+      <div className="hidden sm:flex sm:flex-grow sm:items-center sm:justify-between w-full">
+        <div>
+          <p className="text-xs text-slate-500 font-semibold">
+            Hiển thị trang <span className="font-extrabold text-slate-800">{currentPage}</span> / <span className="font-extrabold text-slate-800">{totalPages}</span>
+          </p>
+        </div>
+        <div>
+          <nav className="isolate inline-flex -space-x-px rounded-xl shadow-sm gap-1" aria-label="Pagination">
+            <button
+              onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+              disabled={currentPage === 1}
+              className="relative inline-flex items-center rounded-lg border border-slate-200 bg-white p-2 text-xs font-bold text-slate-500 hover:bg-slate-50 disabled:opacity-50 cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-[16px]">chevron_left</span>
+            </button>
+            
+            {Array.from({ length: totalPages }).map((_, i) => {
+              const p = i + 1;
+              const isCurrent = p === currentPage;
+              return (
+                <button
+                  key={p}
+                  onClick={() => onPageChange(p)}
+                  className={`relative inline-flex items-center rounded-lg px-3.5 py-1.5 text-xs font-extrabold cursor-pointer transition-all ${
+                    isCurrent
+                      ? 'bg-[#006d37] text-white shadow-sm'
+                      : 'border border-slate-200 bg-white text-slate-650 hover:bg-slate-50'
+                  }`}
+                >
+                  {p}
+                </button>
+              );
+            })}
+
+            <button
+              onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
+              disabled={currentPage === totalPages}
+              className="relative inline-flex items-center rounded-lg border border-slate-200 bg-white p-2 text-xs font-bold text-slate-500 hover:bg-slate-50 disabled:opacity-50 cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-[16px]">chevron_right</span>
+            </button>
+          </nav>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export const OrganizerDashboard: React.FC = () => {
   const {
     currentUser, activities, registrations,
@@ -103,6 +176,25 @@ export const OrganizerDashboard: React.FC = () => {
   const [selectedRegIds, setSelectedRegIds] = useState<string[]>([]);
   const [attendanceSearch, setAttendanceSearch] = useState('');
   const [attendanceStatusFilter, setAttendanceStatusFilter] = useState('All');
+
+  // Pagination states
+  const [activitiesPage, setActivitiesPage] = useState(1);
+  const [registrationsPage, setRegistrationsPage] = useState(1);
+  const [attendancePage, setAttendancePage] = useState(1);
+  const itemsPerPage = 5;
+
+  // Reset pagination on filter changes
+  useEffect(() => {
+    setActivitiesPage(1);
+  }, [activitySearch, activityStatusFilter, activityCategoryFilter]);
+
+  useEffect(() => {
+    setRegistrationsPage(1);
+  }, [regSearch, regActivityFilter, regSubTab]);
+
+  useEffect(() => {
+    setAttendancePage(1);
+  }, [attendanceSearch, attendanceStatusFilter, selectedActivityId]);
 
   // Show create/edit form
   const [showForm, setShowForm] = useState(false);
@@ -231,7 +323,7 @@ export const OrganizerDashboard: React.FC = () => {
   // Selected activity regs for attendance
   const selectedRegs = registrations.filter(r => r.activity_id === selectedActivityId);
   // Completed/past campaigns for attendance
-  const completedCampaigns = myCampaigns.filter(a => a.status === 'Completed' || a.status === 'Ongoing');
+  const completedCampaigns = myCampaigns.filter(a => ['Completed', 'Ongoing', 'Open', 'Full'].includes(a.status));
 
   const filteredAttendanceRegs = selectedRegs
     .filter(r => r.status === 'Approved' || r.status === 'Completed' || r.status === 'Absent')
@@ -815,7 +907,7 @@ export const OrganizerDashboard: React.FC = () => {
                 </div>
               ) : (
                 <div className="divide-y divide-slate-100">
-                  {filteredCampaigns.map(act => {
+                  {filteredCampaigns.slice((activitiesPage - 1) * itemsPerPage, activitiesPage * itemsPerPage).map(act => {
                     const isCompleted = act.status === 'Completed';
                     const isPending = act.status === 'Pending Review';
                     const approvedCount = registrations.filter(r => r.activity_id === act._id && (r.status === 'Approved' || r.status === 'Completed')).length;
@@ -865,6 +957,11 @@ export const OrganizerDashboard: React.FC = () => {
                       </div>
                     );
                   })}
+                  <Pagination
+                    currentPage={activitiesPage}
+                    totalPages={Math.ceil(filteredCampaigns.length / itemsPerPage)}
+                    onPageChange={setActivitiesPage}
+                  />
                 </div>
               )}
             </div>
@@ -1024,7 +1121,7 @@ export const OrganizerDashboard: React.FC = () => {
                       </td>
                     </tr>
                   ) : (
-                    allOrgRegs.map(reg => {
+                    allOrgRegs.slice((registrationsPage - 1) * itemsPerPage, registrationsPage * itemsPerPage).map(reg => {
                       const act = activities.find(a => a._id === reg.activity_id);
                       return (
                         <tr key={reg._id} className="hover:bg-slate-50/50 transition-colors animate-fadeIn">
@@ -1081,6 +1178,11 @@ export const OrganizerDashboard: React.FC = () => {
                 </tbody>
               </table>
             </div>
+            <Pagination
+              currentPage={registrationsPage}
+              totalPages={Math.ceil(allOrgRegs.length / itemsPerPage)}
+              onPageChange={setRegistrationsPage}
+            />
           </div>
         )}
 
@@ -1192,34 +1294,8 @@ export const OrganizerDashboard: React.FC = () => {
                 </div>
               ) : (
                 <div className="overflow-x-auto border border-slate-100 rounded-2xl">
-                  <table className="w-full text-sm text-left border-collapse">
-                    <thead>
-                      <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                        <th className="pl-6 py-4 w-12 text-center">
-                          <input
-                            type="checkbox"
-                            className="rounded text-[#006d37] focus:ring-[#006d37]/20 cursor-pointer w-4 h-4 animate-scaleIn"
-                            checked={
-                              eligibleRegs.length > 0 &&
-                              eligibleRegs.every(r => checkedRegIds.includes(r._id))
-                            }
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setCheckedRegIds(eligibleRegs.map(r => r._id));
-                              } else {
-                                setCheckedRegIds([]);
-                              }
-                            }}
-                          />
-                        </th>
-                        <th className="px-6 py-4">Họ và tên</th>
-                        <th className="px-6 py-4">Số điện thoại</th>
-                        <th className="px-6 py-4">Trạng thái đăng ký</th>
-                        <th className="px-6 py-4">Điểm danh tham gia</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 text-slate-750">
-                      {filteredAttendanceRegs.map(reg => {
+                        <tbody className="divide-y divide-slate-100 text-slate-750">
+                      {filteredAttendanceRegs.slice((attendancePage - 1) * itemsPerPage, attendancePage * itemsPerPage).map(reg => {
                         const canCheckIn = reg.status === 'Approved';
                         const isCompleted = reg.status === 'Completed';
                         const isAbsent = reg.status === 'Absent';
@@ -1270,7 +1346,7 @@ export const OrganizerDashboard: React.FC = () => {
                                     Có mặt
                                   </button>
                                   <button onClick={() => handleCheckIn(reg._id, 'Absent')}
-                                    className="border border-red-300 hover:bg-red-50 text-red-600 px-3.5 py-1.5 rounded-lg text-xs font-bold shadow-sm transition-all cursor-pointer">
+                                    className="border border-red-300 hover:bg-red-50 text-red-650 px-3.5 py-1.5 rounded-lg text-xs font-bold shadow-sm transition-all cursor-pointer">
                                     Vắng mặt
                                   </button>
                                 </div>
@@ -1294,6 +1370,11 @@ export const OrganizerDashboard: React.FC = () => {
                     </tbody>
                   </table>
                 </div>
+                <Pagination
+                  currentPage={attendancePage}
+                  totalPages={Math.ceil(filteredAttendanceRegs.length / itemsPerPage)}
+                  onPageChange={setAttendancePage}
+                />
               )}
             </div>
           </div>
