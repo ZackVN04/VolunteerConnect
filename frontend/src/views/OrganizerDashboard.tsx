@@ -1294,7 +1294,33 @@ export const OrganizerDashboard: React.FC = () => {
                 </div>
               ) : (
                 <div className="overflow-x-auto border border-slate-100 rounded-2xl">
-                        <tbody className="divide-y divide-slate-100 text-slate-750">
+                  <table className="w-full text-sm text-left border-collapse">
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                        <th className="pl-6 py-4 w-12 text-center">
+                          <input
+                            type="checkbox"
+                            className="rounded text-[#006d37] focus:ring-[#006d37]/20 cursor-pointer w-4 h-4 animate-scaleIn"
+                            checked={
+                              eligibleRegs.length > 0 &&
+                              eligibleRegs.every(r => checkedRegIds.includes(r._id))
+                            }
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setCheckedRegIds(eligibleRegs.map(r => r._id));
+                              } else {
+                                setCheckedRegIds([]);
+                              }
+                            }}
+                          />
+                        </th>
+                        <th className="px-6 py-4">Họ và tên</th>
+                        <th className="px-6 py-4">Số điện thoại</th>
+                        <th className="px-6 py-4">Trạng thái đăng ký</th>
+                        <th className="px-6 py-4">Điểm danh tham gia</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-slate-750">
                       {filteredAttendanceRegs.slice((attendancePage - 1) * itemsPerPage, attendancePage * itemsPerPage).map(reg => {
                         const canCheckIn = reg.status === 'Approved';
                         const isCompleted = reg.status === 'Completed';
