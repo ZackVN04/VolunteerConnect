@@ -56,11 +56,11 @@ class ActivityService:
                 detail="Bạn không có quyền chỉnh sửa hoạt động này"
             )
 
-        # Kiểm tra trạng thái: Chỉ được sửa khi đang ở Draft, Pending Review hoặc Open
-        if activity.status not in [ActivityStatus.DRAFT, ActivityStatus.PENDING_REVIEW]:
+        # Kiểm tra trạng thái: Chỉ được sửa khi đang ở Draft, Rejected hoặc Pending Review
+        if activity.status not in [ActivityStatus.DRAFT, ActivityStatus.REJECTED, ActivityStatus.PENDING_REVIEW]:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Chỉ được phép chỉnh sửa hoạt động ở trạng thái Draft, Pending Review"
+                detail="Chỉ được phép chỉnh sửa hoạt động ở trạng thái Draft, Rejected hoặc Pending Review"
             )
 
         # Cập nhật các thông tin được truyền vào
