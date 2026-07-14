@@ -136,16 +136,16 @@ class RegistrationService:
                 detail="Chỉ những đơn đang chờ duyệt hoặc đã duyệt mới có thể hủy"
             )
 
-        # 4. Check 2-day constraint
+        # 4. Check before-start constraint
         start_date = registration.denormalized_activity.start_date
         if start_date.tzinfo is None:
             start_date = start_date.replace(tzinfo=timezone.utc)
             
         time_until_start = start_date - datetime.now(timezone.utc)
-        if time_until_start.total_seconds() < 2 * 24 * 3600:
+        if time_until_start.total_seconds() <= 0:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, 
-                detail="Phải hủy đơn đăng ký ít nhất 2 ngày trước khi hoạt động bắt đầu"
+                detail="Không thể hủy đơn đăng ký khi hoạt động đã bắt đầu"
             )
 
         # 5. Fetch Activity

@@ -59,6 +59,7 @@ export const Navbar: React.FC = () => {
         <nav className="hidden lg:flex flex-row items-center gap-3 shrink-0">
           <a className={navLinkClass('#/feed')} href="#/feed">Trang chủ</a>
           <a className={navLinkClass('#/activities')} href="#/activities">Hoạt động</a>
+          <a className={navLinkClass('#/about')} href="#/about">Về chúng tôi</a>
           {currentUser && currentUser.role === 'Volunteer' && (
             <a className={navLinkClass('#/my-registrations')} href="#/my-registrations">Đăng ký của tôi</a>
           )}
@@ -189,109 +190,182 @@ export const Navbar: React.FC = () => {
         </div>
       </div>
 
-      {/* Mobile Menu */}
+      {/* Mobile Menu Drawer */}
       {mobileMenuOpen && (
-        <div className="lg:hidden bg-surface-container border-b border-surface-variant px-4 py-4 space-y-2 animate-fadeIn text-left">
-          <a 
+        <>
+          {/* Backdrop overlay */}
+          <div 
             onClick={() => setMobileMenuOpen(false)}
-            className={`block py-2.5 px-4 rounded-lg font-medium text-sm transition-all ${
-              isActive('#/feed') ? 'bg-[#006d37] text-white' : 'text-on-surface hover:bg-surface-container-high'
-            }`} 
-            href="#/feed"
-          >
-            Trang chủ
-          </a>
-          <a 
-            onClick={() => setMobileMenuOpen(false)}
-            className={`block py-2.5 px-4 rounded-lg font-medium text-sm transition-all ${
-              isActive('#/activities') ? 'bg-[#006d37] text-white' : 'text-on-surface hover:bg-surface-container-high'
-            }`} 
-            href="#/activities"
-          >
-            Hoạt động
-          </a>
+            className="fixed inset-0 z-[1000] bg-black/50 lg:hidden animate-fadeIn"
+          ></div>
           
-          {currentUser ? (
-            <>
-              {currentUser.role === 'Volunteer' && (
-                <a 
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`block py-2.5 px-4 rounded-lg font-medium text-sm transition-all ${
-                    isActive('#/my-registrations') ? 'bg-[#006d37] text-white' : 'text-on-surface hover:bg-surface-container-high'
-                  }`} 
-                  href="#/my-registrations"
-                >
-                  Đăng ký của tôi
-                </a>
-              )}
-              {currentUser.role === 'Admin' && (
-                <a 
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`block py-2.5 px-4 rounded-lg font-medium text-sm transition-all ${
-                    isActive('#/admin/dashboard') ? 'bg-[#006d37] text-white' : 'text-on-surface hover:bg-surface-container-high'
-                  }`} 
-                  href="#/admin/dashboard"
-                >
-                  Quản trị hệ thống
-                </a>
-              )}
-              <a 
-                onClick={() => setMobileMenuOpen(false)}
-                className={`block py-2.5 px-4 rounded-lg font-medium text-sm transition-all ${
-                  isActive('#/profile') ? 'bg-[#006d37] text-white' : 'text-on-surface hover:bg-surface-container-high'
-                }`} 
-                href="#/profile"
-              >
-                Hồ sơ cá nhân
-              </a>
-              <a 
-                onClick={() => setMobileMenuOpen(false)}
-                className="block py-2.5 px-4 rounded-lg font-medium text-sm text-on-surface hover:bg-surface-container-high transition-all"
-                href="#/profile?tab=password"
-              >
-                Đổi mật khẩu
-              </a>
-              <hr className="border-surface-variant my-2" />
-              {currentUser.role === 'Volunteer' && !isPending && !inCooldown && (
-                <a 
-                  onClick={() => setMobileMenuOpen(false)}
-                  href="#/request-organizer"
-                  className="block px-4 py-2 text-sm font-semibold text-[#006d37] hover:bg-[#e8f5e9] rounded-lg transition-colors border border-[#006d37] text-center mt-2"
-                >
-                  Xin quyền Tổ chức
-                </a>
-              )}
-              {currentUser.role === 'Organizer' && (
-                <a 
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="block text-center border border-[#006d37] text-[#006d37] py-2 rounded-lg text-sm font-semibold hover:bg-emerald-50"
-                  href="#/organizer/dashboard"
-                >
-                  Khu vực Tổ chức
-                </a>
-              )}
+          {/* Drawer Panel */}
+          <div className="fixed top-0 right-0 h-full w-[290px] bg-white z-[1001] shadow-2xl flex flex-col lg:hidden transition-transform duration-300 ease-out animate-slideInRight text-left border-l border-slate-100">
+            {/* Drawer Header */}
+            <div className="flex items-center justify-between p-4 border-b border-slate-100">
+              <span className="font-bold text-base text-[#006d37] flex items-center gap-1.5">
+                <img src={logoImg} alt="Logo" className="h-7 w-auto object-contain" />
+                Volunteer Connect
+              </span>
               <button 
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  localStorage.removeItem('token');
-                  setCurrentUser(null);
-                  window.location.hash = '#/feed';
-                }}
-                className="w-full text-center border border-red-200 text-red-600 py-2 rounded-lg text-sm font-semibold bg-red-50 hover:bg-red-100 mt-2 cursor-pointer"
+                onClick={() => setMobileMenuOpen(false)}
+                className="text-slate-500 hover:text-red-500 transition-colors p-1.5 rounded-full hover:bg-slate-50 cursor-pointer"
               >
-                Đăng xuất
+                <span className="material-symbols-outlined text-xl">close</span>
               </button>
-            </>
-          ) : (
-            <a 
-              onClick={() => setMobileMenuOpen(false)}
-              className="block text-center bg-[#006d37] text-white py-2 rounded-lg text-sm font-semibold hover:bg-emerald-800 mt-4"
-              href="#/login"
-            >
-              Đăng nhập
-            </a>
-          )}
-        </div>
+            </div>
+
+            {/* Profile Section inside Drawer */}
+            {currentUser && (
+              <div className="p-4 bg-slate-50 border-b border-slate-100 flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full overflow-hidden border border-[#006d37]/20 bg-white shrink-0">
+                  <NavAvatar 
+                    name={currentUser.profile.full_name} 
+                    src={currentUser.profile.avatar_url}
+                  />
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="font-bold text-sm text-slate-800 truncate leading-tight">
+                    {currentUser.profile.full_name}
+                  </span>
+                  <span className="text-[10px] text-slate-500 font-semibold mt-1">
+                    {currentUser.role === 'Admin' ? 'Quản trị viên' : (currentUser.role === 'Organizer' ? 'Ban tổ chức' : 'Tình nguyện viên')}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Drawer Menu Links */}
+            <div className="flex-grow overflow-y-auto p-4 space-y-1.5 text-xs font-semibold">
+              <a 
+                onClick={() => setMobileMenuOpen(false)}
+                className={`flex items-center gap-3 py-3 px-4 rounded-xl transition-all ${
+                  isActive('#/feed') ? 'bg-[#e8f5e9] text-[#006d37] font-bold shadow-sm' : 'text-slate-600 hover:bg-slate-50'
+                }`} 
+                href="#/feed"
+              >
+                <span className="material-symbols-outlined text-lg">home</span>
+                Trang chủ
+              </a>
+              <a 
+                onClick={() => setMobileMenuOpen(false)}
+                className={`flex items-center gap-3 py-3 px-4 rounded-xl transition-all ${
+                  isActive('#/activities') ? 'bg-[#e8f5e9] text-[#006d37] font-bold shadow-sm' : 'text-slate-600 hover:bg-slate-50'
+                }`} 
+                href="#/activities"
+              >
+                <span className="material-symbols-outlined text-lg">explore</span>
+                Hoạt động
+              </a>
+              <a 
+                onClick={() => setMobileMenuOpen(false)}
+                className={`flex items-center gap-3 py-3 px-4 rounded-xl transition-all ${
+                  isActive('#/about') ? 'bg-[#e8f5e9] text-[#006d37] font-bold shadow-sm' : 'text-slate-600 hover:bg-slate-50'
+                }`} 
+                href="#/about"
+              >
+                <span className="material-symbols-outlined text-lg">info</span>
+                Về chúng tôi
+              </a>
+              
+              {currentUser ? (
+                <>
+                  {currentUser.role === 'Volunteer' && (
+                    <a 
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`flex items-center gap-3 py-3 px-4 rounded-xl transition-all ${
+                        isActive('#/my-registrations') ? 'bg-[#e8f5e9] text-[#006d37] font-bold shadow-sm' : 'text-slate-600 hover:bg-slate-50'
+                      }`} 
+                      href="#/my-registrations"
+                    >
+                      <span className="material-symbols-outlined text-lg">assignment</span>
+                      Đăng ký của tôi
+                    </a>
+                  )}
+                  {currentUser.role === 'Admin' && (
+                    <a 
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`flex items-center gap-3 py-3 px-4 rounded-xl transition-all ${
+                        isActive('#/admin/dashboard') ? 'bg-[#e8f5e9] text-[#006d37] font-bold shadow-sm' : 'text-slate-600 hover:bg-slate-50'
+                      }`} 
+                      href="#/admin/dashboard"
+                    >
+                      <span className="material-symbols-outlined text-lg">dashboard</span>
+                      Quản trị hệ thống
+                    </a>
+                  )}
+                  <a 
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`flex items-center gap-3 py-3 px-4 rounded-xl transition-all ${
+                      isActive('#/profile') && !window.location.hash.includes('tab=password') ? 'bg-[#e8f5e9] text-[#006d37] font-bold shadow-sm' : 'text-slate-600 hover:bg-slate-50'
+                    }`} 
+                    href="#/profile"
+                  >
+                    <span className="material-symbols-outlined text-lg">person</span>
+                    Hồ sơ cá nhân
+                  </a>
+                  <a 
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`flex items-center gap-3 py-3 px-4 rounded-xl transition-all ${
+                      window.location.hash.includes('tab=password') ? 'bg-[#e8f5e9] text-[#006d37] font-bold shadow-sm' : 'text-slate-600 hover:bg-slate-50'
+                    }`} 
+                    href="#/profile?tab=password"
+                  >
+                    <span className="material-symbols-outlined text-lg">vpn_key</span>
+                    Đổi mật khẩu
+                  </a>
+
+                  <div className="pt-4 mt-2 border-t border-slate-100 space-y-3">
+                    {currentUser.role === 'Volunteer' && !isPending && !inCooldown && (
+                      <a 
+                        onClick={() => setMobileMenuOpen(false)}
+                        href="#/request-organizer"
+                        className="flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-bold text-[#006d37] hover:bg-[#e8f5e9] rounded-lg transition-all border border-[#006d37] text-center shadow-sm"
+                      >
+                        <span className="material-symbols-outlined text-base">verified_user</span>
+                        Xin quyền Tổ chức
+                      </a>
+                    )}
+                    {currentUser.role === 'Organizer' && (
+                      <a 
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="flex items-center justify-center gap-1.5 text-center border border-[#006d37] text-[#006d37] py-2.5 rounded-lg text-xs font-bold hover:bg-[#e8f5e9] transition-all shadow-sm"
+                        href="#/organizer/dashboard"
+                      >
+                        <span className="material-symbols-outlined text-base">campaign</span>
+                        Khu vực Tổ chức
+                      </a>
+                    )}
+                    
+                    <button 
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        localStorage.removeItem('token');
+                        setCurrentUser(null);
+                        window.location.hash = '#/feed';
+                      }}
+                      className="w-full flex items-center justify-center gap-1.5 border border-red-200 text-red-600 py-2.5 rounded-lg text-xs font-bold bg-red-50 hover:bg-red-100 transition-all cursor-pointer"
+                    >
+                      <span className="material-symbols-outlined text-base">logout</span>
+                      Đăng xuất
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="pt-6">
+                  <a 
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center justify-center gap-1.5 bg-[#006d37] text-white py-3 rounded-lg text-xs font-bold hover:bg-emerald-800 transition-all shadow-md active:scale-95"
+                    href="#/login"
+                  >
+                    <span className="material-symbols-outlined text-base">login</span>
+                    Đăng nhập tài khoản
+                  </a>
+                </div>
+              )}
+            </div>
+          </div>
+        </>
       )}
     </header>
   );

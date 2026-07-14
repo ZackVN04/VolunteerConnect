@@ -15,6 +15,7 @@ import OTPVerifyView from './views/OTPVerifyView';
 import ForgotPasswordView from './views/ForgotPasswordView';
 import PostsView from './views/PostsView';
 import RequestOrganizerView from './views/RequestOrganizerView';
+import AboutUsView from './views/AboutUsView';
 import './App.css';
 
 
@@ -139,6 +140,10 @@ const AppContent: React.FC = () => {
 
     if (cleanHash === '#/activities') {
       return <ActivityListView />;
+    }
+
+    if (cleanHash === '#/about') {
+      return <AboutUsView />;
     }
 
     // Hash details path matcher: #/activity/act_001
