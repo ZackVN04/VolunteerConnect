@@ -72,6 +72,131 @@ const formatISOToLocalInput = (isoStr: string): string => {
   return `${year}-${month}-${day}T${hours}:${minutes}`;
 };
 
+const Pagination: React.FC<{
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+}> = ({ currentPage, totalPages, onPageChange }) => {
+  if (totalPages <= 1) return null;
+
+  const getPageNumbers = () => {
+    const pages: (number | string)[] = [];
+    const maxVisiblePages = 5;
+
+    if (totalPages <= maxVisiblePages + 2) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      pages.push(1);
+
+      if (currentPage > 3) {
+        pages.push('...');
+      }
+
+      const start = Math.max(2, currentPage - 1);
+      const end = Math.min(totalPages - 1, currentPage + 1);
+
+      let adjustedStart = start;
+      let adjustedEnd = end;
+      if (currentPage <= 3) {
+        adjustedEnd = 4;
+      }
+      if (currentPage >= totalPages - 2) {
+        adjustedStart = totalPages - 3;
+      }
+
+      for (let i = adjustedStart; i <= adjustedEnd; i++) {
+        pages.push(i);
+      }
+
+      if (currentPage < totalPages - 2) {
+        pages.push('...');
+      }
+
+      pages.push(totalPages);
+    }
+    return pages;
+  };
+
+  const pages = getPageNumbers();
+
+  return (
+    <div className="flex items-center justify-between border-t border-slate-100 px-4 py-4 sm:px-6 mt-4">
+      <div className="flex flex-1 justify-between sm:hidden">
+        <button
+          onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+          disabled={currentPage === 1}
+          className="relative inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+        >
+          Trước
+        </button>
+        <button
+          onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
+          disabled={currentPage === totalPages}
+          className="relative ml-3 inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+        >
+          Sau
+        </button>
+      </div>
+      <div className="hidden sm:flex sm:flex-grow sm:items-center sm:justify-between w-full">
+        <div>
+          <p className="text-xs text-slate-500 font-semibold">
+            Hiển thị trang <span className="font-extrabold text-slate-800">{currentPage}</span> / <span className="font-extrabold text-slate-800">{totalPages}</span>
+          </p>
+        </div>
+        <div>
+          <nav className="isolate inline-flex -space-x-px rounded-xl shadow-sm gap-1" aria-label="Pagination">
+            <button
+              onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+              disabled={currentPage === 1}
+              className="relative inline-flex items-center rounded-lg border border-slate-200 bg-white p-2 text-xs font-bold text-slate-500 hover:bg-slate-50 disabled:opacity-50 cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-[16px]">chevron_left</span>
+            </button>
+            
+            {pages.map((p, i) => {
+              if (p === '...') {
+                return (
+                  <span
+                    key={`ellipsis-${i}`}
+                    className="relative inline-flex items-center rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-400 bg-white"
+                  >
+                    ...
+                  </span>
+                );
+              }
+
+              const isCurrent = p === currentPage;
+              return (
+                <button
+                  key={p}
+                  onClick={() => onPageChange(p as number)}
+                  className={`relative inline-flex items-center rounded-lg px-3.5 py-1.5 text-xs font-extrabold cursor-pointer transition-all ${
+                    isCurrent
+                      ? 'bg-[#006d37] text-white shadow-sm'
+                      : 'border border-slate-200 bg-white text-slate-650 hover:bg-slate-50'
+                  }`}
+                >
+                  {p}
+                </button>
+              );
+            })}
+
+            <button
+              onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
+              disabled={currentPage === totalPages}
+              className="relative inline-flex items-center rounded-lg border border-slate-200 bg-white p-2 text-xs font-bold text-slate-500 hover:bg-slate-50 disabled:opacity-50 cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-[16px]">chevron_right</span>
+            </button>
+          </nav>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export const OrganizerDashboard: React.FC = () => {
   const {
     currentUser, activities, registrations,
@@ -103,6 +228,25 @@ export const OrganizerDashboard: React.FC = () => {
   const [selectedRegIds, setSelectedRegIds] = useState<string[]>([]);
   const [attendanceSearch, setAttendanceSearch] = useState('');
   const [attendanceStatusFilter, setAttendanceStatusFilter] = useState('All');
+
+  // Pagination states
+  const [activitiesPage, setActivitiesPage] = useState(1);
+  const [registrationsPage, setRegistrationsPage] = useState(1);
+  const [attendancePage, setAttendancePage] = useState(1);
+  const itemsPerPage = 5;
+
+  // Reset pagination on filter changes
+  useEffect(() => {
+    setActivitiesPage(1);
+  }, [activitySearch, activityStatusFilter, activityCategoryFilter]);
+
+  useEffect(() => {
+    setRegistrationsPage(1);
+  }, [regSearch, regActivityFilter, regSubTab]);
+
+  useEffect(() => {
+    setAttendancePage(1);
+  }, [attendanceSearch, attendanceStatusFilter, selectedActivityId]);
 
   // Show create/edit form
   const [showForm, setShowForm] = useState(false);
@@ -231,7 +375,7 @@ export const OrganizerDashboard: React.FC = () => {
   // Selected activity regs for attendance
   const selectedRegs = registrations.filter(r => r.activity_id === selectedActivityId);
   // Completed/past campaigns for attendance
-  const completedCampaigns = myCampaigns.filter(a => a.status === 'Completed' || a.status === 'Ongoing');
+  const completedCampaigns = myCampaigns.filter(a => ['Completed', 'Ongoing', 'Open', 'Full'].includes(a.status));
 
   const filteredAttendanceRegs = selectedRegs
     .filter(r => r.status === 'Approved' || r.status === 'Completed' || r.status === 'Absent')
@@ -300,6 +444,13 @@ export const OrganizerDashboard: React.FC = () => {
       if (title.trim().length < 5) { showNotification('Tiêu đề phải có ít nhất 5 ký tự', 'error'); return; }
       if (description.trim().length < 20) { showNotification('Mô tả phải có ít nhất 20 ký tự', 'error'); return; }
       if (new Date(endDate) <= new Date(startDate)) { showNotification('Ngày kết thúc phải sau ngày bắt đầu', 'error'); return; }
+      
+      const now = new Date();
+      const submissionGrace = 2 * 60 * 1000; // 2 phút bù trừ trễ
+      if (new Date(startDate).getTime() < now.getTime() - submissionGrace) {
+        showNotification('Ngày bắt đầu không được ở trong quá khứ', 'error');
+        return;
+      }
       const limitNum = Number(limitVolunteers);
       if (isNaN(limitNum) || limitNum < 1) { showNotification('Số lượng tình nguyện viên tối thiểu là 1', 'error'); return; }
 
@@ -808,7 +959,7 @@ export const OrganizerDashboard: React.FC = () => {
                 </div>
               ) : (
                 <div className="divide-y divide-slate-100">
-                  {filteredCampaigns.map(act => {
+                  {filteredCampaigns.slice((activitiesPage - 1) * itemsPerPage, activitiesPage * itemsPerPage).map(act => {
                     const isCompleted = act.status === 'Completed';
                     const isPending = act.status === 'Pending Review';
                     const approvedCount = registrations.filter(r => r.activity_id === act._id && (r.status === 'Approved' || r.status === 'Completed')).length;
@@ -858,6 +1009,11 @@ export const OrganizerDashboard: React.FC = () => {
                       </div>
                     );
                   })}
+                  <Pagination
+                    currentPage={activitiesPage}
+                    totalPages={Math.ceil(filteredCampaigns.length / itemsPerPage)}
+                    onPageChange={setActivitiesPage}
+                  />
                 </div>
               )}
             </div>
@@ -1017,7 +1173,7 @@ export const OrganizerDashboard: React.FC = () => {
                       </td>
                     </tr>
                   ) : (
-                    allOrgRegs.map(reg => {
+                    allOrgRegs.slice((registrationsPage - 1) * itemsPerPage, registrationsPage * itemsPerPage).map(reg => {
                       const act = activities.find(a => a._id === reg.activity_id);
                       return (
                         <tr key={reg._id} className="hover:bg-slate-50/50 transition-colors animate-fadeIn">
@@ -1074,6 +1230,11 @@ export const OrganizerDashboard: React.FC = () => {
                 </tbody>
               </table>
             </div>
+            <Pagination
+              currentPage={registrationsPage}
+              totalPages={Math.ceil(allOrgRegs.length / itemsPerPage)}
+              onPageChange={setRegistrationsPage}
+            />
           </div>
         )}
 
@@ -1184,7 +1345,8 @@ export const OrganizerDashboard: React.FC = () => {
                   Không tìm thấy tình nguyện viên phù hợp với bộ lọc.
                 </div>
               ) : (
-                <div className="overflow-x-auto border border-slate-100 rounded-2xl">
+                <>
+                  <div className="overflow-x-auto border border-slate-100 rounded-2xl">
                   <table className="w-full text-sm text-left border-collapse">
                     <thead>
                       <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
@@ -1212,7 +1374,7 @@ export const OrganizerDashboard: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 text-slate-750">
-                      {filteredAttendanceRegs.map(reg => {
+                      {filteredAttendanceRegs.slice((attendancePage - 1) * itemsPerPage, attendancePage * itemsPerPage).map(reg => {
                         const canCheckIn = reg.status === 'Approved';
                         const isCompleted = reg.status === 'Completed';
                         const isAbsent = reg.status === 'Absent';
@@ -1263,7 +1425,7 @@ export const OrganizerDashboard: React.FC = () => {
                                     Có mặt
                                   </button>
                                   <button onClick={() => handleCheckIn(reg._id, 'Absent')}
-                                    className="border border-red-300 hover:bg-red-50 text-red-600 px-3.5 py-1.5 rounded-lg text-xs font-bold shadow-sm transition-all cursor-pointer">
+                                    className="border border-red-300 hover:bg-red-50 text-red-650 px-3.5 py-1.5 rounded-lg text-xs font-bold shadow-sm transition-all cursor-pointer">
                                     Vắng mặt
                                   </button>
                                 </div>
@@ -1287,7 +1449,12 @@ export const OrganizerDashboard: React.FC = () => {
                     </tbody>
                   </table>
                 </div>
-              )}
+                <Pagination
+                  currentPage={attendancePage}
+                  totalPages={Math.ceil(filteredAttendanceRegs.length / itemsPerPage)}
+                  onPageChange={setAttendancePage}
+                />
+              </>)}
             </div>
           </div>
         )}

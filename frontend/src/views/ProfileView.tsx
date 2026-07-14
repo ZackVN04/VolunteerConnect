@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import type { User } from '../context/AppContext';
+import type { Activity, Post, Registration, User } from '../context/AppContext';
 import { mediaService, userService } from '../services/apiService';
 import { USE_REAL_BACKEND } from '../config/backend';
 
@@ -49,11 +49,291 @@ const InfoItem: React.FC<{
   </div>
 );
 
-export const ProfileView: React.FC = () => {
-  const { currentUser, users, activities, registrations, organizerRequests, updateProfile, showNotification, changePassword, refreshAllData } = useApp();
+const Pagination: React.FC<{
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+}> = ({ currentPage, totalPages, onPageChange }) => {
+  if (totalPages <= 1) return null;
 
-  // View mode state: 'details' (default), 'edit', 'upgrade', 'password', 'participated', 'org_management'
-  const [viewMode, setViewMode] = useState<'details' | 'edit' | 'upgrade' | 'password' | 'participated' | 'org_management'>('details');
+  const getPageNumbers = () => {
+    const pages: (number | string)[] = [];
+    const maxVisiblePages = 5;
+
+    if (totalPages <= maxVisiblePages + 2) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      pages.push(1);
+
+      if (currentPage > 3) {
+        pages.push('...');
+      }
+
+      const start = Math.max(2, currentPage - 1);
+      const end = Math.min(totalPages - 1, currentPage + 1);
+
+      let adjustedStart = start;
+      let adjustedEnd = end;
+      if (currentPage <= 3) {
+        adjustedEnd = 4;
+      }
+      if (currentPage >= totalPages - 2) {
+        adjustedStart = totalPages - 3;
+      }
+
+      for (let i = adjustedStart; i <= adjustedEnd; i++) {
+        pages.push(i);
+      }
+
+      if (currentPage < totalPages - 2) {
+        pages.push('...');
+      }
+
+      pages.push(totalPages);
+    }
+    return pages;
+  };
+
+  const pages = getPageNumbers();
+
+  return (
+    <div className="flex items-center justify-between border-t border-slate-100 px-4 py-4 sm:px-6 mt-4">
+      <div className="flex flex-1 justify-between sm:hidden">
+        <button
+          onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+          disabled={currentPage === 1}
+          className="relative inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+        >
+          Trước
+        </button>
+        <button
+          onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
+          disabled={currentPage === totalPages}
+          className="relative ml-3 inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+        >
+          Sau
+        </button>
+      </div>
+      <div className="hidden sm:flex sm:flex-grow sm:items-center sm:justify-between w-full">
+        <div>
+          <p className="text-xs text-slate-500 font-semibold">
+            Hiển thị trang <span className="font-extrabold text-slate-800">{currentPage}</span> / <span className="font-extrabold text-slate-800">{totalPages}</span>
+          </p>
+        </div>
+        <div>
+          <nav className="isolate inline-flex -space-x-px rounded-xl shadow-sm gap-1" aria-label="Pagination">
+            <button
+              onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+              disabled={currentPage === 1}
+              className="relative inline-flex items-center rounded-lg border border-slate-200 bg-white p-2 text-xs font-bold text-slate-500 hover:bg-slate-50 disabled:opacity-50 cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-[16px]">chevron_left</span>
+            </button>
+            
+            {pages.map((p, i) => {
+              if (p === '...') {
+                return (
+                  <span
+                    key={`ellipsis-${i}`}
+                    className="relative inline-flex items-center rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-400 bg-white"
+                  >
+                    ...
+                  </span>
+                );
+              }
+
+              const isCurrent = p === currentPage;
+              return (
+                <button
+                  key={p}
+                  onClick={() => onPageChange(p as number)}
+                  className={`relative inline-flex items-center rounded-lg px-3.5 py-1.5 text-xs font-extrabold cursor-pointer transition-all ${
+                    isCurrent
+                      ? 'bg-[#006d37] text-white shadow-sm'
+                      : 'border border-slate-200 bg-white text-slate-650 hover:bg-slate-50'
+                  }`}
+                >
+                  {p}
+                </button>
+              );
+            })}
+
+            <button
+              onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
+              disabled={currentPage === totalPages}
+              className="relative inline-flex items-center rounded-lg border border-slate-200 bg-white p-2 text-xs font-bold text-slate-500 hover:bg-slate-50 disabled:opacity-50 cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-[16px]">chevron_right</span>
+            </button>
+          </nav>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const formatProfileDate = (dateString: string) => {
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return 'Chưa cập nhật';
+  return date.toLocaleDateString('vi-VN');
+};
+
+const getPostDisplayContent = (post: Post) => {
+  const contentLines = post.content.split('\n');
+  const fallbackTitle = contentLines.length > 1 ? contentLines[0] : null;
+  const fallbackBody = contentLines.length > 1 ? contentLines.slice(1).join('\n') : post.content;
+
+  return {
+    title: post.title || fallbackTitle || 'Bài đăng cộng đồng',
+    body: post.title ? post.content : fallbackBody,
+  };
+};
+
+const ProfilePostCard: React.FC<{ post: Post }> = ({ post }) => {
+  const display = getPostDisplayContent(post);
+  const firstImage = post.images?.[0];
+
+  return (
+    <a
+      href="#/posts"
+      className="group flex gap-3 rounded-2xl border border-slate-100 bg-white p-3 shadow-sm transition-all hover:border-emerald-100 hover:bg-[#f0f9f4]/40 hover:shadow-md"
+    >
+      <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center">
+        {firstImage ? (
+          <img src={firstImage} alt={display.title} className="h-full w-full object-cover" />
+        ) : (
+          <span className="material-symbols-outlined text-2xl text-[#006d37]">
+            {post.video_url ? 'smart_display' : 'forum'}
+          </span>
+        )}
+      </div>
+      <div className="min-w-0 flex-1 text-left">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-[#006d37]">
+            {formatProfileDate(post.created_at)}
+          </span>
+          <span className="text-[10px] font-semibold text-slate-400">
+            {post.like_count || 0} thích · {post.comment_count || 0} bình luận
+          </span>
+        </div>
+        <h5 className="mt-1 line-clamp-1 text-sm font-extrabold text-slate-800 group-hover:text-[#006d37]">
+          {display.title}
+        </h5>
+        <p className="mt-1 line-clamp-2 text-xs font-medium leading-relaxed text-slate-500">
+          {display.body || 'Chưa có nội dung mô tả cho bài đăng này.'}
+        </p>
+      </div>
+    </a>
+  );
+};
+
+const getRegistrationBadge = (status: Registration['status']) => {
+  const map: Record<Registration['status'], { label: string; cls: string }> = {
+    Pending: { label: 'Chờ duyệt', cls: 'bg-amber-50 text-amber-800 border-amber-100' },
+    Approved: { label: 'Đã duyệt', cls: 'bg-emerald-50 text-[#006d37] border-emerald-100' },
+    Rejected: { label: 'Từ chối', cls: 'bg-rose-50 text-rose-700 border-rose-100' },
+    Completed: { label: 'Đã tham gia', cls: 'bg-blue-50 text-blue-700 border-blue-100' },
+    Absent: { label: 'Vắng mặt', cls: 'bg-slate-100 text-slate-600 border-slate-200' },
+    Cancelled: { label: 'Đã hủy', cls: 'bg-slate-50 text-slate-500 border-slate-100' },
+  };
+  return map[status];
+};
+
+const ProfileActivityCard: React.FC<{ activity: Activity; registration: Registration }> = ({ activity, registration }) => {
+  const badge = getRegistrationBadge(registration.status);
+
+  return (
+    <a
+      href={`#/activity/${activity._id}`}
+      className="group flex gap-3 rounded-2xl border border-slate-100 bg-white p-3 shadow-sm transition-all hover:border-emerald-100 hover:bg-[#f0f9f4]/40 hover:shadow-md"
+    >
+      <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-slate-50 border border-slate-100">
+        <img
+          src={activity.image_url || 'https://images.unsplash.com/photo-1544027993-37dbfe43562a?q=80&w=300'}
+          alt={activity.title}
+          className="h-full w-full object-cover"
+          onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1544027993-37dbfe43562a?q=80&w=300'; }}
+        />
+      </div>
+      <div className="min-w-0 flex-1 text-left">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className={`rounded-full border px-2 py-0.5 text-[10px] font-extrabold uppercase ${badge.cls}`}>
+            {badge.label}
+          </span>
+          <span className="text-[10px] font-semibold text-slate-400">
+            {formatProfileDate(activity.start_date)}
+          </span>
+        </div>
+        <h5 className="mt-1 line-clamp-1 text-sm font-extrabold text-slate-800 group-hover:text-[#006d37]">
+          {activity.title}
+        </h5>
+        <p className="mt-1 line-clamp-1 text-xs font-medium text-slate-500">
+          {activity.location?.province || activity.location?.address_detail || 'Chưa cập nhật địa điểm'}
+        </p>
+      </div>
+    </a>
+  );
+};
+
+const getActivityStatusBadge = (status: Activity['status']) => {
+  const map: Record<Activity['status'], { label: string; cls: string }> = {
+    Draft: { label: 'Bản nháp', cls: 'bg-slate-100 text-slate-600 border-slate-200' },
+    'Pending Review': { label: 'Chờ duyệt', cls: 'bg-amber-50 text-amber-800 border-amber-100' },
+    Open: { label: 'Đang mở', cls: 'bg-emerald-50 text-[#006d37] border-emerald-100' },
+    Full: { label: 'Đã đầy', cls: 'bg-teal-50 text-teal-700 border-teal-100' },
+    Ongoing: { label: 'Đang diễn ra', cls: 'bg-blue-50 text-blue-700 border-blue-100' },
+    Completed: { label: 'Đã kết thúc', cls: 'bg-slate-100 text-slate-700 border-slate-200' },
+    Rejected: { label: 'Từ chối', cls: 'bg-rose-50 text-rose-700 border-rose-100' },
+    Cancelled: { label: 'Đã hủy', cls: 'bg-slate-50 text-slate-500 border-slate-100' },
+  };
+  return map[status];
+};
+
+const ProfileOrganizedActivityCard: React.FC<{ activity: Activity }> = ({ activity }) => {
+  const badge = getActivityStatusBadge(activity.status);
+
+  return (
+    <a
+      href={`#/activity/${activity._id}`}
+      className="group flex gap-3 rounded-2xl border border-slate-100 bg-white p-3 shadow-sm transition-all hover:border-emerald-100 hover:bg-[#f0f9f4]/40 hover:shadow-md"
+    >
+      <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-slate-50 border border-slate-100">
+        <img
+          src={activity.image_url || 'https://images.unsplash.com/photo-1544027993-37dbfe43562a?q=80&w=300'}
+          alt={activity.title}
+          className="h-full w-full object-cover"
+          onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1544027993-37dbfe43562a?q=80&w=300'; }}
+        />
+      </div>
+      <div className="min-w-0 flex-1 text-left">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className={`rounded-full border px-2 py-0.5 text-[10px] font-extrabold uppercase ${badge.cls}`}>
+            {badge.label}
+          </span>
+          <span className="text-[10px] font-semibold text-slate-400">
+            {formatProfileDate(activity.start_date)}
+          </span>
+        </div>
+        <h5 className="mt-1 line-clamp-1 text-sm font-extrabold text-slate-800 group-hover:text-[#006d37]">
+          {activity.title}
+        </h5>
+        <p className="mt-1 line-clamp-1 text-xs font-medium text-slate-500">
+          {activity.location?.province || activity.location?.address_detail || 'Chưa cập nhật địa điểm'}
+        </p>
+      </div>
+    </a>
+  );
+};
+
+type ProfileViewMode = 'details' | 'posts' | 'edit' | 'upgrade' | 'password' | 'participated' | 'org_management';
+
+export const ProfileView: React.FC = () => {
+  const { currentUser, users, activities, registrations, organizerRequests, posts, updateProfile, showNotification, changePassword, refreshAllData } = useApp();
+
+  // View mode state: 'details' (default), 'posts', 'edit', 'upgrade', 'password', 'participated', 'org_management'
+  const [viewMode, setViewMode] = useState<ProfileViewMode>('details');
 
   // Form states for Edit Profile
   const [fullName, setFullName] = useState(currentUser?.profile.full_name || '');
@@ -64,7 +344,21 @@ export const ProfileView: React.FC = () => {
   const [bio, setBio] = useState(currentUser?.profile.bio || '');
   const [avatarUrl, setAvatarUrl] = useState(currentUser?.profile.avatar_url || '');
   const [age, setAge] = useState<number | ''>(currentUser?.profile.age ?? '');
+  const [birthYear, setBirthYear] = useState<number | ''>(
+    currentUser?.profile.age ? (new Date().getFullYear() - currentUser.profile.age) : ''
+  );
   const [gender, setGender] = useState(currentUser?.profile.gender || '');
+  const [isFormInitialized, setIsFormInitialized] = useState(false);
+  const [hasInteractedWithGender, setHasInteractedWithGender] = useState(false);
+
+  // Pagination state for Organizer Management
+  const [orgActsPage, setOrgActsPage] = useState(1);
+  const itemsPerPage = 5;
+
+  // Reset pagination when viewMode changes
+  useEffect(() => {
+    setOrgActsPage(1);
+  }, [viewMode]);
 
   // Form states for Change Password
   const [oldPassword, setOldPassword] = useState('');
@@ -85,6 +379,8 @@ export const ProfileView: React.FC = () => {
         setViewMode('password');
       } else if (hash.includes('tab=edit')) {
         setViewMode('edit');
+      } else if (hash.includes('tab=posts')) {
+        setViewMode('posts');
       } else if (hash.includes('tab=participated')) {
         setViewMode('participated');
       } else if (hash.includes('tab=org_management')) {
@@ -145,10 +441,33 @@ export const ProfileView: React.FC = () => {
   const displayUser = isOwnProfile ? currentUser : viewedUserId ? fetchedUser : null;
 
   const myRegs = registrations.filter(r => r.volunteer_id === displayUser?._id);
-  const orgActs = activities.filter(a => a.organizer_id === displayUser?._id);
+  const orgActs = activities
+    .filter(a => a.organizer_id === displayUser?._id)
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  const userPosts = posts
+    .filter(post => post.author_id === displayUser?._id && post.status === 'Active')
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  const participatedActivityItems = myRegs
+    .map(reg => ({
+      registration: reg,
+      activity: activities.find(activity => activity._id === reg.activity_id),
+    }))
+    .filter((item): item is { registration: Registration; activity: Activity } => Boolean(item.activity))
+    .sort((a, b) => new Date(b.registration.created_at).getTime() - new Date(a.registration.created_at).getTime());
+  const recentUserPosts = userPosts.slice(0, 3);
+  const recentParticipatedActivities = participatedActivityItems.slice(0, 3);
+  const recentOrganizedActivities = orgActs.slice(0, 3);
+
+  // Reset isFormInitialized and hasInteractedWithGender when viewMode is not 'edit'
+  useEffect(() => {
+    if (viewMode !== 'edit') {
+      setIsFormInitialized(false);
+      setHasInteractedWithGender(false);
+    }
+  }, [viewMode]);
 
   useEffect(() => {
-    if (currentUser && isOwnProfile) {
+    if (currentUser && isOwnProfile && !isFormInitialized) {
       setFullName(currentUser.profile.full_name || '');
       setEmail(currentUser.email || '');
       setPhone(currentUser.phone || '');
@@ -157,9 +476,11 @@ export const ProfileView: React.FC = () => {
       setBio(currentUser.profile.bio || '');
       setAvatarUrl(fixImageUrl(currentUser.profile.avatar_url) || currentUser.profile.avatar_url || '');
       setAge(currentUser.profile.age ?? '');
+      setBirthYear(currentUser.profile.age ? (new Date().getFullYear() - currentUser.profile.age) : '');
       setGender(currentUser.profile.gender || '');
+      setIsFormInitialized(true);
     }
-  }, [currentUser, isOwnProfile]);
+  }, [currentUser, isOwnProfile, isFormInitialized]);
 
   if (loadingUser) {
     return (
@@ -217,9 +538,21 @@ export const ProfileView: React.FC = () => {
       showNotification('Số điện thoại không hợp lệ (phải từ 10-15 chữ số).', 'error');
       return;
     }
-    if (age !== '' && (Number(age) < 0 || Number(age) > 120)) {
-      showNotification('Tuổi nhập vào không hợp lệ (từ 0 đến 120).', 'error');
+
+    if (hasInteractedWithGender && !gender) {
+      showNotification('Vui lòng chọn giới tính (Nam, Nữ hoặc Khác).', 'error');
       return;
+    }
+    
+    let finalAge: number | '' = '';
+    if (birthYear !== '') {
+      const yearNum = Number(birthYear);
+      const currentYear = new Date().getFullYear();
+      if (yearNum < 1900 || yearNum > currentYear) {
+        showNotification(`Năm sinh không hợp lệ (phải từ 1900 đến ${currentYear}).`, 'error');
+        return;
+      }
+      finalAge = currentYear - yearNum;
     }
 
     const skills = skillsStr
@@ -233,7 +566,7 @@ export const ProfileView: React.FC = () => {
         skills,
         bio,
         avatar_url: avatarUrl,
-        age: age !== '' ? Number(age) : undefined,
+        age: finalAge !== '' ? Number(finalAge) : undefined,
         gender: gender || undefined
       },
       email || '',
@@ -255,6 +588,7 @@ export const ProfileView: React.FC = () => {
     setBio(currentUser.profile.bio || '');
     setAvatarUrl(currentUser.profile.avatar_url || '');
     setAge(currentUser.profile.age ?? '');
+    setBirthYear(currentUser.profile.age ? (new Date().getFullYear() - currentUser.profile.age) : '');
     setGender(currentUser.profile.gender || '');
     setViewMode('details');
     window.location.hash = '#/profile';
@@ -411,6 +745,17 @@ export const ProfileView: React.FC = () => {
                   </button>
 
                   <button
+                    onClick={() => { setViewMode('posts'); window.location.hash = '#/profile?tab=posts'; }}
+                    className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${viewMode === 'posts'
+                      ? 'bg-[#e8f5e9] text-[#006d37] font-bold'
+                      : 'text-slate-600 hover:bg-slate-50'
+                      }`}
+                  >
+                    <span className="material-symbols-outlined text-lg">article</span>
+                    Bài đăng của tôi
+                  </button>
+
+                  <button
                     onClick={() => { setViewMode('edit'); window.location.hash = '#/profile?tab=edit'; }}
                     className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${viewMode === 'edit'
                       ? 'bg-[#e8f5e9] text-[#006d37] font-bold'
@@ -441,7 +786,7 @@ export const ProfileView: React.FC = () => {
                         }`}
                     >
                       <span className="material-symbols-outlined text-lg">volunteer_activism</span>
-                      Hoạt động tham gia
+                      Hoạt động đã tham gia
                     </button>
                   )}
 
@@ -454,7 +799,7 @@ export const ProfileView: React.FC = () => {
                         }`}
                     >
                       <span className="material-symbols-outlined text-lg">campaign</span>
-                      Quản lý tổ chức
+                      Hoạt động đã tổ chức
                     </button>
                   )}
                 </div>
@@ -466,12 +811,10 @@ export const ProfileView: React.FC = () => {
 
               {/* tab === details: VIEW PROFILE DETAILS */}
               {viewMode === 'details' && (() => {
-                const displaySkills: string[] = isOwnProfile
-                  ? (skillsStr ? skillsStr.split(',').map(s => s.trim()).filter(Boolean) : [])
-                  : (displayUser.profile.skills || []);
-                const displayAge = isOwnProfile ? age : displayUser.profile.age;
-                const displayGender = isOwnProfile ? gender : displayUser.profile.gender;
-                const displayAreaOfInterest = isOwnProfile ? areaOfInterest : displayUser.profile.area_of_interest;
+                const displaySkills: string[] = displayUser.profile.skills || [];
+                const displayAge = displayUser.profile.age;
+                const displayGender = displayUser.profile.gender;
+                const displayAreaOfInterest = displayUser.profile.area_of_interest;
 
                 return (
                   <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm p-4 sm:p-6 md:p-8 space-y-6">
@@ -625,6 +968,36 @@ export const ProfileView: React.FC = () => {
                 );
               })()}
 
+              {/* tab === posts: MY POSTS */}
+              {viewMode === 'posts' && (
+                <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm p-4 sm:p-6 md:p-8 space-y-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div>
+                      <h3 className="text-xl font-bold text-slate-800">Bài đăng của tôi</h3>
+                      <p className="text-slate-400 text-xs mt-1">{userPosts.length} bài đăng đã chia sẻ trong cộng đồng.</p>
+                    </div>
+                    <a href="#/posts" className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-emerald-100 bg-[#f0f9f4] px-4 py-2 text-xs font-bold text-[#006d37] hover:bg-[#e8f5e9]">
+                      Xem trang bài đăng
+                      <span className="material-symbols-outlined text-base">arrow_forward</span>
+                    </a>
+                  </div>
+
+                  {userPosts.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-12 text-center space-y-3 bg-slate-50 border border-slate-100 rounded-2xl">
+                      <span className="material-symbols-outlined text-4xl text-slate-300">forum</span>
+                      <p className="text-slate-500 font-semibold text-sm">Chưa có bài đăng nào.</p>
+                      <a href="#/posts" className="text-[#006d37] hover:underline font-bold text-xs">Đăng bài viết đầu tiên</a>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                      {userPosts.map(post => (
+                        <ProfilePostCard key={post._id} post={post} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* tab === edit: EDIT PROFILE FORM */}
               {viewMode === 'edit' && (
                 <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm p-4 sm:p-6 md:p-8 space-y-6">
@@ -687,26 +1060,44 @@ export const ProfileView: React.FC = () => {
                       </div>
 
                       <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Tuổi</label>
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Năm sinh</label>
                         <input
                           type="number"
-                          value={age}
-                          onChange={(e) => setAge(e.target.value === '' ? '' : Number(e.target.value))}
-                          placeholder="Nhập tuổi..."
-                          min={0}
-                          max={120}
+                          value={birthYear}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setBirthYear(val === '' ? '' : Number(val));
+                            if (val !== '' && !isNaN(Number(val))) {
+                              const calculated = new Date().getFullYear() - Number(val);
+                              setAge(calculated >= 0 ? calculated : 0);
+                            } else {
+                              setAge('');
+                            }
+                          }}
+                          placeholder="1998"
+                          min={1900}
+                          max={new Date().getFullYear()}
                           className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm font-semibold text-slate-800 bg-white transition-all"
                         />
+                        {birthYear !== '' && age !== '' && (
+                          <span className="text-[10px] text-slate-400 font-bold mt-0.5">
+                            Tuổi tương ứng: {age} tuổi
+                          </span>
+                        )}
                       </div>
 
                       <div className="flex flex-col gap-1.5">
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Giới tính</label>
                         <select
                           value={gender}
-                          onChange={(e) => setGender(e.target.value)}
+                          onFocus={() => setHasInteractedWithGender(true)}
+                          onChange={(e) => {
+                            setGender(e.target.value);
+                            setHasInteractedWithGender(true);
+                          }}
                           className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm font-semibold text-slate-800 bg-white transition-all cursor-pointer"
                         >
-                          <option value="">Chưa chọn</option>
+                          <option value="" disabled={gender !== ""}>Chưa chọn</option>
                           <option value="Nam">Nam</option>
                           <option value="Nữ">Nữ</option>
                           <option value="Khác">Khác</option>
@@ -864,7 +1255,7 @@ export const ProfileView: React.FC = () => {
               {viewMode === 'participated' && (
                 <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm p-4 sm:p-6 md:p-8 space-y-6">
                   <div>
-                    <h3 className="text-xl font-bold text-slate-800">Lịch sử tham gia hoạt động</h3>
+                    <h3 className="text-xl font-bold text-slate-800">Hoạt động đã tham gia</h3>
                   </div>
 
                   {myRegs.length === 0 ? (
@@ -945,62 +1336,69 @@ export const ProfileView: React.FC = () => {
               {viewMode === 'org_management' && (
                 <div className="bg-white border border-slate-200/80 rounded-2xl shadow-sm p-4 sm:p-6 md:p-8 space-y-6">
                   <div>
-                    <h3 className="text-xl font-bold text-slate-800">Quản lý tổ chức</h3>
-                    <p className="text-slate-400 text-xs mt-1">Thông tin chiến dịch và hoạt động quản trị của đơn vị tổ chức.</p>
+                    <h3 className="text-xl font-bold text-slate-800">Hoạt động đã tổ chức</h3>
+                    <p className="text-slate-400 text-xs mt-1">Các hoạt động do tài khoản này tạo và quản lý trên hệ thống.</p>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 text-center">
                       <h4 className="text-3xl font-extrabold text-[#006d37]">{orgActs.length}</h4>
-                      <p className="text-slate-500 text-xs font-semibold mt-1">Tổng chiến dịch</p>
+                      <p className="text-slate-500 text-xs font-semibold mt-1">Tổng hoạt động</p>
                     </div>
                     <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 text-center">
                       <h4 className="text-3xl font-extrabold text-[#006d37]">{orgActs.filter(a => a.status === 'Open').length}</h4>
-                      <p className="text-slate-500 text-xs font-semibold mt-1">Chiến dịch đang mở</p>
+                      <p className="text-slate-500 text-xs font-semibold mt-1">Hoạt động đang mở</p>
                     </div>
                   </div>
 
                   <div className="space-y-4">
-                    <h4 className="font-bold text-xs text-slate-500 uppercase tracking-wider">Danh sách chiến dịch đã tạo</h4>
+                    <h4 className="font-bold text-xs text-slate-500 uppercase tracking-wider">Danh sách hoạt động đã tổ chức</h4>
                     {orgActs.length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-10 text-center space-y-3 bg-slate-50 border border-slate-100 rounded-2xl">
                         <span className="material-symbols-outlined text-4xl text-slate-300">campaign</span>
-                        <p className="text-slate-500 font-semibold text-sm">Chưa tạo chiến dịch nào.</p>
+                        <p className="text-slate-500 font-semibold text-sm">Chưa tạo hoạt động nào.</p>
                         {isOwnProfile && (
-                          <a href="#/organizer/dashboard" className="text-[#006d37] hover:underline font-bold text-xs">Tạo chiến dịch đầu tiên</a>
+                          <a href="#/organizer/dashboard" className="text-[#006d37] hover:underline font-bold text-xs">Tạo hoạt động đầu tiên</a>
                         )}
                       </div>
                     ) : (
-                      <div className="divide-y divide-slate-100 border border-slate-100 rounded-xl overflow-hidden bg-slate-50">
-                        {orgActs.map(act => {
-                          const statusConfig: Record<string, { label: string; class: string }> = {
-                            'Draft': { label: 'Bản nháp', class: 'bg-slate-100 text-slate-600' },
-                            'Pending Review': { label: 'Chờ duyệt', class: 'bg-amber-100 text-amber-800' },
-                            'Open': { label: 'Đang mở', class: 'bg-emerald-100 text-emerald-800' },
-                            'Full': { label: 'Đã đầy', class: 'bg-teal-100 text-teal-800' },
-                            'Ongoing': { label: 'Đang diễn ra', class: 'bg-blue-100 text-blue-800' },
-                            'Completed': { label: 'Đã kết thúc', class: 'bg-[#bbcbbb] text-slate-700' },
-                            'Rejected': { label: 'Từ chối', class: 'bg-rose-100 text-rose-800' },
-                            'Cancelled': { label: 'Đã hủy', class: 'bg-slate-200 text-slate-700' }
-                          };
-                          const badge = statusConfig[act.status] || { label: act.status, class: 'bg-slate-100 text-slate-600' };
+                      <>
+                        <div className="divide-y divide-slate-100 border border-slate-100 rounded-xl overflow-hidden bg-slate-50">
+                          {orgActs.slice((orgActsPage - 1) * itemsPerPage, orgActsPage * itemsPerPage).map(act => {
+                            const statusConfig: Record<string, { label: string; class: string }> = {
+                              'Draft': { label: 'Bản nháp', class: 'bg-slate-100 text-slate-600' },
+                              'Pending Review': { label: 'Chờ duyệt', class: 'bg-amber-100 text-amber-800' },
+                              'Open': { label: 'Đang mở', class: 'bg-emerald-100 text-emerald-800' },
+                              'Full': { label: 'Đã đầy', class: 'bg-teal-100 text-teal-800' },
+                              'Ongoing': { label: 'Đang diễn ra', class: 'bg-blue-100 text-blue-800' },
+                              'Completed': { label: 'Đã kết thúc', class: 'bg-[#bbcbbb] text-slate-700' },
+                              'Rejected': { label: 'Từ chối', class: 'bg-rose-100 text-rose-800' },
+                              'Cancelled': { label: 'Đã hủy', class: 'bg-slate-200 text-slate-700' }
+                            };
+                            const badge = statusConfig[act.status] || { label: act.status, class: 'bg-slate-100 text-slate-600' };
 
-                          return (
-                            <div key={act._id} className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 hover:bg-white transition-colors">
-                              <div className="space-y-1 min-w-0">
-                                <h5 className="font-bold text-sm text-slate-800 break-words">{act.title}</h5>
-                                <p className="text-xs text-slate-500 font-medium">Bắt đầu: {new Date(act.start_date).toLocaleDateString('vi-VN')}</p>
+                            return (
+                              <div key={act._id} className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 hover:bg-white transition-colors">
+                                <div className="space-y-1 min-w-0">
+                                  <h5 className="font-bold text-sm text-slate-800 break-words">{act.title}</h5>
+                                  <p className="text-xs text-slate-500 font-medium">Bắt đầu: {new Date(act.start_date).toLocaleDateString('vi-VN')}</p>
+                                </div>
+                                <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto">
+                                  <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase ${badge.class}`}>
+                                    {badge.label}
+                                  </span>
+                                  <a href={`#/activity/${act._id}`} className="bg-white hover:bg-slate-50 border border-slate-200 text-[#006d37] font-bold px-3 py-1.5 rounded-lg text-[11px] transition-colors">Xem chi tiết</a>
+                                </div>
                               </div>
-                              <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto">
-                                <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase ${badge.class}`}>
-                                  {badge.label}
-                                </span>
-                                <a href={`#/activity/${act._id}`} className="bg-white hover:bg-slate-50 border border-slate-200 text-[#006d37] font-bold px-3 py-1.5 rounded-lg text-[11px] transition-colors">Xem chi tiết</a>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
+                            );
+                          })}
+                        </div>
+                        <Pagination
+                          currentPage={orgActsPage}
+                          totalPages={Math.ceil(orgActs.length / itemsPerPage)}
+                          onPageChange={setOrgActsPage}
+                        />
+                      </>
                     )}
                   </div>
                 </div>
@@ -1068,7 +1466,7 @@ export const ProfileView: React.FC = () => {
                   iconColorClass="text-amber-600"
                   bgClass="bg-amber-50"
                   label="Tuổi"
-                  value={displayUser.profile.age !== undefined && displayUser.profile.age !== null ? `${displayUser.profile.age} tuổi` : "Chưa cập nhật"}
+                  value={displayUser.profile.age !== undefined && displayUser.profile.age !== null ? `${displayUser.profile.age} tuổi (Sinh năm: ${new Date().getFullYear() - displayUser.profile.age})` : "Chưa cập nhật"}
                 />
                 <InfoItem
                   icon="wc"
@@ -1107,6 +1505,87 @@ export const ProfileView: React.FC = () => {
                     Đã tham gia <span className="text-[#006d37] text-base">{displayUser.profile.joined_activity_count || 0}</span> chiến dịch tình nguyện
                   </span>
                 </div>
+              </div>
+
+              {/* Public activity on profile */}
+              <div className={`grid grid-cols-1 gap-4 ${displayUser.role === 'Admin' ? '' : 'lg:grid-cols-2'}`}>
+                <section className="bg-slate-50 border border-slate-100 rounded-2xl p-4 space-y-3 text-left">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <h4 className="font-bold text-sm text-slate-800">Bài đăng của thành viên</h4>
+                      <p className="text-[11px] text-slate-400 font-semibold mt-0.5">
+                        {userPosts.length} bài đăng đã chia sẻ
+                      </p>
+                    </div>
+                    <a href="#/posts" className="text-[11px] font-bold text-[#006d37] hover:underline shrink-0">
+                      Xem bảng tin
+                    </a>
+                  </div>
+                  {recentUserPosts.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-slate-200 bg-white p-5 text-center">
+                      <span className="material-symbols-outlined text-3xl text-slate-300">forum</span>
+                      <p className="mt-2 text-xs font-semibold text-slate-400">
+                        Chưa có bài đăng nào.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {recentUserPosts.map(post => (
+                        <ProfilePostCard key={post._id} post={post} />
+                      ))}
+                    </div>
+                  )}
+                </section>
+
+                {displayUser.role === 'Volunteer' && (
+                  <section className="bg-slate-50 border border-slate-100 rounded-2xl p-4 space-y-3 text-left">
+                    <div>
+                      <h4 className="font-bold text-sm text-slate-800">Hoạt động đã tham gia</h4>
+                      <p className="text-[11px] text-slate-400 font-semibold mt-0.5">
+                        {participatedActivityItems.length} hoạt động trong hồ sơ
+                      </p>
+                    </div>
+                    {recentParticipatedActivities.length === 0 ? (
+                      <div className="rounded-xl border border-dashed border-slate-200 bg-white p-5 text-center">
+                        <span className="material-symbols-outlined text-3xl text-slate-300">volunteer_activism</span>
+                        <p className="mt-2 text-xs font-semibold text-slate-400">
+                          Chưa có hoạt động tham gia nào.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {recentParticipatedActivities.map(({ registration, activity }) => (
+                          <ProfileActivityCard key={registration._id} registration={registration} activity={activity} />
+                        ))}
+                      </div>
+                    )}
+                  </section>
+                )}
+
+                {displayUser.role === 'Organizer' && (
+                  <section className="bg-slate-50 border border-slate-100 rounded-2xl p-4 space-y-3 text-left">
+                    <div>
+                      <h4 className="font-bold text-sm text-slate-800">Hoạt động đã tổ chức</h4>
+                      <p className="text-[11px] text-slate-400 font-semibold mt-0.5">
+                        {orgActs.length} hoạt động trong hồ sơ
+                      </p>
+                    </div>
+                    {recentOrganizedActivities.length === 0 ? (
+                      <div className="rounded-xl border border-dashed border-slate-200 bg-white p-5 text-center">
+                        <span className="material-symbols-outlined text-3xl text-slate-300">campaign</span>
+                        <p className="mt-2 text-xs font-semibold text-slate-400">
+                          Chưa có hoạt động tổ chức nào.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {recentOrganizedActivities.map(activity => (
+                          <ProfileOrganizedActivityCard key={activity._id} activity={activity} />
+                        ))}
+                      </div>
+                    )}
+                  </section>
+                )}
               </div>
             </div>
           </div>

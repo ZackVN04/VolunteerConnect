@@ -44,4 +44,13 @@ class PostUpdate(BaseModel):
     title: str = Field(..., min_length=5, max_length=100, description="Title of the post")
     content: str = Field(..., min_length=10, max_length=5000, description="Content of the post")
     images: List[AnyHttpUrl] = Field(default_factory=list, max_length=10, description="List of image URLs (max 10)")
+    video_url: Optional[AnyHttpUrl] = Field(None, description="Optional video URL")
     hashtags: List[str] = Field(default_factory=list, description="List of hashtags")
+
+    @field_validator('video_url', mode='before')
+    @classmethod
+    def empty_string_to_none(cls, v):
+        if v == "":
+            return None
+        return v
+

@@ -167,7 +167,7 @@ export const ActivityListView: React.FC = () => {
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="w-full px-4 py-2.5 border border-surface-variant rounded-xl bg-surface focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm text-on-surface transition-all cursor-pointer"
               >
-                <option value="Open/Full">Đang tuyển</option>
+                <option value="Open/Full/Completed">Tất cả</option>
                 <option value="Open">Đang mở</option>
                 <option value="Full">Đã đầy chỗ</option>
                 <option value="Completed">Đã kết thúc</option>
@@ -284,8 +284,8 @@ export const ActivityListView: React.FC = () => {
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
                 className={`w-8 h-8 rounded-full text-sm font-bold transition-all ${currentPage === i + 1
-                    ? 'bg-[#006d37] text-white'
-                    : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                  ? 'bg-[#006d37] text-white'
+                  : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
                   }`}
               >
                 {i + 1}

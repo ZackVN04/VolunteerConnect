@@ -207,6 +207,18 @@ export const ActivityDetailView: React.FC<ActivityDetailViewProps> = ({ activity
               </p>
             </div>
 
+            {/* Requirements & Notes Block */}
+            {activity.requirements && activity.requirements.trim() && (
+              <div className="space-y-3">
+                <h2 className="text-lg font-bold text-on-surface border-b border-surface-variant/40 pb-2">
+                  Yêu cầu & Ghi chú
+                </h2>
+                <div className="rounded-2xl border border-emerald-100 bg-[#e8f5e9]/35 p-4 text-sm md:text-base text-slate-700 leading-relaxed whitespace-pre-line">
+                  {activity.requirements}
+                </div>
+              </div>
+            )}
+
             {/* Contact Person Card */}
             <div className="space-y-4 pt-4">
               <h2 className="text-lg font-bold text-on-surface border-b border-surface-variant/40 pb-2">

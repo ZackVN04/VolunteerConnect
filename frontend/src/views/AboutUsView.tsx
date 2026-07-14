@@ -291,7 +291,7 @@ export const AboutUsView: React.FC = () => {
                                         <img src={nguyenTrongHieuImg} alt="Team Member" className="w-full h-full object-cover" />
                                     </div>
                                     <h4 className="font-bold text-slate-800 text-sm md:text-base text-center">Nguyễn Trọng Hiếu</h4>
-                                    <span className="text-xs text-[#006d37] font-semibold mt-1 text-center">BE</span>
+                                    <span className="text-xs text-[#006d37] font-semibold mt-1 text-center">BE </span>
                                 </div>
                                 <div className="flex flex-col items-center group shrink-0 min-w-[140px]">
                                     <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-slate-200 mb-3 overflow-hidden shadow-sm group-hover:shadow-md transition-all duration-300 group-hover:-translate-y-1 ring-2 ring-transparent group-hover:ring-[#1a56db]/20">

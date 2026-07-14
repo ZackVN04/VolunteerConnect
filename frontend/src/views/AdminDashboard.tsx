@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import type { User } from '../context/AppContext';
 import logoImg from '../assets/logo.png';
 
 // Helper: inline avatar fallback with initials
@@ -45,6 +44,48 @@ const Pagination: React.FC<{
 }> = ({ currentPage, totalPages, onPageChange }) => {
   if (totalPages <= 1) return null;
 
+  const getPageNumbers = () => {
+    const pages: (number | string)[] = [];
+    const maxVisiblePages = 5;
+
+    if (totalPages <= maxVisiblePages + 2) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      pages.push(1);
+
+      if (currentPage > 3) {
+        pages.push('...');
+      }
+
+      const start = Math.max(2, currentPage - 1);
+      const end = Math.min(totalPages - 1, currentPage + 1);
+
+      let adjustedStart = start;
+      let adjustedEnd = end;
+      if (currentPage <= 3) {
+        adjustedEnd = 4;
+      }
+      if (currentPage >= totalPages - 2) {
+        adjustedStart = totalPages - 3;
+      }
+
+      for (let i = adjustedStart; i <= adjustedEnd; i++) {
+        pages.push(i);
+      }
+
+      if (currentPage < totalPages - 2) {
+        pages.push('...');
+      }
+
+      pages.push(totalPages);
+    }
+    return pages;
+  };
+
+  const pages = getPageNumbers();
+
   return (
     <div className="flex items-center justify-between border-t border-slate-100 px-4 py-4 sm:px-6 mt-4">
       <div className="flex flex-1 justify-between sm:hidden">
@@ -79,13 +120,23 @@ const Pagination: React.FC<{
               <span className="material-symbols-outlined text-[16px]">chevron_left</span>
             </button>
             
-            {Array.from({ length: totalPages }).map((_, i) => {
-              const p = i + 1;
+            {pages.map((p, i) => {
+              if (p === '...') {
+                return (
+                  <span
+                    key={`ellipsis-${i}`}
+                    className="relative inline-flex items-center rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-400 bg-white"
+                  >
+                    ...
+                  </span>
+                );
+              }
+
               const isCurrent = p === currentPage;
               return (
                 <button
                   key={p}
-                  onClick={() => onPageChange(p)}
+                  onClick={() => onPageChange(p as number)}
                   className={`relative inline-flex items-center rounded-lg px-3.5 py-1.5 text-xs font-extrabold cursor-pointer transition-all ${
                     isCurrent
                       ? 'bg-[#006d37] text-white shadow-sm'
@@ -389,28 +440,6 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
-  const getLoginStatusBadge = (user: User) => {
-    // Current logged-in user is always online. Other users are simulated based on their ID hash for a realistic experience.
-    const isOnline = currentUser && user._id === currentUser._id
-      ? true
-      : (user._id.charCodeAt(user._id.length - 1) % 2 === 0);
-
-    if (isOnline) {
-      return (
-        <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 text-xs px-2.5 py-1.5 rounded-full font-bold border border-emerald-200 shadow-sm shrink-0">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-          Đang hoạt động
-        </span>
-      );
-    } else {
-      return (
-        <span className="inline-flex items-center gap-1.5 bg-slate-50 text-slate-500 text-xs px-2.5 py-1.5 rounded-full font-semibold border border-slate-200 shadow-sm shrink-0">
-          <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
-          Ngoại tuyến
-        </span>
-      );
-    }
-  };
 
   return (
     <div className="w-full bg-[#f8f9fa] min-h-screen pb-16 relative">
@@ -1143,10 +1172,8 @@ export const AdminDashboard: React.FC = () => {
                                 <td className="px-6 py-5 text-on-surface-variant font-semibold">
                                   {req.experience}
                                 </td>
-                                <td className="px-6 py-5 text-on-surface-variant">
-                                  <p className="line-clamp-2 max-w-[300px]" title={req.reason}>
-                                    {req.reason}
-                                  </p>
+                                <td className="px-6 py-5 text-on-surface-variant max-w-[300px] break-words text-xs">
+                                  <ExpandableText text={req.reason} limit={80} />
                                 </td>
                                 <td className="px-6 py-5 whitespace-nowrap">
                                   <div className="flex gap-3">
@@ -1457,7 +1484,7 @@ export const AdminDashboard: React.FC = () => {
                                 <th className="px-4 py-3 whitespace-nowrap">Số điện thoại</th>
                                 <th className="px-4 py-3 whitespace-nowrap">Email</th>
                                 <th className="px-4 py-3 whitespace-nowrap">Vai trò</th>
-                                <th className="px-4 py-3 whitespace-nowrap">Trạng thái hoạt động</th>
+                                <th className="px-4 py-3 whitespace-nowrap">Ngày tạo tài khoản</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-surface-variant/30 text-on-surface">
@@ -1471,8 +1498,8 @@ export const AdminDashboard: React.FC = () => {
                                   <td className="px-4 py-3.5 whitespace-nowrap">
                                     {getRoleBadge(u.role)}
                                   </td>
-                                  <td className="px-4 py-3.5 whitespace-nowrap">
-                                    {getLoginStatusBadge(u)}
+                                  <td className="px-4 py-3.5 whitespace-nowrap text-on-surface-variant text-xs font-semibold">
+                                    {u.created_at ? new Date(u.created_at).toLocaleDateString('vi-VN') : 'Chưa cập nhật'}
                                   </td>
                                 </tr>
                               ))}
@@ -1813,7 +1840,7 @@ export const AdminDashboard: React.FC = () => {
                                         </div>
                                       </td>
                                       <td className="px-4 py-3.5 text-xs text-on-surface-variant max-w-[250px] break-words">
-                                        {req.reason}
+                                        <ExpandableText text={req.reason} limit={80} />
                                       </td>
                                       <td className="px-4 py-3.5 whitespace-nowrap text-xs text-on-surface-variant">
                                         {req.reviewed_at ? new Date(req.reviewed_at).toLocaleString('vi-VN') : 'Chưa cập nhật'}
