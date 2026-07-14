@@ -387,8 +387,8 @@ export const postService = {
     const res = await rootApi.post('/posts/', { title, content, images, video_url, hashtags });
     return mapPost(res.data);
   },
-  update: async (postId: string, title: string, content: string, images: string[], hashtags: string[]): Promise<Post> => {
-    const res = await rootApi.put(`/posts/${postId}`, { title, content, images, hashtags });
+  update: async (postId: string, title: string, content: string, images: string[], video_url: string | null, hashtags: string[]): Promise<Post> => {
+    const res = await rootApi.put(`/posts/${postId}`, { title, content, images, video_url, hashtags });
     return mapPost(res.data);
   },
   like: async (postId: string): Promise<Post> => {

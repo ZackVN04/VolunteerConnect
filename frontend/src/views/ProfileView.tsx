@@ -64,6 +64,9 @@ export const ProfileView: React.FC = () => {
   const [bio, setBio] = useState(currentUser?.profile.bio || '');
   const [avatarUrl, setAvatarUrl] = useState(currentUser?.profile.avatar_url || '');
   const [age, setAge] = useState<number | ''>(currentUser?.profile.age ?? '');
+  const [birthYear, setBirthYear] = useState<number | ''>(
+    currentUser?.profile.age ? (new Date().getFullYear() - currentUser.profile.age) : ''
+  );
   const [gender, setGender] = useState(currentUser?.profile.gender || '');
 
   // Form states for Change Password
@@ -157,6 +160,7 @@ export const ProfileView: React.FC = () => {
       setBio(currentUser.profile.bio || '');
       setAvatarUrl(fixImageUrl(currentUser.profile.avatar_url) || currentUser.profile.avatar_url || '');
       setAge(currentUser.profile.age ?? '');
+      setBirthYear(currentUser.profile.age ? (new Date().getFullYear() - currentUser.profile.age) : '');
       setGender(currentUser.profile.gender || '');
     }
   }, [currentUser, isOwnProfile]);
@@ -217,9 +221,16 @@ export const ProfileView: React.FC = () => {
       showNotification('Số điện thoại không hợp lệ (phải từ 10-15 chữ số).', 'error');
       return;
     }
-    if (age !== '' && (Number(age) < 0 || Number(age) > 120)) {
-      showNotification('Tuổi nhập vào không hợp lệ (từ 0 đến 120).', 'error');
-      return;
+    
+    let finalAge: number | '' = '';
+    if (birthYear !== '') {
+      const yearNum = Number(birthYear);
+      const currentYear = new Date().getFullYear();
+      if (yearNum < 1900 || yearNum > currentYear) {
+        showNotification(`Năm sinh không hợp lệ (phải từ 1900 đến ${currentYear}).`, 'error');
+        return;
+      }
+      finalAge = currentYear - yearNum;
     }
 
     const skills = skillsStr
@@ -233,7 +244,7 @@ export const ProfileView: React.FC = () => {
         skills,
         bio,
         avatar_url: avatarUrl,
-        age: age !== '' ? Number(age) : undefined,
+        age: finalAge !== '' ? Number(finalAge) : undefined,
         gender: gender || undefined
       },
       email || '',
@@ -255,6 +266,7 @@ export const ProfileView: React.FC = () => {
     setBio(currentUser.profile.bio || '');
     setAvatarUrl(currentUser.profile.avatar_url || '');
     setAge(currentUser.profile.age ?? '');
+    setBirthYear(currentUser.profile.age ? (new Date().getFullYear() - currentUser.profile.age) : '');
     setGender(currentUser.profile.gender || '');
     setViewMode('details');
     window.location.hash = '#/profile';
@@ -568,7 +580,7 @@ export const ProfileView: React.FC = () => {
                         iconColorClass="text-amber-600"
                         bgClass="bg-amber-50"
                         label="Tuổi"
-                        value={displayAge ? `${displayAge} tuổi` : "Chưa cập nhật"}
+                        value={displayAge ? `${displayAge} tuổi (Sinh năm: ${new Date().getFullYear() - displayAge})` : "Chưa cập nhật"}
                       />
                       <InfoItem
                         icon="wc"
@@ -687,16 +699,30 @@ export const ProfileView: React.FC = () => {
                       </div>
 
                       <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Tuổi</label>
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Năm sinh</label>
                         <input
                           type="number"
-                          value={age}
-                          onChange={(e) => setAge(e.target.value === '' ? '' : Number(e.target.value))}
-                          placeholder="Nhập tuổi..."
-                          min={0}
-                          max={120}
+                          value={birthYear}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setBirthYear(val === '' ? '' : Number(val));
+                            if (val !== '' && !isNaN(Number(val))) {
+                              const calculated = new Date().getFullYear() - Number(val);
+                              setAge(calculated >= 0 ? calculated : 0);
+                            } else {
+                              setAge('');
+                            }
+                          }}
+                          placeholder="VD: 1998"
+                          min={1900}
+                          max={new Date().getFullYear()}
                           className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] text-sm font-semibold text-slate-800 bg-white transition-all"
                         />
+                        {birthYear !== '' && age !== '' && (
+                          <span className="text-[10px] text-slate-400 font-bold mt-0.5">
+                            Tuổi tương ứng: {age} tuổi
+                          </span>
+                        )}
                       </div>
 
                       <div className="flex flex-col gap-1.5">
@@ -1068,7 +1094,7 @@ export const ProfileView: React.FC = () => {
                   iconColorClass="text-amber-600"
                   bgClass="bg-amber-50"
                   label="Tuổi"
-                  value={displayUser.profile.age !== undefined && displayUser.profile.age !== null ? `${displayUser.profile.age} tuổi` : "Chưa cập nhật"}
+                  value={displayUser.profile.age !== undefined && displayUser.profile.age !== null ? `${displayUser.profile.age} tuổi (Sinh năm: ${new Date().getFullYear() - displayUser.profile.age})` : "Chưa cập nhật"}
                 />
                 <InfoItem
                   icon="wc"

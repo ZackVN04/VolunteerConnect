@@ -165,7 +165,7 @@ interface AppContextType {
   bulkReviewActivities: (activityIds: string[], approve: boolean, feedback?: string) => Promise<{ success: boolean; error?: string }>;
   bulkReviewRegistrations: (registrationIds: string[], approve: boolean, feedback?: string) => Promise<{ success: boolean; error?: string }>;
   createPost: (title: string, content: string, images: string[], videoUrl: string | null, hashtags: string[]) => Promise<{ success: boolean; error?: string }>;
-  editPost: (postId: string, title: string, content: string, images: string[], hashtags: string[]) => Promise<{ success: boolean; error?: string }>;
+  editPost: (postId: string, title: string, content: string, images: string[], videoUrl: string | null, hashtags: string[]) => Promise<{ success: boolean; error?: string }>;
   likePost: (postId: string) => void;
   sharePost: (postId: string) => void;
   deletePost: (postId: string) => Promise<{ success: boolean; error?: string }>;
@@ -1577,10 +1577,10 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   // Edit Community Post
-  const editPost = async (postId: string, title: string, content: string, images: string[], hashtags: string[]): Promise<{ success: boolean; error?: string }> => {
+  const editPost = async (postId: string, title: string, content: string, images: string[], videoUrl: string | null, hashtags: string[]): Promise<{ success: boolean; error?: string }> => {
     if (USE_REAL_BACKEND) {
       try {
-        await postService.update(postId, title, content, images, hashtags);
+        await postService.update(postId, title, content, images, videoUrl, hashtags);
         const pts = await postService.getAll();
         setPosts(injectLikedStatus(pts, currentUser?._id));
         return { success: true };
@@ -1615,6 +1615,7 @@ export const AppContextProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       title,
       content: title ? `${title}\n${content}` : content,
       images,
+      video_url: videoUrl,
       hashtags,
       updated_at: new Date().toISOString()
     };

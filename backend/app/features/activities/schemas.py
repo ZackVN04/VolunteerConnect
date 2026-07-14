@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, model_validator, ConfigDict
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from typing import List, Optional
 from beanie import PydanticObjectId
 from app.features.activities.constants import ActivityCategory
@@ -24,6 +24,9 @@ class ActivityCreate(BaseModel):
     def check_dates(self) -> 'ActivityCreate':
         if self.end_date <= self.start_date:
             raise ValueError("Ngày kết thúc phải sau ngày bắt đầu")
+        now = datetime.now(self.start_date.tzinfo or timezone.utc)
+        if self.start_date < now - timedelta(minutes=5):
+            raise ValueError("Ngày bắt đầu không được ở trong quá khứ")
         return self
 
 class ActivityUpdate(BaseModel):
@@ -42,6 +45,10 @@ class ActivityUpdate(BaseModel):
         if self.start_date and self.end_date:
             if self.end_date <= self.start_date:
                 raise ValueError("Ngày kết thúc phải sau ngày bắt đầu")
+        if self.start_date:
+            now = datetime.now(self.start_date.tzinfo or timezone.utc)
+            if self.start_date < now - timedelta(minutes=5):
+                raise ValueError("Ngày bắt đầu không được ở trong quá khứ")
         return self
 
 class ActivityResponseData(BaseModel):

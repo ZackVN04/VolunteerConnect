@@ -142,6 +142,29 @@ async def test_create_activity_invalid_dates(async_client, org_headers):
     assert response.status_code == 422
 
 @pytest.mark.asyncio
+async def test_create_activity_past_start_date(async_client, org_headers):
+    """Negative Case: Ngày bắt đầu ở quá khứ (Expects 422)."""
+    payload = {
+        "title": "test_QA_PastStartDate",
+        "description": "Chiến dịch dọn dẹp rác thải bờ sông Hồng của QA Team.",
+        "categories": ["Môi trường"],
+        "location": {
+            "province": "Hà Nội",
+            "district": "Long Biên",
+            "address_detail": "Chân cầu Long Biên"
+        },
+        "start_date": (datetime.now(timezone.utc) - timedelta(days=2)).isoformat(),  # Ngày bắt đầu 2 ngày trước
+        "end_date": (datetime.now(timezone.utc) + timedelta(days=1)).isoformat(),
+        "limit_volunteers": 50
+    }
+    
+    response = await async_client.post("/api/v1/activities", json=payload, headers=org_headers)
+    assert response.status_code == 422
+    assert "Ngày bắt đầu không được ở trong quá khứ" in response.text
+
+
+
+@pytest.mark.asyncio
 async def test_get_activity_list_and_detail(async_client, organizer_user):
     """Happy Path: Lấy danh sách hoạt động open và xem chi tiết."""
     # Tạo sẵn 1 hoạt động có status Open trong DB

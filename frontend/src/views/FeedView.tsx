@@ -74,13 +74,195 @@ const SmartVideoPlayer: React.FC<{ src: string }> = ({ src }) => {
   );
 };
 
+// Image Lightbox Modal Component
+// Image Lightbox Modal Component
+// Image Lightbox Modal Component
+const ImageLightboxModal: React.FC<{
+  post: Post;
+  initialIndex: number;
+  onClose: () => void;
+}> = ({ post, initialIndex, onClose }) => {
+  const { users } = useApp();
+  const [currentIndex, setCurrentIndex] = useState(initialIndex);
+  const images = post.images || [];
+
+  const authorUser = users.find(u => u._id === post.author_id);
+  const authorName = post.denormalized_author?.name || authorUser?.profile.full_name || 'Thành viên';
+  const avatarUrl = post.denormalized_author?.avatar_url || authorUser?.profile.avatar_url;
+  const authorRoleRaw = post.denormalized_author?.role || authorUser?.role;
+  const authorRole = authorRoleRaw === 'Organizer' ? 'Nhà tổ chức' : (authorRoleRaw === 'Admin' ? 'Quản trị viên' : 'Tình nguyện viên');
+
+  const handlePrev = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCurrentIndex(prev => (prev === 0 ? images.length - 1 : prev - 1));
+  };
+
+  const handleNext = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCurrentIndex(prev => (prev === images.length - 1 ? 0 : prev + 1));
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+      if (e.key === 'ArrowLeft') setCurrentIndex(prev => (prev === 0 ? images.length - 1 : prev - 1));
+      if (e.key === 'ArrowRight') setCurrentIndex(prev => (prev === images.length - 1 ? 0 : prev + 1));
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [images.length, onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-[10000] flex bg-black/95 backdrop-blur-md select-none animate-fadeIn"
+      onClick={onClose}
+    >
+      {/* Left Media Pane: 70% width */}
+      <div className="flex-1 flex flex-col justify-between items-center p-6 relative h-full">
+        {/* Top Info Capsule */}
+        <div className="absolute top-4 left-6 bg-black/40 backdrop-blur-md border border-white/10 px-4 py-1.5 rounded-full text-white text-xs font-bold shadow-md z-10">
+          Ảnh {currentIndex + 1} / {images.length}
+        </div>
+
+        {/* Close Button on Mobile (visible only if sidebar hidden) */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 md:hidden bg-white/10 hover:bg-white/20 text-white rounded-full w-10 h-10 flex items-center justify-center border-none cursor-pointer transition-all z-10"
+        >
+          <span className="material-symbols-outlined text-2xl font-bold">close</span>
+        </button>
+
+        {/* Main Image View */}
+        <div className="flex-1 w-full flex items-center justify-center relative" onClick={e => e.stopPropagation()}>
+          {images.length > 1 && (
+            <button
+              onClick={handlePrev}
+              className="absolute left-0 bg-white/10 hover:bg-white/20 text-white rounded-full w-12 h-12 flex items-center justify-center border-none cursor-pointer transition-all z-20 shadow-lg hover:scale-105 active:scale-95"
+            >
+              <span className="material-symbols-outlined text-3xl">chevron_left</span>
+            </button>
+          )}
+
+          <img
+            src={images[currentIndex]}
+            alt={`Post media ${currentIndex + 1}`}
+            className="max-w-full max-h-[75vh] object-contain rounded-lg shadow-2xl transition-all duration-300"
+          />
+
+          {images.length > 1 && (
+            <button
+              onClick={handleNext}
+              className="absolute right-0 bg-white/10 hover:bg-white/20 text-white rounded-full w-12 h-12 flex items-center justify-center border-none cursor-pointer transition-all z-20 shadow-lg hover:scale-105 active:scale-95"
+            >
+              <span className="material-symbols-outlined text-3xl">chevron_right</span>
+            </button>
+          )}
+        </div>
+
+        {/* Thumbnails Navigation */}
+        {images.length > 1 && (
+          <div className="w-full flex justify-center pb-2" onClick={e => e.stopPropagation()}>
+            <div className="flex gap-2 max-w-full overflow-x-auto py-2 px-4 scrollbar-none bg-black/30 backdrop-blur-sm rounded-xl border border-white/5">
+              {images.map((img, idx) => (
+                <div
+                  key={idx}
+                  onClick={() => setCurrentIndex(idx)}
+                  className={`w-12 h-12 rounded-md overflow-hidden border-2 cursor-pointer transition-all shrink-0 ${idx === currentIndex ? 'border-emerald-500 scale-105 shadow-md opacity-100' : 'border-transparent opacity-40 hover:opacity-80'}`}
+                >
+                  <img src={img} alt="thumbnail" className="w-full h-full object-cover" />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Right Sidebar Pane: 30% width, hidden on small screens */}
+      <div
+        className="w-[380px] bg-white h-full flex flex-col border-l border-slate-100 shrink-0 shadow-2xl overflow-hidden hidden md:flex animate-slideInRight"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Sidebar Header */}
+        <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+          <span className="text-sm font-extrabold text-slate-800">Thông tin chi tiết</span>
+          <button
+            onClick={onClose}
+            className="text-slate-400 hover:text-slate-600 w-8 h-8 flex items-center justify-center hover:bg-slate-100 rounded-full cursor-pointer transition-colors border-none bg-transparent"
+          >
+            <span className="material-symbols-outlined text-xl font-bold">close</span>
+          </button>
+        </div>
+
+        {/* Sidebar Content (Scrollable) */}
+        <div className="flex-1 overflow-y-auto p-5 space-y-5">
+          {/* Author Block */}
+          <div className="flex items-center gap-3">
+            <PostAvatar name={authorName} src={fixImageUrl(avatarUrl)} />
+            <div>
+              <div className="flex items-center gap-1.5">
+                <span className="font-bold text-sm text-slate-800">{authorName}</span>
+                <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-full ${
+                  authorRoleRaw === 'Organizer' 
+                    ? 'bg-emerald-50 text-[#006d37] border border-emerald-100/50' 
+                    : authorRoleRaw === 'Admin'
+                    ? 'bg-red-50 text-red-700 border border-red-100'
+                    : 'bg-slate-50 text-slate-600 border border-slate-200'
+                }`}>
+                  {authorRole}
+                </span>
+              </div>
+              <p className="text-[10px] text-slate-400 font-semibold">{new Date(post.created_at).toLocaleString('vi-VN')}</p>
+            </div>
+          </div>
+
+          {/* Post Text */}
+          <div className="space-y-2">
+            {post.title && (
+              <h4 className="font-extrabold text-base text-slate-900 leading-snug">{post.title}</h4>
+            )}
+            <p className="text-slate-700 text-sm leading-relaxed whitespace-pre-line font-medium">{post.content}</p>
+          </div>
+
+          {/* Hashtags */}
+          {post.hashtags && post.hashtags.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {post.hashtags.map((tag, idx) => (
+                <span
+                  key={idx}
+                  className="bg-emerald-50 text-[#006d37] border border-emerald-100/50 px-2 py-0.5 rounded-lg text-xs font-bold"
+                >
+                  #{tag}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Sidebar Footer */}
+        <div className="p-5 border-t border-slate-100 bg-slate-50/50 space-y-4">
+          <div className="flex items-center justify-between text-xs text-slate-500 font-bold">
+            <div className="flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-lg text-slate-400">thumb_up</span>
+              <span>{post.like_count || 0} Lượt thích</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-lg text-slate-400">chat_bubble</span>
+              <span>{post.comment_count || 0} Bình luận</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Create Post Modal Component
 const CreatePostModal: React.FC<{ onClose: () => void; onSubmit: (title: string, content: string, images: string[], videoUrl: string | null, hashtags: string[]) => Promise<void> }> = ({ onClose, onSubmit }) => {
   const { showNotification } = useApp();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState('');
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState('');
   const [isVideoDragging, setIsVideoDragging] = useState(false);
@@ -91,25 +273,59 @@ const CreatePostModal: React.FC<{ onClose: () => void; onSubmit: (title: string,
   const fileRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLInputElement>(null);
 
-  const handleFileChange = (file: File | null) => {
-    if (!file) return;
+  const handleFilesAdded = (files: File[] | FileList | null) => {
+    if (!files) return;
     setLocalError('');
-    if (file.size > 5 * 1024 * 1024) {
-      setLocalError('Kích thước ảnh vượt quá giới hạn cho phép (Tối đa 5MB).');
-      showNotification('Kích thước ảnh vượt quá giới hạn cho phép (Tối đa 5MB).', 'error');
+    const filesArr = files instanceof FileList ? Array.from(files) : files;
+    
+    if (imageFiles.length + filesArr.length > 10) {
+      setLocalError('Tối đa chỉ được chọn 10 hình ảnh.');
+      showNotification('Tối đa chỉ được chọn 10 hình ảnh.', 'error');
+      if (fileRef.current) fileRef.current.value = '';
       return;
     }
-    setImageFile(file);
-    const reader = new FileReader();
-    reader.onloadend = () => setImagePreview(reader.result as string);
-    reader.readAsDataURL(file);
+
+    const validFiles: File[] = [];
+    for (const file of filesArr) {
+      if (file.size > 5 * 1024 * 1024) {
+        setLocalError(`Kích thước ảnh "${file.name}" vượt quá giới hạn 5MB.`);
+        showNotification(`Kích thước ảnh "${file.name}" vượt quá giới hạn 5MB.`, 'error');
+        if (fileRef.current) fileRef.current.value = '';
+        return;
+      }
+      validFiles.push(file);
+    }
+
+    setImageFiles(prev => [...prev, ...validFiles]);
+
+    validFiles.forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreviews(prev => [...prev, reader.result as string]);
+      };
+      reader.readAsDataURL(file);
+    });
+
+    if (fileRef.current) {
+      fileRef.current.value = '';
+    }
+  };
+
+  const handleRemoveImage = (index: number) => {
+    setImageFiles(prev => prev.filter((_, i) => i !== index));
+    setImagePreviews(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file && file.type.startsWith('image/')) handleFileChange(file);
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      const imageFilesList = Array.from(files).filter(f => f.type.startsWith('image/'));
+      if (imageFilesList.length > 0) {
+        handleFilesAdded(imageFilesList);
+      }
+    }
   };
 
   const handleVideoFileChange = (file: File | null) => {
@@ -147,10 +363,11 @@ const CreatePostModal: React.FC<{ onClose: () => void; onSubmit: (title: string,
       let imageUrls: string[] = [];
       let videoUrl: string = '';
 
-      if (imageFile) {
-        // Upload image to backend first
-        const uploadRes = await mediaService.upload(imageFile);
-        imageUrls.push(uploadRes.url);
+      if (imageFiles.length > 0) {
+        // Upload all images concurrently
+        const uploadPromises = imageFiles.map(file => mediaService.upload(file));
+        const uploadResults = await Promise.all(uploadPromises);
+        imageUrls = uploadResults.map(res => res.url);
       }
 
       if (videoFile) {
@@ -216,7 +433,7 @@ const CreatePostModal: React.FC<{ onClose: () => void; onSubmit: (title: string,
 
           {/* Image Drop Zone */}
           <div className="space-y-1.5">
-            <label className="block text-sm font-bold text-gray-700">Hình ảnh minh họa <span className="text-slate-400 font-normal">(Tùy chọn)</span></label>
+            <label className="block text-sm font-bold text-gray-700">Hình ảnh minh họa <span className="text-slate-400 font-normal">(Tùy chọn, tối đa 10 ảnh)</span></label>
             <div
               className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all ${isDragging ? 'border-[#006d37] bg-[#e8f5e9]' : 'border-slate-200 hover:border-[#006d37]/50 hover:bg-slate-50'}`}
               onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
@@ -224,23 +441,48 @@ const CreatePostModal: React.FC<{ onClose: () => void; onSubmit: (title: string,
               onDrop={handleDrop}
               onClick={() => fileRef.current?.click()}
             >
-              {imagePreview ? (
-                <div className="relative">
-                  <img src={imagePreview} alt="preview" className="max-h-32 mx-auto rounded-lg object-cover" />
-                  <button type="button" onClick={e => { e.stopPropagation(); setImagePreview(''); }} className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center font-bold">×</button>
+              {imagePreviews.length > 0 ? (
+                <div className="grid grid-cols-3 gap-2" onClick={e => e.stopPropagation()}>
+                  {imagePreviews.map((preview, idx) => (
+                    <div key={idx} className="relative w-full h-24 border rounded-lg overflow-hidden group">
+                      <img src={preview} alt={`preview ${idx}`} className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveImage(idx)}
+                        className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center font-bold shadow-md cursor-pointer border-none"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                  {imagePreviews.length < 10 && (
+                    <div
+                      onClick={() => fileRef.current?.click()}
+                      className="border border-dashed border-slate-300 hover:border-[#006d37] rounded-lg h-24 flex flex-col items-center justify-center text-slate-400 cursor-pointer"
+                    >
+                      <span className="material-symbols-outlined text-2xl">add</span>
+                      <span className="text-[10px] font-bold">Thêm ảnh</span>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <>
                   <span className="material-symbols-outlined text-3xl text-slate-300">image</span>
-                  <p className="text-xs text-slate-400 font-semibold mt-1">Kéo thả ảnh vào đây hoặc nhấp để tải lên</p>
+                  <p className="text-xs text-slate-400 font-semibold mt-1">Kéo thả ảnh vào đây hoặc nhấp để tải lên (tối đa 10 ảnh)</p>
                 </>
               )}
-              <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={e => handleFileChange(e.target.files?.[0] || null)} />
+              <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={e => handleFilesAdded(e.target.files)} />
             </div>
-            <label className="flex items-center gap-2 mt-1 cursor-pointer w-fit" onClick={() => fileRef.current?.click()}>
-              <span className="border border-slate-300 bg-slate-50 text-slate-700 text-xs font-semibold px-3 py-1 rounded-md hover:bg-slate-100 transition-colors cursor-pointer">Chọn Tệp</span>
-              <span className="text-xs text-slate-400">{imagePreview ? '1 tệp đã chọn' : 'Không tệp nào được chọn'}</span>
-            </label>
+            <div className="flex items-center gap-2 mt-1 w-fit">
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                className="border border-slate-300 bg-slate-50 text-slate-700 text-xs font-semibold px-3 py-1 rounded-md hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                Chọn nhiều ảnh
+              </button>
+              <span className="text-xs text-slate-400">{imagePreviews.length > 0 ? `${imagePreviews.length} tệp đã chọn` : 'Không tệp nào được chọn'}</span>
+            </div>
           </div>
 
           {/* Video Upload */}
@@ -262,7 +504,7 @@ const CreatePostModal: React.FC<{ onClose: () => void; onSubmit: (title: string,
                     <button
                       type="button"
                       onClick={e => { e.stopPropagation(); setVideoFile(null); setVideoPreviewUrl(''); }}
-                      className="text-[10px] text-red-500 font-bold hover:underline mt-0.5 cursor-pointer"
+                      className="text-[10px] text-red-500 font-bold hover:underline mt-0.5 cursor-pointer border-none bg-transparent"
                     >
                       Xóa video
                     </button>
@@ -322,7 +564,7 @@ const CreatePostModal: React.FC<{ onClose: () => void; onSubmit: (title: string,
 const EditPostModal: React.FC<{
   post: Post;
   onClose: () => void;
-  onSubmit: (title: string, content: string, images: string[], hashtags: string[]) => Promise<void>;
+  onSubmit: (title: string, content: string, images: string[], videoUrl: string | null, hashtags: string[]) => Promise<void>;
 }> = ({ post, onClose, onSubmit }) => {
   const { showNotification } = useApp();
 
@@ -335,33 +577,114 @@ const EditPostModal: React.FC<{
 
   const [title, setTitle] = useState(initialTitle);
   const [content, setContent] = useState(initialBody);
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState(post.images[0] || '');
+
+  // Existing images and videos from the post
+  const [existingImages, setExistingImages] = useState<string[]>(post.images || []);
+  const [existingVideo, setExistingVideo] = useState<string | null>(post.video_url || null);
+
+  // New images to be uploaded
+  const [newImageFiles, setNewImageFiles] = useState<File[]>([]);
+  const [newImagePreviews, setNewImagePreviews] = useState<string[]>([]);
+
+  // New video to be uploaded
+  const [newVideoFile, setNewVideoFile] = useState<File | null>(null);
+  const [newVideoPreviewUrl, setNewVideoPreviewUrl] = useState<string>('');
+
   const [hashtagsStr, setHashtagsStr] = useState((post.hashtags || []).join(', '));
   const [isDragging, setIsDragging] = useState(false);
+  const [isVideoDragging, setIsVideoDragging] = useState(false);
   const [localError, setLocalError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLInputElement>(null);
 
-  const handleFileChange = (file: File | null) => {
-    if (!file) return;
-    setLocalError('');
-    if (file.size > 5 * 1024 * 1024) {
-      setLocalError('Kích thước ảnh vượt quá giới hạn cho phép (Tối đa 5MB).');
-      showNotification('Kích thước ảnh vượt quá giới hạn cho phép (Tối đa 5MB).', 'error');
-      return;
-    }
-    setImageFile(file);
-    const reader = new FileReader();
-    reader.onloadend = () => setImagePreview(reader.result as string);
-    reader.readAsDataURL(file);
+  const handleRemoveExistingImage = (idx: number) => {
+    setExistingImages(prev => prev.filter((_, i) => i !== idx));
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleRemoveExistingVideo = () => {
+    setExistingVideo(null);
+  };
+
+  const handleNewFilesAdded = (files: File[] | FileList | null) => {
+    if (!files) return;
+    setLocalError('');
+    const filesArr = files instanceof FileList ? Array.from(files) : files;
+
+    if (existingImages.length + newImageFiles.length + filesArr.length > 10) {
+      setLocalError('Tổng số lượng hình ảnh vượt quá giới hạn 10 ảnh.');
+      showNotification('Tổng số lượng hình ảnh vượt quá giới hạn 10 ảnh.', 'error');
+      if (fileRef.current) fileRef.current.value = '';
+      return;
+    }
+
+    const validFiles: File[] = [];
+    for (const file of filesArr) {
+      if (file.size > 5 * 1024 * 1024) {
+        setLocalError(`Kích thước ảnh "${file.name}" vượt quá giới hạn 5MB.`);
+        showNotification(`Kích thước ảnh "${file.name}" vượt quá giới hạn 5MB.`, 'error');
+        if (fileRef.current) fileRef.current.value = '';
+        return;
+      }
+      validFiles.push(file);
+    }
+
+    setNewImageFiles(prev => [...prev, ...validFiles]);
+
+    validFiles.forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setNewImagePreviews(prev => [...prev, reader.result as string]);
+      };
+      reader.readAsDataURL(file);
+    });
+
+    if (fileRef.current) {
+      fileRef.current.value = '';
+    }
+  };
+
+  const handleRemoveNewImage = (index: number) => {
+    setNewImageFiles(prev => prev.filter((_, i) => i !== index));
+    setNewImagePreviews(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleImageDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      const imageFilesList = Array.from(files).filter(f => f.type.startsWith('image/'));
+      if (imageFilesList.length > 0) {
+        handleNewFilesAdded(imageFilesList);
+      }
+    }
+  };
+
+  const handleVideoFileChange = (file: File | null) => {
+    if (!file) return;
+    setLocalError('');
+    const validTypes = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/webm', 'video/ogg'];
+    if (!validTypes.includes(file.type)) {
+      setLocalError('Chỉ chấp nhận file video (MP4, MOV, AVI, WebM).');
+      showNotification('Chỉ chấp nhận file video (MP4, MOV, AVI, WebM).', 'error');
+      return;
+    }
+    if (file.size > 100 * 1024 * 1024) {
+      setLocalError('Kích thước video vượt quá giới hạn cho phép (Tối đa 100MB).');
+      showNotification('Kích thước video vượt quá giới hạn cho phép (Tối đa 100MB).', 'error');
+      return;
+    }
+    setNewVideoFile(file);
+    setNewVideoPreviewUrl(URL.createObjectURL(file));
+    setExistingVideo(null); // Replace existing video with new upload
+  };
+
+  const handleVideoDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsVideoDragging(false);
     const file = e.dataTransfer.files?.[0];
-    if (file && file.type.startsWith('image/')) handleFileChange(file);
+    if (file && file.type.startsWith('video/')) handleVideoFileChange(file);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -379,15 +702,24 @@ const EditPostModal: React.FC<{
     setLocalError('');
 
     try {
-      let imageUrls: string[] = post.images;
-      if (imageFile) {
-        const uploadRes = await mediaService.upload(imageFile);
-        imageUrls = [uploadRes.url];
-      } else if (!imagePreview) {
-        imageUrls = [];
+      let finalImages: string[] = [...existingImages];
+      let finalVideoUrl: string | null = existingVideo;
+
+      // 1. Upload new images concurrently
+      if (newImageFiles.length > 0) {
+        const uploadPromises = newImageFiles.map(file => mediaService.upload(file));
+        const uploadResults = await Promise.all(uploadPromises);
+        finalImages = [...finalImages, ...uploadResults.map(res => res.url)];
       }
+
+      // 2. Upload new video if selected
+      if (newVideoFile) {
+        const uploadRes = await mediaService.upload(newVideoFile);
+        finalVideoUrl = uploadRes.url;
+      }
+
       const tags = hashtagsStr.split(',').map((t: string) => t.trim().replace(/^#/, '')).filter(Boolean);
-      await onSubmit(title.trim(), content.trim(), imageUrls, tags);
+      await onSubmit(title.trim(), content.trim(), finalImages, finalVideoUrl, tags);
     } catch (err: any) {
       console.error(err);
       const msg = err.response?.data?.detail || err.message || 'Không thể cập nhật bài viết. Vui lòng kiểm tra lại.';
@@ -440,39 +772,138 @@ const EditPostModal: React.FC<{
             />
           </div>
 
-          {/* Image Drag and Drop */}
+          {/* Image Management */}
           <div className="space-y-1.5">
-            <label className="block text-sm font-bold text-gray-700">Hình ảnh minh họa <span className="text-slate-400 font-normal">(Tùy chọn, tối đa 5MB)</span></label>
+            <label className="block text-sm font-bold text-gray-700">Hình ảnh minh họa <span className="text-slate-400 font-normal">(Tùy chọn, tối đa 10 ảnh)</span></label>
             <div
               className={`border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-all ${isDragging ? 'border-[#006d37] bg-[#e8f5e9]' : 'border-slate-200 hover:border-[#006d37]/50 hover:bg-slate-50'}`}
               onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
               onDragLeave={() => setIsDragging(false)}
-              onDrop={handleDrop}
+              onDrop={handleImageDrop}
               onClick={() => fileRef.current?.click()}
             >
-              {imagePreview ? (
-                <div className="relative inline-block" onClick={e => e.stopPropagation()}>
-                  <img src={imagePreview} alt="Preview" className="max-h-40 rounded-lg shadow-md border" />
-                  <button
-                    type="button"
-                    onClick={() => { setImagePreview(''); setImageFile(null); }}
-                    className="absolute -top-2 -right-2 bg-red-600 hover:bg-red-700 text-white rounded-full p-1 shadow-md transition-colors cursor-pointer"
-                  >
-                    <span className="material-symbols-outlined text-[14px] font-bold block">close</span>
-                  </button>
+              {(existingImages.length > 0 || newImagePreviews.length > 0) ? (
+                <div className="grid grid-cols-3 gap-2" onClick={e => e.stopPropagation()}>
+                  {/* Render existing images */}
+                  {existingImages.map((img, idx) => (
+                    <div key={`existing-${idx}`} className="relative w-full h-24 border rounded-lg overflow-hidden group">
+                      <img src={img} alt={`existing ${idx}`} className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveExistingImage(idx)}
+                        className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center font-bold shadow-md cursor-pointer border-none"
+                      >
+                        ×
+                      </button>
+                      <span className="absolute bottom-1 left-1 bg-black/60 text-white text-[8px] px-1 rounded">Đã đăng</span>
+                    </div>
+                  ))}
+                  {/* Render new images */}
+                  {newImagePreviews.map((preview, idx) => (
+                    <div key={`new-${idx}`} className="relative w-full h-24 border rounded-lg overflow-hidden group">
+                      <img src={preview} alt={`new ${idx}`} className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveNewImage(idx)}
+                        className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center font-bold shadow-md cursor-pointer border-none"
+                      >
+                        ×
+                      </button>
+                      <span className="absolute bottom-1 left-1 bg-[#006d37]/80 text-white text-[8px] px-1 rounded">Mới</span>
+                    </div>
+                  ))}
+                  {(existingImages.length + newImagePreviews.length) < 10 && (
+                    <div
+                      onClick={() => fileRef.current?.click()}
+                      className="border border-dashed border-slate-300 hover:border-[#006d37] rounded-lg h-24 flex flex-col items-center justify-center text-slate-400 cursor-pointer"
+                    >
+                      <span className="material-symbols-outlined text-2xl">add</span>
+                      <span className="text-[10px] font-bold">Thêm ảnh</span>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <>
                   <span className="material-symbols-outlined text-3xl text-slate-300">image</span>
-                  <p className="text-xs text-slate-400 font-semibold mt-1">Kéo thả hình ảnh hoặc nhấp để chọn tệp</p>
+                  <p className="text-xs text-slate-400 font-semibold mt-1">Kéo thả hình ảnh hoặc nhấp để chọn tệp (tối đa 10 ảnh)</p>
                   <p className="text-[10px] text-slate-300 mt-0.5">PNG, JPG, JPEG — tối đa 5MB</p>
                 </>
               )}
-              <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={e => handleFileChange(e.target.files?.[0] || null)} />
+              <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={e => handleNewFilesAdded(e.target.files)} />
             </div>
-            {imagePreview && (
-              <label className="flex items-center gap-2 mt-1 cursor-pointer w-fit" onClick={() => fileRef.current?.click()}>
-                <span className="border border-slate-300 bg-slate-50 text-slate-700 text-xs font-semibold px-3 py-1 rounded-md hover:bg-slate-100 transition-colors cursor-pointer">Thay đổi ảnh</span>
+            <div className="flex items-center gap-2 mt-1 w-fit">
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                className="border border-slate-300 bg-slate-50 text-slate-700 text-xs font-semibold px-3 py-1 rounded-md hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                Chọn nhiều ảnh
+              </button>
+              <span className="text-xs text-slate-400">{ (existingImages.length + newImagePreviews.length) > 0 ? `${existingImages.length + newImagePreviews.length} tệp đã chọn` : 'Không tệp nào được chọn' }</span>
+            </div>
+          </div>
+
+          {/* Video Management */}
+          <div className="space-y-1.5">
+            <label className="block text-sm font-bold text-gray-700">Video minh họa <span className="text-slate-400 font-normal">(Tùy chọn, tối đa 100MB)</span></label>
+            
+            {existingVideo ? (
+              <div className="flex items-center gap-3 justify-center border border-slate-200 rounded-xl p-4 bg-slate-50">
+                <video src={existingVideo} className="h-20 rounded-lg" controls />
+                <div className="text-left">
+                  <p className="text-xs font-bold text-slate-700">Video hiện tại</p>
+                  <button
+                    type="button"
+                    onClick={handleRemoveExistingVideo}
+                    className="text-[10px] text-red-500 font-bold hover:underline mt-1 cursor-pointer border-none bg-transparent"
+                  >
+                    Xóa video hiện tại
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div
+                className={`border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-all ${isVideoDragging ? 'border-[#006d37] bg-[#e8f5e9]' : 'border-slate-200 hover:border-[#006d37]/50 hover:bg-slate-50'}`}
+                onDragOver={e => { e.preventDefault(); setIsVideoDragging(true); }}
+                onDragLeave={() => setIsVideoDragging(false)}
+                onDrop={handleVideoDrop}
+                onClick={() => videoRef.current?.click()}
+              >
+                {newVideoFile && newVideoPreviewUrl ? (
+                  <div className="flex items-center gap-3 justify-center" onClick={e => e.stopPropagation()}>
+                    <video src={newVideoPreviewUrl} className="h-20 rounded-lg" controls />
+                    <div className="text-left">
+                      <p className="text-xs font-bold text-slate-700 truncate max-w-[160px]">{newVideoFile.name}</p>
+                      <p className="text-[10px] text-slate-400">{(newVideoFile.size / 1024 / 1024).toFixed(1)} MB</p>
+                      <button
+                        type="button"
+                        onClick={e => { e.stopPropagation(); setNewVideoFile(null); setNewVideoPreviewUrl(''); }}
+                        className="text-[10px] text-red-500 font-bold hover:underline mt-0.5 cursor-pointer border-none bg-transparent"
+                      >
+                        Xóa video
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <span className="material-symbols-outlined text-3xl text-slate-300">videocam</span>
+                    <p className="text-xs text-slate-400 font-semibold mt-1">Kéo thả file video hoặc nhấp để tải lên</p>
+                    <p className="text-[10px] text-slate-300 mt-0.5">MP4, MOV, AVI, WebM — tối đa 100MB</p>
+                  </>
+                )}
+                <input
+                  ref={videoRef}
+                  type="file"
+                  accept="video/mp4,video/quicktime,video/x-msvideo,video/webm,video/ogg"
+                  className="hidden"
+                  onChange={e => handleVideoFileChange(e.target.files?.[0] || null)}
+                />
+              </div>
+            )}
+            {!newVideoFile && !existingVideo && (
+              <label className="flex items-center gap-2 mt-1 cursor-pointer w-fit" onClick={() => videoRef.current?.click()}>
+                <span className="border border-slate-300 bg-slate-50 text-slate-700 text-xs font-semibold px-3 py-1 rounded-md hover:bg-slate-100 transition-colors cursor-pointer">Chọn Tệp Video</span>
+                <span className="text-xs text-slate-400">Không tệp nào được chọn</span>
               </label>
             )}
           </div>
@@ -519,6 +950,8 @@ export const FeedView: React.FC = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingPost, setEditingPost] = useState<Post | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [lightboxPost, setLightboxPost] = useState<Post | null>(null);
+  const [lightboxIndex, setLightboxIndex] = useState<number>(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
   const [openMenuPostId, setOpenMenuPostId] = useState<string | null>(null);
@@ -677,9 +1110,9 @@ export const FeedView: React.FC = () => {
     }
   };
 
-  const handleEditPostSubmit = async (title: string, content: string, images: string[], hashtags: string[]) => {
+  const handleEditPostSubmit = async (title: string, content: string, images: string[], videoUrl: string | null, hashtags: string[]) => {
     if (!editingPost) return;
-    const res = await editPost(editingPost._id, title, content, images, hashtags);
+    const res = await editPost(editingPost._id, title, content, images, videoUrl, hashtags);
     if (res.success) {
       setShowEditModal(false);
       setEditingPost(null);
@@ -1120,17 +1553,77 @@ export const FeedView: React.FC = () => {
 
                       {/* Post images */}
                       {post.images && post.images.length > 0 && (
-                        <div className={`rounded-xl overflow-hidden border border-slate-100 ${post.images.length > 1 ? 'grid grid-cols-2 gap-1' : 'max-h-[320px]'}`}>
-                          {post.images.slice(0, 4).map((img, idx) => (
+                        post.images.length === 1 ? (
+                          <div
+                            onClick={() => { setLightboxPost(post); setLightboxIndex(0); }}
+                            className="rounded-xl overflow-hidden border border-slate-100 max-h-[480px] bg-slate-50/50 flex items-center justify-center w-full cursor-zoom-in"
+                          >
                             <img
-                              key={idx}
-                              src={img}
-                              alt={`Post image ${idx + 1}`}
-                              className="w-full object-cover"
-                              style={{ maxHeight: post.images.length > 1 ? '180px' : '320px' }}
+                              src={post.images[0]}
+                              alt="Post image"
+                              className="w-full h-auto max-h-[480px] object-contain"
                             />
-                          ))}
-                        </div>
+                          </div>
+                        ) : post.images.length === 2 ? (
+                          <div className="rounded-xl overflow-hidden border border-slate-100 grid grid-cols-2 gap-1 bg-slate-50/50">
+                            {post.images.map((img, idx) => (
+                              <img
+                                key={idx}
+                                src={img}
+                                alt={`Post image ${idx + 1}`}
+                                className="w-full object-cover cursor-zoom-in"
+                                style={{ height: '260px' }}
+                                onClick={() => { setLightboxPost(post); setLightboxIndex(idx); }}
+                              />
+                            ))}
+                          </div>
+                        ) : post.images.length === 3 ? (
+                          <div className="rounded-xl overflow-hidden border border-slate-100 grid grid-cols-2 gap-1 bg-slate-50/50">
+                            <img
+                              src={post.images[0]}
+                              alt="Post image 1"
+                              className="w-full col-span-2 object-cover cursor-zoom-in"
+                              style={{ height: '240px' }}
+                              onClick={() => { setLightboxPost(post); setLightboxIndex(0); }}
+                            />
+                            <img
+                              src={post.images[1]}
+                              alt="Post image 2"
+                              className="w-full object-cover cursor-zoom-in"
+                              style={{ height: '160px' }}
+                              onClick={() => { setLightboxPost(post); setLightboxIndex(1); }}
+                            />
+                            <img
+                              src={post.images[2]}
+                              alt="Post image 3"
+                              className="w-full object-cover cursor-zoom-in"
+                              style={{ height: '160px' }}
+                              onClick={() => { setLightboxPost(post); setLightboxIndex(2); }}
+                            />
+                          </div>
+                        ) : (
+                          <div className="rounded-xl overflow-hidden border border-slate-100 grid grid-cols-2 gap-1 bg-slate-50/50">
+                            {post.images.slice(0, 4).map((img, idx) => (
+                              <div
+                                key={idx}
+                                className="relative w-full h-[180px] overflow-hidden cursor-zoom-in"
+                                onClick={() => { setLightboxPost(post); setLightboxIndex(idx); }}
+                              >
+                                <img
+                                  src={img}
+                                  alt={`Post image ${idx + 1}`}
+                                  className="w-full h-full object-cover"
+                                />
+                                {idx === 3 && post.images.length > 4 && (
+                                  <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white cursor-pointer select-none">
+                                    <span className="material-symbols-outlined text-2xl font-bold">add</span>
+                                    <span className="text-sm font-extrabold">Xem thêm {post.images.length - 4} ảnh</span>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )
                       )}
 
                       {/* Hashtags */}
@@ -1301,6 +1794,15 @@ export const FeedView: React.FC = () => {
           post={editingPost}
           onClose={() => { setShowEditModal(false); setEditingPost(null); }}
           onSubmit={handleEditPostSubmit}
+        />
+      )}
+
+      {/* ===================== IMAGE LIGHTBOX MODAL ===================== */}
+      {lightboxPost !== null && (
+        <ImageLightboxModal
+          post={lightboxPost}
+          initialIndex={lightboxIndex}
+          onClose={() => setLightboxPost(null)}
         />
       )}
     </div>
