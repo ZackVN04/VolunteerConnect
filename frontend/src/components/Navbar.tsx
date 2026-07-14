@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import logoImg from '../assets/logo.png';
 
 // Inline avatar fallback with initials
 const NavAvatar: React.FC<{ name: string; src?: string | null }> = ({ name, src }) => {
@@ -48,8 +49,8 @@ export const Navbar: React.FC = () => {
       <div className="flex justify-between items-center px-4 md:px-8 py-4 w-full max-w-[1280px] mx-auto h-[72px]">
         {/* Left: Brand/Logo */}
         <div className="flex items-center gap-2 shrink-0">
-          <a href="#/feed" className="font-headline-md text-xl text-[#006d37] font-bold flex items-center gap-2">
-            <span className="material-symbols-outlined text-[#006d37] text-3xl filled">diversity_3</span>
+          <a href="#/feed" className="font-headline-md text-xl text-[#006d37] font-bold flex items-center gap-2 hover:opacity-90 active:scale-[0.98] transition-all">
+            <img src={logoImg} alt="Volunteer Connect Logo" className="h-9 w-auto object-contain shrink-0" />
             <span className="tracking-tight select-none">Volunteer Connect</span>
           </a>
         </div>

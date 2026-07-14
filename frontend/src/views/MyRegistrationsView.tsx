@@ -96,11 +96,11 @@ export const MyRegistrationsView: React.FC = () => {
   return (
     <div className="w-full bg-[#f5f5f5] min-h-screen pb-16 text-left font-body-md">
       {/* Container */}
-      <div className="max-w-[1280px] mx-auto px-4 md:px-8 py-8 space-y-8">
+      <div className="max-w-[1280px] mx-auto px-3 sm:px-4 md:px-8 py-5 sm:py-8 space-y-6 sm:space-y-8">
         
         {/* Title block */}
         <div>
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-slate-900 font-headline-md">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-slate-900 font-headline-md">
             Đăng ký của tôi
           </h1>
           <p className="text-slate-500 text-sm md:text-base mt-1.5 font-semibold">
@@ -109,22 +109,22 @@ export const MyRegistrationsView: React.FC = () => {
         </div>
 
         {/* Header stats row */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-6">
           {/* Card 1 */}
-          <div className="bg-white border border-gray-200/80 rounded-2xl p-6 flex flex-col items-center justify-center shadow-sm min-h-[120px] space-y-1">
-            <span className="text-4xl font-extrabold text-gray-900">{pendingCount}</span>
+          <div className="bg-white border border-gray-200/80 rounded-2xl p-4 sm:p-6 flex flex-col items-center justify-center shadow-sm min-h-[110px] sm:min-h-[120px] space-y-1">
+            <span className="text-3xl sm:text-4xl font-extrabold text-gray-900">{pendingCount}</span>
             <span className="text-sm font-bold text-gray-600">Đang chờ duyệt</span>
           </div>
           
           {/* Card 2 */}
-          <div className="bg-white border border-gray-200/80 rounded-2xl p-6 flex flex-col items-center justify-center shadow-sm min-h-[120px] space-y-1">
-            <span className="text-4xl font-extrabold text-gray-900">{approvedCount}</span>
+          <div className="bg-white border border-gray-200/80 rounded-2xl p-4 sm:p-6 flex flex-col items-center justify-center shadow-sm min-h-[110px] sm:min-h-[120px] space-y-1">
+            <span className="text-3xl sm:text-4xl font-extrabold text-gray-900">{approvedCount}</span>
             <span className="text-sm font-bold text-gray-600">Sắp diễn ra</span>
           </div>
 
           {/* Card 3 */}
-          <div className="bg-white border border-gray-200/80 rounded-2xl p-6 flex flex-col items-center justify-center shadow-sm min-h-[120px] space-y-1">
-            <span className="text-4xl font-extrabold text-gray-900">{completedCount}</span>
+          <div className="bg-white border border-gray-200/80 rounded-2xl p-4 sm:p-6 flex flex-col items-center justify-center shadow-sm min-h-[110px] sm:min-h-[120px] space-y-1">
+            <span className="text-3xl sm:text-4xl font-extrabold text-gray-900">{completedCount}</span>
             <span className="text-sm font-bold text-gray-600">Đã hoàn thành</span>
           </div>
         </div>
@@ -142,12 +142,12 @@ export const MyRegistrationsView: React.FC = () => {
         {/* Timeline Items List */}
         <div className="space-y-4">
           {userRegs.length === 0 ? (
-            <div className="bg-white border border-gray-200/80 rounded-2xl p-16 text-center shadow-sm space-y-4">
+            <div className="bg-white border border-gray-200/80 rounded-2xl p-8 sm:p-16 text-center shadow-sm space-y-4">
               <span className="material-symbols-outlined text-gray-300 text-5xl">event_busy</span>
               <p className="text-sm text-gray-500 font-semibold italic">Bạn chưa đăng ký tham gia hoạt động nào.</p>
               <a 
                 href="#/activities" 
-                className="inline-block bg-[#006d37] hover:bg-[#005027] text-white font-bold px-6 py-2.5 rounded-xl transition-all text-sm shadow-sm"
+                className="inline-block w-full sm:w-auto bg-[#006d37] hover:bg-[#005027] text-white font-bold px-6 py-2.5 rounded-xl transition-all text-sm shadow-sm"
               >
                 Khám phá hoạt động ngay
               </a>
@@ -160,14 +160,14 @@ export const MyRegistrationsView: React.FC = () => {
               return (
                 <div 
                   key={reg._id} 
-                  className="bg-white border border-gray-200/80 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col md:flex-row md:items-center justify-between gap-4"
+                  className="bg-white border border-gray-200/80 rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col md:flex-row md:items-center justify-between gap-4"
                 >
                   {/* Left Side: Info */}
-                  <div className="space-y-1">
+                  <div className="space-y-1 min-w-0">
                     <span className="text-xs text-gray-500 font-semibold block mb-1">
                       {formatRegistrationSchedule(reg.denormalized_activity.start_date, reg.denormalized_activity.end_date)}
                     </span>
-                    <h3 className="text-base font-bold text-gray-900 hover:text-[#006d37] transition-colors leading-snug block mb-2">
+                    <h3 className="text-base font-bold text-gray-900 hover:text-[#006d37] transition-colors leading-snug block mb-2 break-words">
                       <a href={`#/activity/${reg.activity_id}`}>
                         {reg.denormalized_activity.title}
                       </a>
@@ -175,9 +175,9 @@ export const MyRegistrationsView: React.FC = () => {
                     
                     {/* Additional Details (QA Request) */}
                     <div className="flex flex-col gap-1.5 text-xs text-slate-500 pt-1">
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-start gap-1.5">
                         <span className="material-symbols-outlined text-[#006d37] text-[16px] font-bold">corporate_fare</span>
-                        <span>
+                        <span className="min-w-0 break-words">
                           <strong>Ban tổ chức:</strong>{' '}
                           {organizerId ? (
                             <a href={`#/profile?userId=${organizerId}`} className="font-bold text-[#006d37] hover:underline">
@@ -188,15 +188,15 @@ export const MyRegistrationsView: React.FC = () => {
                           )}
                         </span>
                       </div>
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-start gap-1.5">
                         <span className="material-symbols-outlined text-[#006d37] text-[16px] font-bold">category</span>
-                        <span>
+                        <span className="min-w-0 break-words">
                           <strong>Lĩnh vực:</strong> {actDetails?.categories?.join(', ') || 'Chưa cập nhật'}
                         </span>
                       </div>
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-start gap-1.5">
                         <span className="material-symbols-outlined text-[#006d37] text-[16px] font-bold">location_on</span>
-                        <span className="line-clamp-1">
+                        <span className="min-w-0 break-words">
                           <strong>Địa điểm:</strong> {actDetails?.location ? `${actDetails.location.address_detail}, ${actDetails.location.district}, ${actDetails.location.province}` : 'Chưa cập nhật'}
                         </span>
                       </div>
@@ -212,17 +212,17 @@ export const MyRegistrationsView: React.FC = () => {
                   </div>
 
                   {/* Right Side: Badges & Action Buttons */}
-                  <div className="flex flex-wrap items-center gap-3 self-start md:self-auto shrink-0">
+                  <div className="flex w-full flex-wrap items-center gap-3 self-start md:w-auto md:self-auto md:shrink-0">
                     {/* Status badges */}
                     <div className="flex items-center gap-2">
                       {getStatusBadges(reg.status)}
                     </div>
 
                     {/* Action buttons */}
-                    <div className="flex items-center gap-2 pl-2 border-l border-gray-200">
+                    <div className="flex w-full items-center gap-2 border-t border-gray-200 pt-3 md:w-auto md:border-l md:border-t-0 md:pl-2 md:pt-0">
                       <a 
                         href={`#/activity/${reg.activity_id}`}
-                        className="border border-gray-300 hover:border-gray-400 text-gray-700 hover:bg-gray-50 px-4 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap block"
+                        className="block w-full md:w-auto text-center border border-gray-300 hover:border-gray-400 text-gray-700 hover:bg-gray-50 px-4 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap"
                       >
                         Xem chi tiết
                       </a>

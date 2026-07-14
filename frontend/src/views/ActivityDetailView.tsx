@@ -159,7 +159,7 @@ export const ActivityDetailView: React.FC<ActivityDetailViewProps> = ({ activity
   return (
     <div className="w-full bg-[#f8f9fa] min-h-screen pb-16">
       {/* Container */}
-      <div className="max-w-[1280px] mx-auto px-4 md:px-8 py-8 text-left">
+      <div className="max-w-[1280px] mx-auto px-3 sm:px-4 md:px-8 py-5 sm:py-8 text-left">
 
         {/* Back Link */}
         <button
@@ -170,13 +170,13 @@ export const ActivityDetailView: React.FC<ActivityDetailViewProps> = ({ activity
         </button>
 
         {/* Layout Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-8">
 
           {/* Left Column (8 cols): Content */}
-          <div className="lg:col-span-8 bg-white border border-surface-variant/40 rounded-3xl p-6 md:p-8 space-y-6">
+          <div className="lg:col-span-8 bg-white border border-surface-variant/40 rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 space-y-5 sm:space-y-6">
 
             {/* Wide Campaign Image */}
-            <div className="w-full h-[300px] md:h-[400px] rounded-2xl overflow-hidden shadow-sm bg-surface-container-low">
+            <div className="w-full h-[220px] sm:h-[300px] md:h-[400px] rounded-2xl overflow-hidden shadow-sm bg-surface-container-low">
               <img
                 src={activity.image_url || 'https://images.unsplash.com/photo-1544027993-37dbfe43562a?q=80&w=600'}
                 alt={activity.title}
@@ -193,7 +193,7 @@ export const ActivityDetailView: React.FC<ActivityDetailViewProps> = ({ activity
             </div>
 
             {/* Campaign Title */}
-            <h1 className="text-2xl md:text-3xl font-bold text-on-surface font-headline-md leading-tight">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-on-surface font-headline-md leading-tight break-words">
               {activity.title}
             </h1>
 
@@ -214,7 +214,7 @@ export const ActivityDetailView: React.FC<ActivityDetailViewProps> = ({ activity
               </h2>
               <a
                 href={`#/profile?userId=${activity.organizer_id}`}
-                className="flex items-center gap-4 bg-white border border-surface-variant/40 rounded-2xl p-4 shadow-sm w-fit min-w-[320px] hover:bg-slate-50 transition-colors"
+                className="flex items-center gap-4 bg-white border border-surface-variant/40 rounded-2xl p-4 shadow-sm w-full sm:w-fit min-w-0 sm:min-w-[320px] hover:bg-slate-50 transition-colors"
               >
                 <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-primary-container bg-surface-container-high shrink-0">
                   <ContactAvatar
@@ -222,8 +222,8 @@ export const ActivityDetailView: React.FC<ActivityDetailViewProps> = ({ activity
                     src={organizerUser?.profile?.avatar_url}
                   />
                 </div>
-                <div className="flex flex-col text-left">
-                  <span className="font-bold text-sm text-on-surface hover:text-[#006d37] transition-colors flex items-center gap-1">
+                <div className="flex flex-col text-left min-w-0">
+                  <span className="font-bold text-sm text-on-surface hover:text-[#006d37] transition-colors flex items-center gap-1 break-words">
                     {activity.denormalized_organizer?.name || 'Ban tổ chức'}
                     <span className="material-symbols-outlined text-[14px]">open_in_new</span>
                   </span>
@@ -238,7 +238,7 @@ export const ActivityDetailView: React.FC<ActivityDetailViewProps> = ({ activity
 
           {/* Right Column (4 cols): Sticky Sidebar */}
           <div className="lg:col-span-4">
-            <div className="sticky top-24 bg-white border border-surface-variant/40 rounded-3xl p-6 shadow-sm flex flex-col gap-6">
+            <div className="lg:sticky lg:top-24 bg-white border border-surface-variant/40 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm flex flex-col gap-5 sm:gap-6">
 
               <h3 className="text-lg font-bold text-on-surface border-b border-surface-variant/40 pb-2">
                 Đăng ký tham gia
