@@ -201,13 +201,12 @@ const ImageLightboxModal: React.FC<{
             <div>
               <div className="flex items-center gap-1.5">
                 <span className="font-bold text-sm text-slate-800">{authorName}</span>
-                <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-full ${
-                  authorRoleRaw === 'Organizer' 
-                    ? 'bg-emerald-50 text-[#006d37] border border-emerald-100/50' 
+                <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-full ${authorRoleRaw === 'Organizer'
+                    ? 'bg-emerald-50 text-[#006d37] border border-emerald-100/50'
                     : authorRoleRaw === 'Admin'
-                    ? 'bg-red-50 text-red-700 border border-red-100'
-                    : 'bg-slate-50 text-slate-600 border border-slate-200'
-                }`}>
+                      ? 'bg-red-50 text-red-700 border border-red-100'
+                      : 'bg-slate-50 text-slate-600 border border-slate-200'
+                  }`}>
                   {authorRole}
                 </span>
               </div>
@@ -277,7 +276,7 @@ const CreatePostModal: React.FC<{ onClose: () => void; onSubmit: (title: string,
     if (!files) return;
     setLocalError('');
     const filesArr = files instanceof FileList ? Array.from(files) : files;
-    
+
     if (imageFiles.length + filesArr.length > 10) {
       setLocalError('Tối đa chỉ được chọn 10 hình ảnh.');
       showNotification('Tối đa chỉ được chọn 10 hình ảnh.', 'error');
@@ -839,14 +838,14 @@ const EditPostModal: React.FC<{
               >
                 Chọn nhiều ảnh
               </button>
-              <span className="text-xs text-slate-400">{ (existingImages.length + newImagePreviews.length) > 0 ? `${existingImages.length + newImagePreviews.length} tệp đã chọn` : 'Không tệp nào được chọn' }</span>
+              <span className="text-xs text-slate-400">{(existingImages.length + newImagePreviews.length) > 0 ? `${existingImages.length + newImagePreviews.length} tệp đã chọn` : 'Không tệp nào được chọn'}</span>
             </div>
           </div>
 
           {/* Video Management */}
           <div className="space-y-1.5">
             <label className="block text-sm font-bold text-gray-700">Video minh họa <span className="text-slate-400 font-normal">(Tùy chọn, tối đa 100MB)</span></label>
-            
+
             {existingVideo ? (
               <div className="flex items-center gap-3 justify-center border border-slate-200 rounded-xl p-4 bg-slate-50">
                 <video src={existingVideo} className="h-20 rounded-lg" controls />
@@ -944,7 +943,20 @@ export interface PostComment {
   created_at: string;
 }
 
-export const FeedView: React.FC = () => {
+interface FeedViewProps {
+  mode?: 'home' | 'posts';
+}
+
+const POST_FIELD_OPTIONS = ['Môi trường', 'Giáo dục', 'Y tế', 'Từ thiện', 'Gây quỹ', 'Động vật', 'Cộng đồng'];
+
+const normalizeSearchText = (value: string) =>
+  value
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+
+export const FeedView: React.FC<FeedViewProps> = ({ mode = 'home' }) => {
+  const isPostsPage = mode === 'posts';
   const { currentUser, isDataLoading, globalStats, users, activities, posts, createPost, editPost, likePost, sharePost, deletePost, incrementCommentCount, showNotification } = useApp();
   const [currentPage, setCurrentPage] = useState(1);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -953,6 +965,8 @@ export const FeedView: React.FC = () => {
   const [lightboxPost, setLightboxPost] = useState<Post | null>(null);
   const [lightboxIndex, setLightboxIndex] = useState<number>(0);
   const [searchQuery, setSearchQuery] = useState('');
+  const [fieldFilter, setFieldFilter] = useState('All');
+  const [ownerFilter, setOwnerFilter] = useState<'all' | 'mine'>('all');
   const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
   const [openMenuPostId, setOpenMenuPostId] = useState<string | null>(null);
   const itemsPerPage = 3;
@@ -963,7 +977,7 @@ export const FeedView: React.FC = () => {
 
   useEffect(() => {
     setFeedPage(1);
-  }, [searchQuery]);
+  }, [searchQuery, fieldFilter, ownerFilter]);
 
   // Comments states
   const [commentsMap, setCommentsMap] = useState<Record<string, PostComment[]>>({});
@@ -1061,17 +1075,26 @@ export const FeedView: React.FC = () => {
   const totalPages = Math.ceil(featuredList.length / itemsPerPage);
   const featuredActivities = featuredList.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  // Filter posts based on search query
-  const filteredPosts = posts.filter(post => {
-    if (!searchQuery.trim()) return true;
-    const query = searchQuery.toLowerCase().trim();
-    const contentMatch = post.content.toLowerCase().includes(query);
-    const hashtagMatch = (post.hashtags || []).some(tag => tag.toLowerCase().includes(query));
-    return contentMatch || hashtagMatch;
+  // Filter posts based on search query and post page filters
+  const sortedPosts = [...posts].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  const normalizedSearchQuery = normalizeSearchText(searchQuery.trim());
+  const normalizedFieldFilter = fieldFilter === 'All' ? '' : normalizeSearchText(fieldFilter);
+  const filteredPosts = sortedPosts.filter(post => {
+    const postText = normalizeSearchText([
+      post.title || '',
+      post.content || '',
+      ...(post.hashtags || []),
+    ].join(' '));
+    const matchesSearch = !normalizedSearchQuery || postText.includes(normalizedSearchQuery);
+    const matchesField = !normalizedFieldFilter || postText.includes(normalizedFieldFilter);
+    const matchesOwner = ownerFilter !== 'mine' || !currentUser || post.author_id === currentUser._id;
+    return matchesSearch && matchesField && matchesOwner;
   });
 
-  const totalFeedPages = Math.ceil(filteredPosts.length / postsPerPage);
-  const paginatedPosts = filteredPosts.slice((feedPage - 1) * postsPerPage, feedPage * postsPerPage);
+  const totalFeedPages = isPostsPage ? Math.ceil(filteredPosts.length / postsPerPage) : 1;
+  const paginatedPosts = isPostsPage
+    ? filteredPosts.slice((feedPage - 1) * postsPerPage, feedPage * postsPerPage)
+    : filteredPosts.slice(0, 5);
 
 
   // Pre-loading comment counts was removed to fix N+1 query performance bottleneck.
@@ -1139,313 +1162,383 @@ export const FeedView: React.FC = () => {
     <div className="w-full bg-[#f8f9fa] min-h-screen pb-16 text-left antialiased">
       <div className="max-w-[1280px] mx-auto px-3 sm:px-4 md:px-8 py-5 sm:py-8 space-y-8 sm:space-y-12">
 
-        {/* ===================== HERO SECTION ===================== */}
-        <section className="bg-[#f0f9f4] rounded-2xl sm:rounded-[2rem] p-5 sm:p-8 md:p-12 flex flex-col lg:flex-row items-center justify-between gap-6 sm:gap-8">
-          <div className="lg:w-1/2 space-y-5 sm:space-y-6 min-w-0">
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-on-surface leading-tight font-headline-md">
-              Kết nối sức trẻ<br />
-              <span className="text-[#006d37]">Lan tỏa giá trị cộng đồng</span>
-            </h1>
-            <p className="text-on-surface-variant text-sm sm:text-base md:text-lg leading-relaxed">
-              Volunteer Connect mang đến không gian nơi mỗi người đều có thể đóng góp cho xã hội. Khám phá các hoạt động tình nguyện uy tín, đồng hành cùng những con người cùng chí hướng và lưu giữ hành trình tạo nên những thay đổi tích cực.
-            </p>
-            <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:gap-4">
-              <a href="#/activities" className="w-full sm:w-auto text-center bg-[#006d37] hover:bg-emerald-800 text-white font-bold px-6 py-3 rounded-xl transition-all shadow-sm">
-                Khám phá hoạt động
-              </a>
-              <a href="#/profile" className="w-full sm:w-auto text-center bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-bold px-6 py-3 rounded-xl transition-all shadow-sm">
-                Tài khoản của tôi
-              </a>
-            </div>
-          </div>
-          <div className="lg:w-1/2 w-full flex justify-center">
-            <div className="w-full max-w-[500px] h-56 sm:h-[300px] rounded-2xl sm:rounded-3xl overflow-hidden shadow-md relative group">
-              {bannerImages.map((img, idx) => (
-                <img
-                  key={idx}
-                  src={img}
-                  alt={`Volunteer Community ${idx + 1}`}
-                  className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${idx === activeImageIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
-                />
-              ))}
-
-              {/* Dots navigation indicator */}
-              <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 z-20">
-                {bannerImages.map((_, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setActiveImageIndex(idx)}
-                    className={`w-2.5 h-2.5 rounded-full transition-all duration-300 cursor-pointer ${idx === activeImageIndex ? 'bg-white w-6' : 'bg-white/50'}`}
-                    aria-label={`Slide ${idx + 1}`}
-                  />
-                ))}
+        {!isPostsPage && (
+          <>
+            {/* ===================== HERO SECTION ===================== */}
+            <section className="bg-[#f0f9f4] rounded-2xl sm:rounded-[2rem] p-5 sm:p-8 md:p-12 flex flex-col lg:flex-row items-center justify-between gap-6 sm:gap-8">
+              <div className="lg:w-1/2 space-y-5 sm:space-y-6 min-w-0">
+                <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-on-surface leading-tight font-headline-md">
+                  Kết nối sức trẻ<br />
+                  <span className="text-[#006d37]">Lan tỏa giá trị cộng đồng</span>
+                </h1>
+                <p className="text-on-surface-variant text-sm sm:text-base md:text-lg leading-relaxed">
+                  Volunteer Connect mang đến không gian nơi mỗi người đều có thể đóng góp cho xã hội. Khám phá các hoạt động tình nguyện uy tín, đồng hành cùng những con người cùng chí hướng và lưu giữ hành trình tạo nên những thay đổi tích cực.
+                </p>
+                <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:gap-4">
+                  <a href="#/activities" className="w-full sm:w-auto text-center bg-[#006d37] hover:bg-emerald-800 text-white font-bold px-6 py-3 rounded-xl transition-all shadow-sm">
+                    Khám phá hoạt động
+                  </a>
+                  <a href="#/profile" className="w-full sm:w-auto text-center bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-bold px-6 py-3 rounded-xl transition-all shadow-sm">
+                    Tài khoản của tôi
+                  </a>
+                </div>
               </div>
+              <div className="lg:w-1/2 w-full flex justify-center">
+                <div className="w-full max-w-[500px] h-56 sm:h-[300px] rounded-2xl sm:rounded-3xl overflow-hidden shadow-md relative group">
+                  {bannerImages.map((img, idx) => (
+                    <img
+                      key={idx}
+                      src={img}
+                      alt={`Volunteer Community ${idx + 1}`}
+                      className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${idx === activeImageIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
+                    />
+                  ))}
 
-              {/* Prev / Next controls */}
-              <button
-                type="button"
-                onClick={() => setActiveImageIndex((prev) => (prev - 1 + bannerImages.length) % bannerImages.length)}
-                className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center transition-all opacity-100 sm:opacity-0 group-hover:opacity-100 z-20 cursor-pointer"
-              >
-                <span className="material-symbols-outlined text-base">chevron_left</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveImageIndex((prev) => (prev + 1) % bannerImages.length)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center transition-all opacity-100 sm:opacity-0 group-hover:opacity-100 z-20 cursor-pointer"
-              >
-                <span className="material-symbols-outlined text-base">chevron_right</span>
-              </button>
-            </div>
-          </div>
-        </section>
-
-        {/* ===================== STATS ===================== */}
-        <section className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6">
-          {[
-            { value: totalCampaigns, label: 'Tổng chiến dịch' },
-            { value: totalVolunteers, label: 'Tình nguyện viên' },
-            { value: totalOrganizers, label: 'Nhà tổ chức' },
-            { value: totalCompleted, label: 'Đã hoàn thành' },
-          ].map((s, i) => (
-            <div key={i} className="bg-white border border-surface-variant/40 rounded-2xl p-4 sm:p-6 text-center shadow-sm">
-              <h3 className="text-3xl sm:text-4xl font-bold text-[#006d37] flex items-center justify-center">
-                <AnimatedCounter target={s.value} />
-                {s.value > 0 && <span className="text-2xl sm:text-3xl ml-0.5 text-[#006d37]/80">+</span>}
-              </h3>
-              <p className="text-on-surface-variant font-semibold text-sm mt-1">{s.label}</p>
-            </div>
-          ))}
-        </section>
-
-        {/* ===================== FEATURED ACTIVITIES ===================== */}
-        <section className="space-y-6">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-3 border-b border-surface-variant/40 pb-4">
-            <div className="space-y-1">
-              <h2 className="text-2xl font-bold text-on-surface font-headline-md">Hoạt động nổi bật</h2>
-              <p className="text-on-surface-variant text-sm">Tham gia các hoạt động xã hội đang diễn ra gần bạn</p>
-            </div>
-            <a href="#/activities" className="text-[#006d37] hover:underline font-bold text-sm flex items-center gap-1">Xem tất cả →</a>
-          </div>
-
-          {isDataLoading ? (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {[1, 2, 3].map(i => (
-                  <ActivitySkeleton key={i} />
-                ))}
-              </div>
-              <PaginationSkeleton count={3} className="pt-2" />
-            </div>
-          ) : featuredActivities.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center space-y-3 bg-white border border-slate-100 rounded-3xl">
-              <span className="material-symbols-outlined text-5xl text-slate-300">volunteer_activism</span>
-              <p className="text-slate-500 font-semibold text-sm">Hiện chưa có hoạt động nổi bật nào đang mở đăng ký.</p>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {featuredActivities.map(act => (
-                  <div
-                    key={act._id}
-                    onClick={() => { window.location.hash = `#/activity/${act._id}`; }}
-                    className="bg-white border border-surface-variant/40 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col cursor-pointer"
-                  >
-                    <div className="relative h-[200px] shrink-0">
-                      <img
-                        src={act.image_url || 'https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=600'}
-                        alt={act.title}
-                        className="w-full h-full object-cover"
-                        onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=600'; }}
+                  {/* Dots navigation indicator */}
+                  <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 z-20">
+                    {bannerImages.map((_, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setActiveImageIndex(idx)}
+                        className={`w-2.5 h-2.5 rounded-full transition-all duration-300 cursor-pointer ${idx === activeImageIndex ? 'bg-white w-6' : 'bg-white/50'}`}
+                        aria-label={`Slide ${idx + 1}`}
                       />
-                      <span className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm text-[#006d37] font-bold text-xs px-3 py-1 rounded-full uppercase border border-[#006d37]/20">
-                        {act.categories[0] || 'Tình nguyện'}
-                      </span>
-                      {act.status === 'Open' && (
-                        <span className="absolute top-4 right-4 bg-[#006d37] text-white text-xs font-bold px-3 py-1 rounded-full">Đang mở</span>
-                      )}
-                    </div>
-                    <div className="p-5 flex flex-col justify-between flex-grow space-y-3">
-                      <div className="space-y-2">
-                        <h3 className="text-lg font-bold text-on-surface line-clamp-2 leading-tight">{act.title}</h3>
-                        <div className="space-y-1 text-sm text-on-surface-variant">
-                          <div className="flex items-center gap-2">
-                            <span className="material-symbols-outlined text-[#006d37] text-base">calendar_month</span>
-                            <span>{new Date(act.start_date).toLocaleDateString('vi-VN')}</span>
+                    ))}
+                  </div>
+
+                  {/* Prev / Next controls */}
+                  <button
+                    type="button"
+                    onClick={() => setActiveImageIndex((prev) => (prev - 1 + bannerImages.length) % bannerImages.length)}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center transition-all opacity-100 sm:opacity-0 group-hover:opacity-100 z-20 cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-base">chevron_left</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveImageIndex((prev) => (prev + 1) % bannerImages.length)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center transition-all opacity-100 sm:opacity-0 group-hover:opacity-100 z-20 cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-base">chevron_right</span>
+                  </button>
+                </div>
+              </div>
+            </section>
+
+            {/* ===================== STATS ===================== */}
+            <section className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6">
+              {[
+                { value: totalCampaigns, label: 'Tổng chiến dịch' },
+                { value: totalVolunteers, label: 'Tình nguyện viên' },
+                { value: totalOrganizers, label: 'Nhà tổ chức' },
+                { value: totalCompleted, label: 'Đã hoàn thành' },
+              ].map((s, i) => (
+                <div key={i} className="bg-white border border-surface-variant/40 rounded-2xl p-4 sm:p-6 text-center shadow-sm">
+                  <h3 className="text-3xl sm:text-4xl font-bold text-[#006d37] flex items-center justify-center">
+                    <AnimatedCounter target={s.value} />
+                    {s.value > 0 && <span className="text-2xl sm:text-3xl ml-0.5 text-[#006d37]/80">+</span>}
+                  </h3>
+                  <p className="text-on-surface-variant font-semibold text-sm mt-1">{s.label}</p>
+                </div>
+              ))}
+            </section>
+
+            {/* ===================== FEATURED ACTIVITIES ===================== */}
+            <section className="space-y-6">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-3 border-b border-surface-variant/40 pb-4">
+                <div className="space-y-1">
+                  <h2 className="text-2xl font-bold text-on-surface font-headline-md">Hoạt động nổi bật</h2>
+                  <p className="text-on-surface-variant text-sm">Tham gia các hoạt động xã hội đang diễn ra gần bạn</p>
+                </div>
+                <a href="#/activities" className="text-[#006d37] hover:underline font-bold text-sm flex items-center gap-1">Xem tất cả →</a>
+              </div>
+
+              {isDataLoading ? (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {[1, 2, 3].map(i => (
+                      <ActivitySkeleton key={i} />
+                    ))}
+                  </div>
+                  <PaginationSkeleton count={3} className="pt-2" />
+                </div>
+              ) : featuredActivities.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center space-y-3 bg-white border border-slate-100 rounded-3xl">
+                  <span className="material-symbols-outlined text-5xl text-slate-300">volunteer_activism</span>
+                  <p className="text-slate-500 font-semibold text-sm">Hiện chưa có hoạt động nổi bật nào đang mở đăng ký.</p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {featuredActivities.map(act => (
+                      <div
+                        key={act._id}
+                        onClick={() => { window.location.hash = `#/activity/${act._id}`; }}
+                        className="bg-white border border-surface-variant/40 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col cursor-pointer"
+                      >
+                        <div className="relative h-[200px] shrink-0">
+                          <img
+                            src={act.image_url || 'https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=600'}
+                            alt={act.title}
+                            className="w-full h-full object-cover"
+                            onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=600'; }}
+                          />
+                          <span className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm text-[#006d37] font-bold text-xs px-3 py-1 rounded-full uppercase border border-[#006d37]/20">
+                            {act.categories[0] || 'Tình nguyện'}
+                          </span>
+                          {act.status === 'Open' && (
+                            <span className="absolute top-4 right-4 bg-[#006d37] text-white text-xs font-bold px-3 py-1 rounded-full">Đang mở</span>
+                          )}
+                        </div>
+                        <div className="p-5 flex flex-col justify-between flex-grow space-y-3">
+                          <div className="space-y-2">
+                            <h3 className="text-lg font-bold text-on-surface line-clamp-2 leading-tight">{act.title}</h3>
+                            <div className="space-y-1 text-sm text-on-surface-variant">
+                              <div className="flex items-center gap-2">
+                                <span className="material-symbols-outlined text-[#006d37] text-base">calendar_month</span>
+                                <span>{new Date(act.start_date).toLocaleDateString('vi-VN')}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="material-symbols-outlined text-[#006d37] text-base">location_on</span>
+                                <span className="line-clamp-1">{act.location?.province || act.location?.address_detail || 'Toàn quốc'}</span>
+                              </div>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <span className="material-symbols-outlined text-[#006d37] text-base">location_on</span>
-                            <span className="line-clamp-1">{act.location?.province || act.location?.address_detail || 'Toàn quốc'}</span>
+                          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-2">
+                            <a href={`#/activity/${act._id}`} onClick={(e) => e.stopPropagation()} className="flex-1 text-center bg-[#006d37] hover:bg-emerald-800 text-white font-bold py-2 rounded-xl text-xs transition-all">
+                              Đang mở đăng ký
+                            </a>
+                            <a href={`#/activity/${act._id}`} onClick={(e) => e.stopPropagation()} className="flex-1 text-center border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold py-2 rounded-xl text-xs transition-all">
+                              Xem chi tiết
+                            </a>
                           </div>
                         </div>
                       </div>
-                      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-2">
-                        <a href={`#/activity/${act._id}`} onClick={(e) => e.stopPropagation()} className="flex-1 text-center bg-[#006d37] hover:bg-emerald-800 text-white font-bold py-2 rounded-xl text-xs transition-all">
-                          Đang mở đăng ký
-                        </a>
-                        <a href={`#/activity/${act._id}`} onClick={(e) => e.stopPropagation()} className="flex-1 text-center border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold py-2 rounded-xl text-xs transition-all">
-                          Xem chi tiết
-                        </a>
-                      </div>
-                    </div>
+                    ))}
                   </div>
-                ))}
-              </div>
 
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="flex flex-wrap justify-center gap-2 pt-2">
-                  {Array.from({ length: totalPages }, (_, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setCurrentPage(i + 1)}
-                      className={`w-8 h-8 rounded-full text-sm font-bold transition-all ${currentPage === i + 1 ? 'bg-[#006d37] text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}
-                    >
-                      {i + 1}
-                    </button>
-                  ))}
+                  {/* Pagination */}
+                  {totalPages > 1 && (
+                    <div className="flex flex-wrap justify-center gap-2 pt-2">
+                      {Array.from({ length: totalPages }, (_, i) => (
+                        <button
+                          key={i}
+                          onClick={() => setCurrentPage(i + 1)}
+                          className={`w-8 h-8 rounded-full text-sm font-bold transition-all ${currentPage === i + 1 ? 'bg-[#006d37] text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                        >
+                          {i + 1}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
-            </div>
-          )}
-        </section>
+            </section>
 
-        {/* ===================== LỢI ÍCH KHI THAM GIA ===================== */}
-        <section className="space-y-6 text-center py-2 sm:py-4">
-          <div className="space-y-2">
-            <h2 className="text-2xl font-extrabold text-slate-900 font-headline-md">Lợi ích khi tham gia</h2>
-            <p className="text-slate-500 text-sm font-medium max-w-2xl mx-auto leading-relaxed">
-              Volunteer Connect mang đến nền tảng toàn diện để bạn dễ dàng bắt đầu hành trình tạo tác động xã hội.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
-            {/* Card 1 */}
-            <div className="bg-white border border-slate-200/60 rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col items-center md:items-start text-center md:text-left">
-              <div className="bg-[#e8f5e9] w-12 h-12 rounded-full flex items-center justify-center text-[#006d37] shrink-0 shadow-sm">
-                <span className="material-symbols-outlined text-2xl font-bold">search</span>
-              </div>
-              <h3 className="text-lg font-bold text-slate-900 mt-4">Tìm kiếm dễ dàng</h3>
-              <p className="text-xs text-slate-500 font-semibold leading-relaxed mt-2">
-                Khám phá và lọc các hoạt động tình nguyện theo sở thích cá nhân, kỹ năng chuyên môn, vị trí địa lý và thời gian rảnh rỗi của bạn chỉ với vài cú click.
-              </p>
-            </div>
-
-            {/* Card 2 */}
-            <div className="bg-white border border-slate-200/60 rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col items-center md:items-start text-center md:text-left">
-              <div className="bg-[#e8f5e9] w-12 h-12 rounded-full flex items-center justify-center text-[#006d37] shrink-0 shadow-sm">
-                <span className="material-symbols-outlined text-2xl font-bold">trending_up</span>
-              </div>
-              <h3 className="text-lg font-bold text-slate-900 mt-4">Theo dõi tác động</h3>
-              <p className="text-xs text-slate-500 font-semibold leading-relaxed mt-2">
-                Ghi nhận chính xác số giờ đóng góp, theo dõi các dự án đã tham gia và nhận chứng nhận để đánh giá trực quan mức độ ảnh hưởng của bạn đến cộng đồng.
-              </p>
-            </div>
-
-            {/* Card 3 */}
-            <div className="bg-white border border-slate-200/60 rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col items-center md:items-start text-center md:text-left">
-              <div className="bg-[#e8f5e9] w-12 h-12 rounded-full flex items-center justify-center text-[#006d37] shrink-0 shadow-sm">
-                <span className="material-symbols-outlined text-2xl font-bold">groups</span>
-              </div>
-              <h3 className="text-lg font-bold text-slate-900 mt-4">Cộng đồng năng động</h3>
-              <p className="text-xs text-slate-500 font-semibold leading-relaxed mt-2">
-                Kết nối sâu sắc với những cá nhân cùng chung chí hướng, trao đổi kinh nghiệm và xây dựng một mạng lưới quan hệ ý nghĩa, lâu dài.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* ===================== DÀNH CHO TỔ CHỨC ===================== */}
-        <section className="bg-white border border-slate-200/60 rounded-2xl sm:rounded-3xl p-5 sm:p-6 md:p-10 shadow-sm">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-            {/* Left Info */}
-            <div className="lg:col-span-7 space-y-5 text-left flex flex-col">
-              <span className="bg-slate-100 text-slate-600 font-bold text-xs px-3 py-1.5 rounded-full w-fit shadow-sm">
-                Dành cho tổ chức
-              </span>
+            {/* ===================== LỢI ÍCH KHI THAM GIA ===================== */}
+            <section className="space-y-6 text-center py-2 sm:py-4">
               <div className="space-y-2">
-                <h3 className="text-2xl md:text-3xl font-extrabold text-slate-900 font-headline-md tracking-tight">
-                  Bạn là tổ chức phi lợi nhuận?
-                </h3>
-                <p className="text-sm text-slate-500 font-semibold leading-relaxed">
-                  Đăng tuyển tình nguyện viên dễ dàng, quản lý dự án hiệu quả và mở rộng tầm ảnh hưởng của tổ chức bạn tới hàng ngàn người trẻ nhiệt huyết trên nền tảng của chúng tôi.
+                <h2 className="text-2xl font-extrabold text-slate-900 font-headline-md">Lợi ích khi tham gia</h2>
+                <p className="text-slate-500 text-sm font-medium max-w-2xl mx-auto leading-relaxed">
+                  Volunteer Connect mang đến nền tảng toàn diện để bạn dễ dàng bắt đầu hành trình tạo tác động xã hội.
                 </p>
               </div>
 
-              {/* Checklist */}
-              <div className="space-y-3 pt-2">
-                <div className="flex items-center gap-2.5">
-                  <span className="material-symbols-outlined text-[#006d37] text-xl font-bold">check_circle</span>
-                  <span className="text-xs font-bold text-slate-700">Tiếp cận nguồn tình nguyện viên dồi dào</span>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+                {/* Card 1 */}
+                <div className="bg-white border border-slate-200/60 rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col items-center md:items-start text-center md:text-left">
+                  <div className="bg-[#e8f5e9] w-12 h-12 rounded-full flex items-center justify-center text-[#006d37] shrink-0 shadow-sm">
+                    <span className="material-symbols-outlined text-2xl font-bold">search</span>
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-900 mt-4">Tìm kiếm dễ dàng</h3>
+                  <p className="text-xs text-slate-500 font-semibold leading-relaxed mt-2">
+                    Khám phá và lọc các hoạt động tình nguyện theo sở thích cá nhân, kỹ năng chuyên môn, vị trí địa lý và thời gian rảnh rỗi của bạn chỉ với vài cú click.
+                  </p>
                 </div>
-                <div className="flex items-center gap-2.5">
-                  <span className="material-symbols-outlined text-[#006d37] text-xl font-bold">check_circle</span>
-                  <span className="text-xs font-bold text-slate-700">Công cụ quản lý sự kiện và người tham gia thông minh</span>
-                </div>
-                <div className="flex items-center gap-2.5">
-                  <span className="material-symbols-outlined text-[#006d37] text-xl font-bold">check_circle</span>
-                  <span className="text-xs font-bold text-slate-700">Cấp chứng nhận tự động</span>
-                </div>
-              </div>
 
-              {/* Action Button */}
-              <div className="pt-3">
-                <button
-                  onClick={() => window.location.hash = '#/request-organizer'}
-                  className="w-full sm:w-auto justify-center bg-[#121212] hover:bg-[#2c2c2c] text-white font-bold rounded-xl py-3.5 px-6 text-xs transition-all shadow hover:shadow-md flex items-center gap-2 cursor-pointer"
-                >
-                  Đăng ký tổ chức
-                  <span className="material-symbols-outlined text-sm font-bold">arrow_forward</span>
-                </button>
-              </div>
-            </div>
+                {/* Card 2 */}
+                <div className="bg-white border border-slate-200/60 rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col items-center md:items-start text-center md:text-left">
+                  <div className="bg-[#e8f5e9] w-12 h-12 rounded-full flex items-center justify-center text-[#006d37] shrink-0 shadow-sm">
+                    <span className="material-symbols-outlined text-2xl font-bold">trending_up</span>
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-900 mt-4">Theo dõi tác động</h3>
+                  <p className="text-xs text-slate-500 font-semibold leading-relaxed mt-2">
+                    Ghi nhận chính xác số giờ đóng góp, theo dõi các dự án đã tham gia và nhận chứng nhận để đánh giá trực quan mức độ ảnh hưởng của bạn đến cộng đồng.
+                  </p>
+                </div>
 
-            {/* Right Image */}
-            <div className="lg:col-span-5">
-              <div className="rounded-2xl overflow-hidden border border-slate-200 shadow-sm aspect-[4/3] bg-slate-50">
-                <img
-                  src="https://images.unsplash.com/photo-1531403009284-440f080d1e12?q=80&w=800"
-                  alt="Dành cho tổ chức"
-                  className="w-full h-full object-cover"
-                />
+                {/* Card 3 */}
+                <div className="bg-white border border-slate-200/60 rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col items-center md:items-start text-center md:text-left">
+                  <div className="bg-[#e8f5e9] w-12 h-12 rounded-full flex items-center justify-center text-[#006d37] shrink-0 shadow-sm">
+                    <span className="material-symbols-outlined text-2xl font-bold">groups</span>
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-900 mt-4">Cộng đồng năng động</h3>
+                  <p className="text-xs text-slate-500 font-semibold leading-relaxed mt-2">
+                    Kết nối sâu sắc với những cá nhân cùng chung chí hướng, trao đổi kinh nghiệm và xây dựng một mạng lưới quan hệ ý nghĩa, lâu dài.
+                  </p>
+                </div>
               </div>
-            </div>
-          </div>
-        </section>
+            </section>
+
+            {/* ===================== DÀNH CHO TỔ CHỨC ===================== */}
+            <section className="bg-white border border-slate-200/60 rounded-2xl sm:rounded-3xl p-5 sm:p-6 md:p-10 shadow-sm">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+                {/* Left Info */}
+                <div className="lg:col-span-7 space-y-5 text-left flex flex-col">
+                  <span className="bg-slate-100 text-slate-600 font-bold text-xs px-3 py-1.5 rounded-full w-fit shadow-sm">
+                    Dành cho tổ chức
+                  </span>
+                  <div className="space-y-2">
+                    <h3 className="text-2xl md:text-3xl font-extrabold text-slate-900 font-headline-md tracking-tight">
+                      Bạn là tổ chức phi lợi nhuận?
+                    </h3>
+                    <p className="text-sm text-slate-500 font-semibold leading-relaxed">
+                      Đăng tuyển tình nguyện viên dễ dàng, quản lý dự án hiệu quả và mở rộng tầm ảnh hưởng của tổ chức bạn tới hàng ngàn người trẻ nhiệt huyết trên nền tảng của chúng tôi.
+                    </p>
+                  </div>
+
+                  {/* Checklist */}
+                  <div className="space-y-3 pt-2">
+                    <div className="flex items-center gap-2.5">
+                      <span className="material-symbols-outlined text-[#006d37] text-xl font-bold">check_circle</span>
+                      <span className="text-xs font-bold text-slate-700">Tiếp cận nguồn tình nguyện viên dồi dào</span>
+                    </div>
+                    <div className="flex items-center gap-2.5">
+                      <span className="material-symbols-outlined text-[#006d37] text-xl font-bold">check_circle</span>
+                      <span className="text-xs font-bold text-slate-700">Công cụ quản lý sự kiện và người tham gia thông minh</span>
+                    </div>
+                    <div className="flex items-center gap-2.5">
+                      <span className="material-symbols-outlined text-[#006d37] text-xl font-bold">check_circle</span>
+                      <span className="text-xs font-bold text-slate-700">Cấp chứng nhận tự động</span>
+                    </div>
+                  </div>
+
+                  {/* Action Button */}
+                  <div className="pt-3">
+                    <button
+                      onClick={() => window.location.hash = '#/request-organizer'}
+                      className="w-full sm:w-auto justify-center bg-[#121212] hover:bg-[#2c2c2c] text-white font-bold rounded-xl py-3.5 px-6 text-xs transition-all shadow hover:shadow-md flex items-center gap-2 cursor-pointer"
+                    >
+                      Đăng ký tổ chức
+                      <span className="material-symbols-outlined text-sm font-bold">arrow_forward</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Right Image */}
+                <div className="lg:col-span-5">
+                  <div className="rounded-2xl overflow-hidden border border-slate-200 shadow-sm aspect-[4/3] bg-slate-50">
+                    <img
+                      src="https://images.unsplash.com/photo-1531403009284-440f080d1e12?q=80&w=800"
+                      alt="Dành cho tổ chức"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                </div>
+              </div>
+            </section>
+          </>
+        )}
 
         {/* ===================== BẢNG TIN CỘNG ĐỒNG ===================== */}
         <section id="community-feed-section" className="space-y-4">
-          <div className="border-b border-surface-variant/40 pb-4">
-            <h2 className="text-2xl font-bold text-on-surface font-headline-md">Bảng tin cộng đồng</h2>
-            <p className="text-on-surface-variant text-sm mt-1">Chia sẻ những khoảnh khắc, câu chuyện ý nghĩa và cùng nhau lan tỏa các chiến dịch tình nguyện</p>
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 border-b border-surface-variant/40 pb-4">
+            <div>
+              <h2 className="text-2xl font-bold text-on-surface font-headline-md">
+                {isPostsPage ? 'Tất cả bài đăng cộng đồng' : 'Bài đăng mới nhất'}
+              </h2>
+              <p className="text-on-surface-variant text-sm mt-1">
+                {isPostsPage
+                  ? 'Theo dõi toàn bộ chia sẻ, câu chuyện và khoảnh khắc tình nguyện trong cộng đồng'
+                  : '5 chia sẻ mới nhất từ cộng đồng Volunteer Connect'}
+              </p>
+            </div>
+            {!isPostsPage && filteredPosts.length > 5 && (
+              <a
+                href="#/posts"
+                className="inline-flex items-center justify-center gap-1.5 text-[#006d37] hover:underline font-bold text-sm"
+              >
+                Xem thêm bài đăng
+                <span className="material-symbols-outlined text-base">arrow_forward</span>
+              </a>
+            )}
           </div>
 
-          <div className="max-w-[850px] mx-auto w-full space-y-5">
-            {/* Search Box & Add Post Button */}
-            <div className="flex flex-col sm:flex-row gap-3 items-stretch">
-              <div className="flex-1 bg-white border border-slate-200/80 rounded-xl flex items-center gap-2.5 px-3.5 py-2 shadow-sm focus-within:border-[#006d37] focus-within:ring-2 focus-within:ring-[#006d37]/10 transition-all">
-                <span className="material-symbols-outlined text-slate-400 text-lg">search</span>
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  placeholder="Tìm kiếm hoặc lọc theo hashtag (ví dụ: MuaHeXanh)..."
-                  className="min-w-0 flex-1 bg-transparent text-slate-700 text-xs md:text-sm font-semibold focus:outline-none placeholder-slate-400"
-                />
-              </div>
-              {currentUser && (
-                <button
-                  onClick={() => setShowCreateModal(true)}
-                  className="w-full sm:w-auto shrink-0 bg-[#006d37] hover:bg-emerald-800 text-white font-bold text-xs md:text-sm px-5 py-2.5 rounded-xl transition-all shadow-sm cursor-pointer flex items-center justify-center gap-1.5"
-                >
-                  <span className="material-symbols-outlined text-base">add</span>
-                  Đăng bài viết mới
-                </button>
-              )}
-            </div>
+          <div className="w-full space-y-5">
+            {/* Search and post filters */}
+            {isPostsPage && (
+              <div className="mx-auto max-w-[1040px] rounded-2xl border border-slate-200/80 bg-white p-3 shadow-sm">
+                <div className={`grid gap-2.5 lg:items-center ${currentUser
+                  ? 'lg:grid-cols-[minmax(360px,1fr)_150px_164px_158px]'
+                  : 'lg:grid-cols-[minmax(360px,1fr)_150px]'
+                  }`}>
+                  <div className="min-w-0 bg-slate-50 border border-slate-200/80 rounded-xl flex items-center gap-2.5 px-3.5 py-2.5 focus-within:border-[#006d37] focus-within:ring-2 focus-within:ring-[#006d37]/10 transition-all">
+                    <span className="material-symbols-outlined text-slate-400 text-lg">search</span>
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={e => setSearchQuery(e.target.value)}
+                      placeholder="Tìm kiếm hoặc lọc theo hashtag..."
+                      className="min-w-0 flex-1 bg-transparent text-slate-700 text-xs md:text-sm font-semibold focus:outline-none placeholder-slate-400"
+                    />
+                  </div>
 
-            {/* Posts list */}
-            <div className="space-y-5">
+                  <label className="sr-only" htmlFor="post-field-filter">Lĩnh vực bài đăng</label>
+                  <select
+                    id="post-field-filter"
+                    value={fieldFilter}
+                    onChange={e => setFieldFilter(e.target.value)}
+                    className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-bold text-slate-700 focus:border-[#006d37] focus:outline-none focus:ring-2 focus:ring-[#006d37]/10"
+                  >
+                    <option value="All">Tất cả lĩnh vực</option>
+                    {POST_FIELD_OPTIONS.map(field => (
+                      <option key={field} value={field}>{field}</option>
+                    ))}
+                  </select>
+
+                  {currentUser ? (
+                    <div className="grid h-11 grid-cols-2 overflow-hidden rounded-xl border border-slate-200 bg-slate-50 p-1">
+                      <button
+                        type="button"
+                        onClick={() => setOwnerFilter('all')}
+                        className={`px-3 py-2 text-xs font-bold rounded-lg transition-all ${ownerFilter === 'all'
+                          ? 'bg-white text-[#006d37] shadow-sm'
+                          : 'text-slate-500 hover:text-slate-700'
+                          }`}
+                      >
+                        Tất cả
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setOwnerFilter('mine')}
+                        className={`px-3 py-2 text-xs font-bold rounded-lg transition-all ${ownerFilter === 'mine'
+                          ? 'bg-white text-[#006d37] shadow-sm'
+                          : 'text-slate-500 hover:text-slate-700'
+                          }`}
+                      >
+                        Bài của tôi
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="hidden lg:block" aria-hidden="true" />
+                  )}
+
+                  {currentUser && (
+                    <button
+                      onClick={() => setShowCreateModal(true)}
+                      className="h-11 w-full shrink-0 bg-[#006d37] hover:bg-emerald-800 text-white font-bold text-xs px-3 rounded-xl transition-all shadow-sm cursor-pointer flex items-center justify-center gap-1.5"
+                    >
+                      <span className="material-symbols-outlined text-base">add</span>
+                      Đăng bài viết mới
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div className="max-w-[850px] mx-auto w-full space-y-5">
+              {/* Posts list */}
+              <div className="space-y-5">
               {isDataLoading ? (
                 <>
                   {[1, 2].map(i => (
@@ -1632,7 +1725,13 @@ export const FeedView: React.FC = () => {
                           {post.hashtags.map((tag, idx) => (
                             <button
                               key={idx}
-                              onClick={() => setSearchQuery(tag)}
+                              onClick={() => {
+                                if (isPostsPage) {
+                                  setSearchQuery(tag);
+                                } else {
+                                  window.location.hash = '#/posts';
+                                }
+                              }}
                               className="bg-emerald-50 text-[#006d37] border border-emerald-100/50 px-2 py-0.5 rounded-lg text-xs font-bold hover:bg-emerald-100 transition-colors cursor-pointer"
                             >
                               #{tag}
@@ -1745,12 +1844,12 @@ export const FeedView: React.FC = () => {
                   );
                 })
               )}
-            </div>
+              </div>
 
-            {/* Community Feed Pagination */}
-            {isDataLoading ? (
-              <PaginationSkeleton count={4} className="pt-6" />
-            ) : totalFeedPages > 1 && (
+              {/* Community Feed Pagination */}
+              {isDataLoading ? (
+              isPostsPage ? <PaginationSkeleton count={4} className="pt-6" /> : null
+            ) : isPostsPage && totalFeedPages > 1 ? (
               <div className="flex flex-wrap justify-center gap-2 pt-6">
                 {Array.from({ length: totalFeedPages }, (_, i) => (
                   <button
@@ -1773,8 +1872,19 @@ export const FeedView: React.FC = () => {
                   </button>
                 ))}
               </div>
-            )}
+            ) : !isPostsPage && filteredPosts.length > 5 ? (
+              <div className="flex justify-center pt-4">
+                <a
+                  href="#/posts"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-white border border-emerald-100 px-5 py-2.5 text-sm font-bold text-[#006d37] shadow-sm transition-all hover:bg-[#f0f9f4]"
+                >
+                  Xem tất cả bài đăng
+                  <span className="material-symbols-outlined text-base">arrow_forward</span>
+                </a>
+              </div>
+              ) : null}
 
+            </div>
           </div>
         </section>
 
