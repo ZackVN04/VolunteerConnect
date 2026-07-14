@@ -112,11 +112,11 @@ export const ActivityListView: React.FC = () => {
   return (
     <div className="w-full bg-[#f8f9fa] min-h-screen pb-16">
       {/* Container */}
-      <div className="max-w-[1280px] mx-auto px-4 md:px-8 py-8 space-y-8 text-left">
+      <div className="max-w-[1280px] mx-auto px-3 sm:px-4 md:px-8 py-5 sm:py-8 space-y-6 sm:space-y-8 text-left">
 
         {/* Title Block */}
         <div>
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-on-surface font-headline-md">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-on-surface font-headline-md">
             Khám phá hoạt động
           </h1>
           <p className="text-on-surface-variant text-sm md:text-base mt-1.5">
@@ -125,8 +125,8 @@ export const ActivityListView: React.FC = () => {
         </div>
 
         {/* Filter Bar Card */}
-        <div className="bg-white border border-emerald-500/20 hover:border-emerald-500/40 focus-within:border-[#006d37] transition-all duration-300 ring-offset-2 focus-within:ring-2 focus-within:ring-[#006d37]/20 rounded-2xl shadow-sm p-6">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+        <div className="bg-white border border-emerald-500/20 hover:border-emerald-500/40 focus-within:border-[#006d37] transition-all duration-300 ring-offset-2 focus-within:ring-2 focus-within:ring-[#006d37]/20 rounded-2xl shadow-sm p-4 sm:p-6">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 sm:gap-6">
             {/* Search Input */}
             <div className="flex flex-col gap-2 md:col-span-6">
               <label className="text-xs font-bold text-on-surface uppercase tracking-wider">Tìm kiếm</label>
@@ -177,7 +177,7 @@ export const ActivityListView: React.FC = () => {
         </div>
 
         {/* Results Count & Reset Filter */}
-        <div className="flex justify-between items-center text-sm text-on-surface-variant">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 text-sm text-on-surface-variant">
           <span>Tìm thấy <strong>{USE_REAL_BACKEND ? totalServerCount : filteredActivities.length}</strong> hoạt động phù hợp</span>
           {(searchQuery || selectedCategory !== 'All' || statusFilter !== 'Open/Full') && (
             <button
@@ -199,7 +199,7 @@ export const ActivityListView: React.FC = () => {
             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#006d37]"></div>
           </div>
         ) : (USE_REAL_BACKEND ? paginatedActivities.length === 0 : filteredActivities.length === 0) ? (
-          <div className="bg-white rounded-3xl p-16 border border-surface-variant/40 text-center space-y-4 shadow-sm">
+          <div className="bg-white rounded-3xl p-8 sm:p-16 border border-surface-variant/40 text-center space-y-4 shadow-sm">
             <span className="material-symbols-outlined text-outline text-5xl">search_off</span>
             <p className="text-sm text-on-surface-variant italic">Không tìm thấy hoạt động nào phù hợp.</p>
           </div>
@@ -209,10 +209,10 @@ export const ActivityListView: React.FC = () => {
               <div
                 key={act._id}
                 onClick={() => { window.location.hash = `#/activity/${act._id}`; }}
-                className="bg-white border border-surface-variant/40 rounded-3xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col h-[550px] cursor-pointer"
+                className="bg-white border border-surface-variant/40 rounded-2xl sm:rounded-3xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col min-h-[520px] sm:min-h-[550px] cursor-pointer"
               >
                 {/* Image Section */}
-                <div className="relative h-[250px] w-full shrink-0">
+                <div className="relative h-[210px] sm:h-[250px] w-full shrink-0">
                   <img
                     src={act.image_url || 'https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=600'}
                     alt={act.title}
@@ -226,7 +226,7 @@ export const ActivityListView: React.FC = () => {
                 </div>
 
                 {/* Content */}
-                <div className="p-6 flex flex-col justify-between flex-grow">
+                <div className="p-4 sm:p-6 flex flex-col justify-between flex-grow">
                   <div className="space-y-4">
                     <h3 className="text-xl font-bold text-on-surface line-clamp-1 leading-tight">
                       {act.title}
@@ -255,14 +255,14 @@ export const ActivityListView: React.FC = () => {
                   </div>
 
                   {/* Card Footer */}
-                  <div className="border-t border-surface-variant/40 pt-4 flex items-center justify-between mt-auto">
+                  <div className="border-t border-surface-variant/40 pt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-auto">
                     <span className="bg-[#e8f5e9] text-[#006d37] font-bold text-xs px-3 py-1 rounded-full uppercase">
                       {act.status === 'Open' ? 'Đang mở' : act.status === 'Full' ? 'Đã đầy chỗ' : act.status}
                     </span>
                     <a
                       href={`#/activity/${act._id}`}
                       onClick={(e) => e.stopPropagation()}
-                      className="bg-[#006d37] hover:bg-emerald-800 text-white font-bold px-5 py-2.5 rounded-full transition-all text-sm shadow-sm"
+                      className="bg-[#006d37] hover:bg-emerald-800 text-white font-bold px-5 py-2.5 rounded-full transition-all text-sm shadow-sm text-center"
                     >
                       Xem chi tiết
                     </a>
@@ -275,7 +275,7 @@ export const ActivityListView: React.FC = () => {
 
         {/* Pagination Controls */}
         {totalPages > 1 && (
-          <div className="flex justify-center gap-2 pt-6">
+          <div className="flex flex-wrap justify-center gap-2 pt-6">
             {Array.from({ length: totalPages }, (_, i) => (
               <button
                 key={i}

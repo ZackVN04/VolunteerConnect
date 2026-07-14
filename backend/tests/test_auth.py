@@ -378,7 +378,7 @@ async def test_resend_otp_success(mock_send_email, async_client, pending_user):
     # Check that a new OTP was generated in DB and expiry reset to 5 mins
     updated_user = await User.get(pending_user.id)
     assert updated_user.otp_code != "123456"  # Generated new OTP code
-    assert updated_user.otp_expiry > datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(minutes=4)
+    assert updated_user.otp_expiry > datetime.now(timezone.utc) + timedelta(minutes=4)
 
 @pytest.mark.asyncio
 async def test_resend_otp_cooldown_error(async_client, pending_user):

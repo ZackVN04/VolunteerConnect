@@ -171,15 +171,15 @@ const CreatePostModal: React.FC<{ onClose: () => void; onSubmit: (title: string,
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fadeIn">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg border border-slate-200 overflow-y-auto max-h-[90vh] animate-scaleUp">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-3 sm:p-4 animate-fadeIn">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg border border-slate-200 overflow-y-auto max-h-[92dvh] sm:max-h-[90vh] animate-scaleUp">
         {/* Modal Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-slate-100">
           <h3 className="font-bold text-gray-900 text-xl">Tạo bài viết mới</h3>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-2xl leading-none font-bold cursor-pointer transition-colors">×</button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-5">
           {/* Local Error Alert */}
           {localError && (
             <div className="bg-red-50 border border-red-200 text-red-700 p-3.5 rounded-xl text-xs font-bold flex items-center gap-2 animate-fadeIn">
@@ -218,7 +218,7 @@ const CreatePostModal: React.FC<{ onClose: () => void; onSubmit: (title: string,
           <div className="space-y-1.5">
             <label className="block text-sm font-bold text-gray-700">Hình ảnh minh họa <span className="text-slate-400 font-normal">(Tùy chọn)</span></label>
             <div
-              className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all ${isDragging ? 'border-[#006d37] bg-[#e8f5e9]' : 'border-slate-200 hover:border-[#006d37]/50 hover:bg-slate-50'}`}
+              className={`border-2 border-dashed rounded-xl p-4 sm:p-6 text-center cursor-pointer transition-all ${isDragging ? 'border-[#006d37] bg-[#e8f5e9]' : 'border-slate-200 hover:border-[#006d37]/50 hover:bg-slate-50'}`}
               onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
               onDragLeave={() => setIsDragging(false)}
               onDrop={handleDrop}
@@ -237,7 +237,7 @@ const CreatePostModal: React.FC<{ onClose: () => void; onSubmit: (title: string,
               )}
               <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={e => handleFileChange(e.target.files?.[0] || null)} />
             </div>
-            <label className="flex items-center gap-2 mt-1 cursor-pointer w-fit" onClick={() => fileRef.current?.click()}>
+            <label className="flex flex-wrap items-center gap-2 mt-1 cursor-pointer w-full sm:w-fit" onClick={() => fileRef.current?.click()}>
               <span className="border border-slate-300 bg-slate-50 text-slate-700 text-xs font-semibold px-3 py-1 rounded-md hover:bg-slate-100 transition-colors cursor-pointer">Chọn Tệp</span>
               <span className="text-xs text-slate-400">{imagePreview ? '1 tệp đã chọn' : 'Không tệp nào được chọn'}</span>
             </label>
@@ -284,7 +284,7 @@ const CreatePostModal: React.FC<{ onClose: () => void; onSubmit: (title: string,
               />
             </div>
             {!videoFile && (
-              <label className="flex items-center gap-2 mt-1 cursor-pointer w-fit" onClick={() => videoRef.current?.click()}>
+              <label className="flex flex-wrap items-center gap-2 mt-1 cursor-pointer w-full sm:w-fit" onClick={() => videoRef.current?.click()}>
                 <span className="border border-slate-300 bg-slate-50 text-slate-700 text-xs font-semibold px-3 py-1 rounded-md hover:bg-slate-100 transition-colors cursor-pointer">Chọn Tệp Video</span>
                 <span className="text-xs text-slate-400">Không tệp nào được chọn</span>
               </label>
@@ -304,11 +304,11 @@ const CreatePostModal: React.FC<{ onClose: () => void; onSubmit: (title: string,
           </div>
 
           {/* Footer Buttons */}
-          <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
-            <button type="button" onClick={onClose} disabled={isSubmitting} className="px-6 py-2.5 border border-slate-200 text-slate-600 font-semibold rounded-xl hover:bg-slate-50 text-sm transition-colors cursor-pointer disabled:opacity-50">
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2 border-t border-slate-100">
+            <button type="button" onClick={onClose} disabled={isSubmitting} className="w-full sm:w-auto px-6 py-2.5 border border-slate-200 text-slate-600 font-semibold rounded-xl hover:bg-slate-50 text-sm transition-colors cursor-pointer disabled:opacity-50">
               Hủy bỏ
             </button>
-            <button type="submit" disabled={isSubmitting} className="px-6 py-2.5 bg-[#1a6c3a] hover:bg-[#155c30] text-white font-bold rounded-xl text-sm transition-all shadow-sm cursor-pointer disabled:opacity-50">
+            <button type="submit" disabled={isSubmitting} className="w-full sm:w-auto px-6 py-2.5 bg-[#1a6c3a] hover:bg-[#155c30] text-white font-bold rounded-xl text-sm transition-all shadow-sm cursor-pointer disabled:opacity-50">
               {isSubmitting ? 'Đang đăng...' : 'Đăng bài viết'}
             </button>
           </div>
@@ -397,15 +397,15 @@ const EditPostModal: React.FC<{
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fadeIn">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg border border-slate-200 overflow-y-auto max-h-[90vh] animate-scaleUp">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-3 sm:p-4 animate-fadeIn">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg border border-slate-200 overflow-y-auto max-h-[92dvh] sm:max-h-[90vh] animate-scaleUp">
         {/* Modal Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-slate-100">
           <h3 className="font-bold text-gray-900 text-xl">Chỉnh sửa bài viết</h3>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-2xl leading-none font-bold cursor-pointer transition-colors">×</button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-5">
           {/* Local Error Alert */}
           {localError && (
             <div className="bg-red-50 border border-red-200 text-red-700 p-3.5 rounded-xl text-xs font-bold flex items-center gap-2 animate-fadeIn">
@@ -471,7 +471,7 @@ const EditPostModal: React.FC<{
               <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={e => handleFileChange(e.target.files?.[0] || null)} />
             </div>
             {imagePreview && (
-              <label className="flex items-center gap-2 mt-1 cursor-pointer w-fit" onClick={() => fileRef.current?.click()}>
+              <label className="flex items-center gap-2 mt-1 cursor-pointer w-full sm:w-fit" onClick={() => fileRef.current?.click()}>
                 <span className="border border-slate-300 bg-slate-50 text-slate-700 text-xs font-semibold px-3 py-1 rounded-md hover:bg-slate-100 transition-colors cursor-pointer">Thay đổi ảnh</span>
               </label>
             )}
@@ -490,11 +490,11 @@ const EditPostModal: React.FC<{
           </div>
 
           {/* Footer Buttons */}
-          <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
-            <button type="button" onClick={onClose} disabled={isSubmitting} className="px-6 py-2.5 border border-slate-200 text-slate-600 font-semibold rounded-xl hover:bg-slate-50 text-sm transition-colors cursor-pointer disabled:opacity-50">
+          <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2 border-t border-slate-100">
+            <button type="button" onClick={onClose} disabled={isSubmitting} className="w-full sm:w-auto px-6 py-2.5 border border-slate-200 text-slate-600 font-semibold rounded-xl hover:bg-slate-50 text-sm transition-colors cursor-pointer disabled:opacity-50">
               Hủy bỏ
             </button>
-            <button type="submit" disabled={isSubmitting} className="px-6 py-2.5 bg-[#1a6c3a] hover:bg-[#155c30] text-white font-bold rounded-xl text-sm transition-all shadow-sm cursor-pointer disabled:opacity-50">
+            <button type="submit" disabled={isSubmitting} className="w-full sm:w-auto px-6 py-2.5 bg-[#1a6c3a] hover:bg-[#155c30] text-white font-bold rounded-xl text-sm transition-all shadow-sm cursor-pointer disabled:opacity-50">
               {isSubmitting ? 'Đang lưu...' : 'Lưu thay đổi'}
             </button>
           </div>
@@ -704,29 +704,29 @@ export const FeedView: React.FC = () => {
 
   return (
     <div className="w-full bg-[#f8f9fa] min-h-screen pb-16 text-left antialiased">
-      <div className="max-w-[1280px] mx-auto px-4 md:px-8 py-8 space-y-12">
+      <div className="max-w-[1280px] mx-auto px-3 sm:px-4 md:px-8 py-5 sm:py-8 space-y-8 sm:space-y-12">
 
         {/* ===================== HERO SECTION ===================== */}
-        <section className="bg-[#f0f9f4] rounded-[2rem] p-8 md:p-12 flex flex-col lg:flex-row items-center justify-between gap-8">
-          <div className="lg:w-1/2 space-y-6">
-            <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-on-surface leading-tight font-headline-md">
+        <section className="bg-[#f0f9f4] rounded-2xl sm:rounded-[2rem] p-5 sm:p-8 md:p-12 flex flex-col lg:flex-row items-center justify-between gap-6 sm:gap-8">
+          <div className="lg:w-1/2 space-y-5 sm:space-y-6 min-w-0">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-on-surface leading-tight font-headline-md">
               Kết nối sức trẻ<br />
               <span className="text-[#006d37]">Lan tỏa giá trị cộng đồng</span>
             </h1>
-            <p className="text-on-surface-variant text-base md:text-lg leading-relaxed">
+            <p className="text-on-surface-variant text-sm sm:text-base md:text-lg leading-relaxed">
               Volunteer Connect mang đến không gian nơi mỗi người đều có thể đóng góp cho xã hội. Khám phá các hoạt động tình nguyện uy tín, đồng hành cùng những con người cùng chí hướng và lưu giữ hành trình tạo nên những thay đổi tích cực.
             </p>
-            <div className="flex flex-wrap gap-4">
-              <a href="#/activities" className="bg-[#006d37] hover:bg-emerald-800 text-white font-bold px-6 py-3 rounded-xl transition-all shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:gap-4">
+              <a href="#/activities" className="w-full sm:w-auto text-center bg-[#006d37] hover:bg-emerald-800 text-white font-bold px-6 py-3 rounded-xl transition-all shadow-sm">
                 Khám phá hoạt động
               </a>
-              <a href="#/profile" className="bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-bold px-6 py-3 rounded-xl transition-all shadow-sm">
+              <a href="#/profile" className="w-full sm:w-auto text-center bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-bold px-6 py-3 rounded-xl transition-all shadow-sm">
                 Tài khoản của tôi
               </a>
             </div>
           </div>
           <div className="lg:w-1/2 w-full flex justify-center">
-            <div className="w-full max-w-[500px] h-[300px] rounded-3xl overflow-hidden shadow-md relative group">
+            <div className="w-full max-w-[500px] h-56 sm:h-[300px] rounded-2xl sm:rounded-3xl overflow-hidden shadow-md relative group">
               {bannerImages.map((img, idx) => (
                 <img
                   key={idx}
@@ -752,14 +752,14 @@ export const FeedView: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setActiveImageIndex((prev) => (prev - 1 + bannerImages.length) % bannerImages.length)}
-                className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 z-20 cursor-pointer"
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center transition-all opacity-100 sm:opacity-0 group-hover:opacity-100 z-20 cursor-pointer"
               >
                 <span className="material-symbols-outlined text-base">chevron_left</span>
               </button>
               <button
                 type="button"
                 onClick={() => setActiveImageIndex((prev) => (prev + 1) % bannerImages.length)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 z-20 cursor-pointer"
+                className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center transition-all opacity-100 sm:opacity-0 group-hover:opacity-100 z-20 cursor-pointer"
               >
                 <span className="material-symbols-outlined text-base">chevron_right</span>
               </button>
@@ -768,17 +768,17 @@ export const FeedView: React.FC = () => {
         </section>
 
         {/* ===================== STATS ===================== */}
-        <section className="grid grid-cols-2 md:grid-cols-4 gap-6">
+        <section className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6">
           {[
             { value: totalCampaigns, label: 'Tổng chiến dịch' },
             { value: totalVolunteers, label: 'Tình nguyện viên' },
             { value: totalOrganizers, label: 'Nhà tổ chức' },
             { value: totalCompleted, label: 'Đã hoàn thành' },
           ].map((s, i) => (
-            <div key={i} className="bg-white border border-surface-variant/40 rounded-2xl p-6 text-center shadow-sm">
-              <h3 className="text-4xl font-bold text-[#006d37] flex items-center justify-center">
+            <div key={i} className="bg-white border border-surface-variant/40 rounded-2xl p-4 sm:p-6 text-center shadow-sm">
+              <h3 className="text-3xl sm:text-4xl font-bold text-[#006d37] flex items-center justify-center">
                 <AnimatedCounter target={s.value} />
-                {s.value > 0 && <span className="text-3xl ml-0.5 text-[#006d37]/80">+</span>}
+                {s.value > 0 && <span className="text-2xl sm:text-3xl ml-0.5 text-[#006d37]/80">+</span>}
               </h3>
               <p className="text-on-surface-variant font-semibold text-sm mt-1">{s.label}</p>
             </div>
@@ -787,7 +787,7 @@ export const FeedView: React.FC = () => {
 
         {/* ===================== FEATURED ACTIVITIES ===================== */}
         <section className="space-y-6">
-          <div className="flex justify-between items-end border-b border-surface-variant/40 pb-4">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-3 border-b border-surface-variant/40 pb-4">
             <div className="space-y-1">
               <h2 className="text-2xl font-bold text-on-surface font-headline-md">Hoạt động nổi bật</h2>
               <p className="text-on-surface-variant text-sm">Tham gia các hoạt động xã hội đang diễn ra gần bạn</p>
@@ -846,7 +846,7 @@ export const FeedView: React.FC = () => {
                           </div>
                         </div>
                       </div>
-                      <div className="flex gap-3 pt-2">
+                      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-2">
                         <a href={`#/activity/${act._id}`} onClick={(e) => e.stopPropagation()} className="flex-1 text-center bg-[#006d37] hover:bg-emerald-800 text-white font-bold py-2 rounded-xl text-xs transition-all">
                           Đang mở đăng ký
                         </a>
@@ -861,7 +861,7 @@ export const FeedView: React.FC = () => {
 
               {/* Pagination */}
               {totalPages > 1 && (
-                <div className="flex justify-center gap-2 pt-2">
+                <div className="flex flex-wrap justify-center gap-2 pt-2">
                   {Array.from({ length: totalPages }, (_, i) => (
                     <button
                       key={i}
@@ -878,7 +878,7 @@ export const FeedView: React.FC = () => {
         </section>
 
         {/* ===================== LỢI ÍCH KHI THAM GIA ===================== */}
-        <section className="space-y-6 text-center py-4">
+        <section className="space-y-6 text-center py-2 sm:py-4">
           <div className="space-y-2">
             <h2 className="text-2xl font-extrabold text-slate-900 font-headline-md">Lợi ích khi tham gia</h2>
             <p className="text-slate-500 text-sm font-medium max-w-2xl mx-auto leading-relaxed">
@@ -886,9 +886,9 @@ export const FeedView: React.FC = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
             {/* Card 1 */}
-            <div className="bg-white border border-slate-200/60 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col items-center md:items-start text-center md:text-left">
+            <div className="bg-white border border-slate-200/60 rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col items-center md:items-start text-center md:text-left">
               <div className="bg-[#e8f5e9] w-12 h-12 rounded-full flex items-center justify-center text-[#006d37] shrink-0 shadow-sm">
                 <span className="material-symbols-outlined text-2xl font-bold">search</span>
               </div>
@@ -899,7 +899,7 @@ export const FeedView: React.FC = () => {
             </div>
 
             {/* Card 2 */}
-            <div className="bg-white border border-slate-200/60 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col items-center md:items-start text-center md:text-left">
+            <div className="bg-white border border-slate-200/60 rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col items-center md:items-start text-center md:text-left">
               <div className="bg-[#e8f5e9] w-12 h-12 rounded-full flex items-center justify-center text-[#006d37] shrink-0 shadow-sm">
                 <span className="material-symbols-outlined text-2xl font-bold">trending_up</span>
               </div>
@@ -910,7 +910,7 @@ export const FeedView: React.FC = () => {
             </div>
 
             {/* Card 3 */}
-            <div className="bg-white border border-slate-200/60 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col items-center md:items-start text-center md:text-left">
+            <div className="bg-white border border-slate-200/60 rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col items-center md:items-start text-center md:text-left">
               <div className="bg-[#e8f5e9] w-12 h-12 rounded-full flex items-center justify-center text-[#006d37] shrink-0 shadow-sm">
                 <span className="material-symbols-outlined text-2xl font-bold">groups</span>
               </div>
@@ -923,7 +923,7 @@ export const FeedView: React.FC = () => {
         </section>
 
         {/* ===================== DÀNH CHO TỔ CHỨC ===================== */}
-        <section className="bg-white border border-slate-200/60 rounded-3xl p-6 md:p-10 shadow-sm">
+        <section className="bg-white border border-slate-200/60 rounded-2xl sm:rounded-3xl p-5 sm:p-6 md:p-10 shadow-sm">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
             {/* Left Info */}
             <div className="lg:col-span-7 space-y-5 text-left flex flex-col">
@@ -959,7 +959,7 @@ export const FeedView: React.FC = () => {
               <div className="pt-3">
                 <button
                   onClick={() => window.location.hash = '#/request-organizer'}
-                  className="bg-[#121212] hover:bg-[#2c2c2c] text-white font-bold rounded-xl py-3.5 px-6 text-xs transition-all shadow hover:shadow-md flex items-center gap-2 cursor-pointer"
+                  className="w-full sm:w-auto justify-center bg-[#121212] hover:bg-[#2c2c2c] text-white font-bold rounded-xl py-3.5 px-6 text-xs transition-all shadow hover:shadow-md flex items-center gap-2 cursor-pointer"
                 >
                   Đăng ký tổ chức
                   <span className="material-symbols-outlined text-sm font-bold">arrow_forward</span>
@@ -997,13 +997,13 @@ export const FeedView: React.FC = () => {
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                   placeholder="Tìm kiếm hoặc lọc theo hashtag (ví dụ: MuaHeXanh)..."
-                  className="flex-1 bg-transparent text-slate-700 text-xs md:text-sm font-semibold focus:outline-none placeholder-slate-400"
+                  className="min-w-0 flex-1 bg-transparent text-slate-700 text-xs md:text-sm font-semibold focus:outline-none placeholder-slate-400"
                 />
               </div>
               {currentUser && (
                 <button
                   onClick={() => setShowCreateModal(true)}
-                  className="shrink-0 bg-[#006d37] hover:bg-emerald-800 text-white font-bold text-xs md:text-sm px-5 py-2.5 rounded-xl transition-all shadow-sm cursor-pointer flex items-center justify-center gap-1.5"
+                  className="w-full sm:w-auto shrink-0 bg-[#006d37] hover:bg-emerald-800 text-white font-bold text-xs md:text-sm px-5 py-2.5 rounded-xl transition-all shadow-sm cursor-pointer flex items-center justify-center gap-1.5"
                 >
                   <span className="material-symbols-outlined text-base">add</span>
                   Đăng bài viết mới
@@ -1045,15 +1045,15 @@ export const FeedView: React.FC = () => {
                   return (
                     <div
                       key={post._id}
-                      className={`bg-white border border-slate-200/80 rounded-2xl shadow-sm p-6 space-y-4 hover:shadow-md transition-all relative ${isDeleting ? 'opacity-50 pointer-events-none' : ''}`}
+                      className={`bg-white border border-slate-200/80 rounded-2xl shadow-sm p-4 sm:p-6 space-y-4 hover:shadow-md transition-all relative ${isDeleting ? 'opacity-50 pointer-events-none' : ''}`}
                     >
                       {/* Post Header */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex min-w-0 items-center gap-3">
                           <PostAvatar name={authorName} src={avatarUrl} size={44} />
-                          <div>
-                            <p className="font-bold text-sm text-slate-800">{authorName}</p>
-                            <div className="flex items-center gap-1.5">
+                          <div className="min-w-0">
+                            <p className="font-bold text-sm text-slate-800 break-words">{authorName}</p>
+                            <div className="flex flex-wrap items-center gap-1.5">
                               <span className="text-[10px] font-bold uppercase tracking-wider text-[#006d37]">{authorRole}</span>
                               <span className="text-slate-300 text-[10px]">•</span>
                               <span className="text-[10px] text-slate-400 font-semibold">{formatRelativeTime(post.created_at)}</span>
@@ -1064,7 +1064,7 @@ export const FeedView: React.FC = () => {
 
                         {/* 3-dot menu for owner/admin */}
                         {canDelete && (
-                          <div className="relative">
+                          <div className="relative shrink-0">
                             <button
                               onClick={() => setOpenMenuPostId(openMenuPostId === post._id ? null : post._id)}
                               className="p-1.5 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
@@ -1107,11 +1107,11 @@ export const FeedView: React.FC = () => {
 
                       {/* Post Title (if exists) */}
                       {displayTitle && (
-                        <h3 className="font-bold text-base text-slate-900 leading-snug">{displayTitle}</h3>
+                        <h3 className="font-bold text-base text-slate-900 leading-snug break-words">{displayTitle}</h3>
                       )}
 
                       {/* Post Body */}
-                      <p className="text-slate-700 text-sm leading-relaxed whitespace-pre-line font-medium">{displayBody}</p>
+                      <p className="text-slate-700 text-sm leading-relaxed whitespace-pre-line font-medium break-words">{displayBody}</p>
 
                       {/* Post video */}
                       {post.video_url && (
@@ -1149,10 +1149,10 @@ export const FeedView: React.FC = () => {
                       )}
 
                       {/* Actions: Like, Comment, Share */}
-                      <div className="flex items-center gap-3 text-xs text-slate-500 font-bold border-t border-slate-100 pt-3">
+                      <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-slate-500 font-bold border-t border-slate-100 pt-3">
                         <button
                           onClick={() => likePost(post._id)}
-                          className={`flex items-center gap-1.5 py-1.5 px-3 rounded-xl hover:bg-slate-50 transition-all cursor-pointer ${isLiked ? 'text-rose-500 bg-rose-50' : 'hover:text-slate-700'}`}
+                          className={`flex flex-1 sm:flex-none min-w-[8rem] items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl hover:bg-slate-50 transition-all cursor-pointer ${isLiked ? 'text-rose-500 bg-rose-50' : 'hover:text-slate-700'}`}
                         >
                           <span className="material-symbols-outlined text-lg pointer-events-none" style={{ fontVariationSettings: isLiked ? "'FILL' 1" : "'FILL' 0", color: isLiked ? '#f43f5e' : 'inherit' }}>favorite</span>
                           <span>{isLiked ? 'Đã thích' : 'Thích'} ({post.like_count || 0})</span>
@@ -1160,7 +1160,7 @@ export const FeedView: React.FC = () => {
 
                         <button
                           onClick={() => setShowCommentsPostId(showCommentsPostId === post._id ? null : post._id)}
-                          className="flex items-center gap-1.5 py-1.5 px-3 rounded-xl hover:bg-slate-50 hover:text-slate-700 transition-all cursor-pointer"
+                          className="flex flex-1 sm:flex-none min-w-[8rem] items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl hover:bg-slate-50 hover:text-slate-700 transition-all cursor-pointer"
                         >
                           <span className="material-symbols-outlined text-lg">chat_bubble</span>
                           <span>Bình luận ({post.comment_count || 0})</span>
@@ -1185,7 +1185,7 @@ export const FeedView: React.FC = () => {
                               console.log('Chia sẻ bị hủy hoặc gặp lỗi:', err);
                             }
                           }}
-                          className="flex items-center gap-1.5 py-1.5 px-3 rounded-xl hover:bg-slate-50 hover:text-slate-700 transition-all cursor-pointer"
+                          className="flex flex-1 sm:flex-none min-w-[8rem] items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl hover:bg-slate-50 hover:text-slate-700 transition-all cursor-pointer"
                         >
                           <span className="material-symbols-outlined text-lg">share</span>
                           <span>Chia sẻ ({post.share_count || 0})</span>
@@ -1197,9 +1197,9 @@ export const FeedView: React.FC = () => {
                         <div className="border-t border-slate-100 pt-4 space-y-4 animate-fadeIn text-left">
                           {/* Comment Input */}
                           {currentUser ? (
-                            <div className="flex items-start gap-3">
+                            <div className="flex items-start gap-3 min-w-0">
                               <PostAvatar name={currentUser.profile.full_name} src={currentUser.profile.avatar_url} size={36} />
-                              <div className="flex-1 flex gap-2">
+                              <div className="flex-1 min-w-0 flex flex-col sm:flex-row gap-2">
                                 <input
                                   type="text"
                                   placeholder="Viết bình luận của bạn..."
@@ -1213,11 +1213,11 @@ export const FeedView: React.FC = () => {
                                       handleAddComment(post._id);
                                     }
                                   }}
-                                  className="flex-1 px-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] bg-slate-50/50 font-semibold"
+                                  className="min-w-0 flex-1 px-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[#006d37] focus:ring-1 focus:ring-[#006d37] bg-slate-50/50 font-semibold"
                                 />
                                 <button
                                   onClick={() => handleAddComment(post._id)}
-                                  className="bg-[#006d37] hover:bg-[#005027] text-white font-bold text-xs px-4 py-2 rounded-xl transition-all shadow-sm cursor-pointer"
+                                  className="w-full sm:w-auto bg-[#006d37] hover:bg-[#005027] text-white font-bold text-xs px-4 py-2 rounded-xl transition-all shadow-sm cursor-pointer"
                                 >
                                   Gửi
                                 </button>
@@ -1233,14 +1233,14 @@ export const FeedView: React.FC = () => {
                               <p className="text-xs text-slate-400 italic">Chưa có bình luận nào cho bài viết này.</p>
                             ) : (
                               (commentsMap[post._id] || []).map((comment) => (
-                                <div key={comment._id} className="flex gap-3 text-xs bg-slate-50/50 p-3 rounded-xl border border-slate-100/50">
+                                <div key={comment._id} className="flex gap-3 min-w-0 text-xs bg-slate-50/50 p-3 rounded-xl border border-slate-100/50">
                                   <PostAvatar name={comment.author_name} src={comment.author_avatar} size={32} />
-                                  <div className="flex-1 space-y-1">
-                                    <div className="flex items-center justify-between">
-                                      <span className="font-bold text-slate-800">{comment.author_name}</span>
+                                  <div className="flex-1 min-w-0 space-y-1">
+                                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                                      <span className="font-bold text-slate-800 break-words">{comment.author_name}</span>
                                       <span className="text-[10px] text-slate-400 font-semibold">{formatRelativeTime(comment.created_at)}</span>
                                     </div>
-                                    <p className="text-slate-600 font-semibold leading-relaxed">{comment.content}</p>
+                                    <p className="text-slate-600 font-semibold leading-relaxed break-words">{comment.content}</p>
                                   </div>
                                 </div>
                               ))
@@ -1258,7 +1258,7 @@ export const FeedView: React.FC = () => {
             {isDataLoading ? (
               <PaginationSkeleton count={4} className="pt-6" />
             ) : totalFeedPages > 1 && (
-              <div className="flex justify-center gap-2 pt-6">
+              <div className="flex flex-wrap justify-center gap-2 pt-6">
                 {Array.from({ length: totalFeedPages }, (_, i) => (
                   <button
                     key={i}

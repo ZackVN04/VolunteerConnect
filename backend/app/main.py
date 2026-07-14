@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from beanie import init_beanie
 from contextlib import asynccontextmanager
+from datetime import timezone
 
 from app.core.config.settings import settings
 from app.features.users.models import User
@@ -47,7 +48,7 @@ async def lifespan(app: FastAPI):
     # Bỏ qua lỗi tương thích phiên bản giữa Beanie và Motor (MotorDatabase object is not callable)
     AsyncIOMotorClient.append_metadata = lambda self, *args, **kwargs: None
     
-    client = AsyncIOMotorClient(settings.MONGO_URI)
+    client = AsyncIOMotorClient(settings.MONGO_URI, tz_aware=True, tzinfo=timezone.utc)
     try:
         db = client.get_default_database()
     except Exception:
