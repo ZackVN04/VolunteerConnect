@@ -108,11 +108,11 @@ export const AboutUsView: React.FC = () => {
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
                             <div>
                                 <span className="text-[#006d37] font-bold uppercase tracking-widest mb-3 block text-xs">Câu chuyện của chúng tôi</span>
-                                <h2 className="text-2xl md:text-3xl font-bold text-[#1a56db] mb-4 font-headline-md">Xóa nhòa khoảng cách, lan tỏa yêu thương</h2>
-                                <p className="text-gray-600 mb-6 leading-relaxed">
+                                <h2 className="text-[1.35rem] sm:text-2xl md:text-[1.65rem] lg:text-3xl font-bold text-[#1a56db] mb-4 font-headline-md whitespace-nowrap tracking-tight">Hành trình kết nối cộng đồng</h2>
+                                <p className="text-gray-600 mb-6 leading-relaxed text-justify">
                                     Volunteer Connector bắt đầu từ một ý tưởng đơn giản: Làm sao để việc giúp đỡ người khác trở nên dễ dàng và minh bạch hơn? Chúng tôi nhận thấy có hàng ngàn bạn trẻ khao khát cống hiến nhưng không biết bắt đầu từ đâu, trong khi các tổ chức xã hội lại gặp khó khăn trong việc tìm kiếm nguồn lực tin cậy.
                                 </p>
-                                <p className="text-gray-600 leading-relaxed">
+                                <p className="text-gray-600 leading-relaxed text-justify">
                                     Đó là lý do chúng tôi xây dựng nền tảng này — một không gian nơi mỗi hành động nhỏ bé đều được trân trọng và ghi nhận, nơi tình nguyện không chỉ là công việc, mà là một hành trình khám phá bản thân và kết nối cộng đồng.
                                 </p>
                             </div>
@@ -483,8 +483,9 @@ export const AboutUsView: React.FC = () => {
                     </section>
 
                     {/* 8. Call to Action */}
-                    <section className="relative bg-gradient-to-br from-[#1a56db] to-[#1e40af] rounded-2xl p-8 md:p-10 text-center text-white shadow-xl overflow-hidden">
-                        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5"></div>
+                    <section className="relative rounded-2xl bg-gradient-to-br from-[#1a56db] via-[#2563eb] to-[#006d37] overflow-hidden p-8 md:p-10 text-center text-white shadow-xl">
+                        <div className="absolute inset-0 bg-white/10 mix-blend-overlay"></div>
+                        <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-30"></div>
                         <div className="relative z-10">
                             <h2 className="text-2xl font-bold mb-3 font-headline-md">Bạn đã sẵn sàng tạo nên sự khác biệt?</h2>
                             <p className="text-base mb-8 text-white/90 max-w-2xl mx-auto leading-relaxed">Hãy bắt đầu hành trình của bạn ngay hôm nay, đóng góp những giá trị nhỏ bé để tạo nên một cộng đồng vững mạnh.</p>
